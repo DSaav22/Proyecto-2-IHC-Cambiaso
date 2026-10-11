@@ -28,6 +28,7 @@ const toDateString = (date: Date) => date.toISOString().slice(0, 10);
 function serialize(plan: StoredPlan) {
   return {
     id: plan.id,
+    titulo: plan.titulo,
     description: plan.description,
     dueDate: toDateString(plan.dueDate),
     estado: plan.estado,

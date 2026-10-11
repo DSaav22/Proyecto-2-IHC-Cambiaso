@@ -41,6 +41,7 @@ export class ForbiddenPlanActionError extends Error {
 
 export interface StoredPlan {
   id: string;
+  titulo: string;
   description: string;
   dueDate: Date;
   estado: string;
@@ -89,6 +90,7 @@ export function createPrismaPlansStore(): PlansStore {
       });
       return plans.map((p) => ({
         id: p.id,
+        titulo: p.titulo,
         description: p.description,
         dueDate: p.dueDate,
         estado: p.estado,
@@ -106,6 +108,7 @@ export function createPrismaPlansStore(): PlansStore {
           const plan = await prisma.plan.create({
             data: {
               userId,
+              titulo: data.titulo,
               description: data.description,
               dueDate: new Date(`${data.dueDate}T00:00:00.000Z`),
               estado: INITIAL_PLAN_STATE,
@@ -117,6 +120,7 @@ export function createPrismaPlansStore(): PlansStore {
           });
           return {
             id: plan.id,
+            titulo: plan.titulo,
             description: plan.description,
             dueDate: plan.dueDate,
             estado: plan.estado,
@@ -161,6 +165,7 @@ export function createPrismaPlansStore(): PlansStore {
       });
       return {
         id: plan.id,
+        titulo: plan.titulo,
         description: plan.description,
         dueDate: plan.dueDate,
         estado: plan.estado,
@@ -191,12 +196,14 @@ export function createPrismaPlansStore(): PlansStore {
       const updated = await prisma.plan.update({
         where: { id: planId },
         data: {
+          titulo: data.titulo,
           description: data.description,
           dueDate: new Date(`${data.dueDate}T00:00:00.000Z`),
         },
       });
       return {
         id: updated.id,
+        titulo: updated.titulo,
         description: updated.description,
         dueDate: updated.dueDate,
         estado: updated.estado,
@@ -228,6 +235,7 @@ export function createPrismaPlansStore(): PlansStore {
       });
       return {
         id: existing.id,
+        titulo: existing.titulo,
         description: existing.description,
         dueDate: existing.dueDate,
         estado: next.estado,
@@ -259,6 +267,7 @@ export function createPrismaPlansStore(): PlansStore {
       });
       return {
         id: existing.id,
+        titulo: existing.titulo,
         description: existing.description,
         dueDate: existing.dueDate,
         estado: next.estado,

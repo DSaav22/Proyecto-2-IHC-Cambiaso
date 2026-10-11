@@ -11,6 +11,7 @@ export * from "./Navbar";
 export * from "./Notices";
 export * from "./PlanCard";
 export * from "./PlanDialog";
+export * from "./PlanFiltersBar";
 export * from "./PlanForm";
 export * from "./PlanList";
 export * from "./ProfileMenu";

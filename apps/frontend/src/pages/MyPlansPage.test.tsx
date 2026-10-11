@@ -29,7 +29,8 @@ const createPlan = vi.mocked(api.createPlan);
 
 const saved: Plan = {
   id: "3f2a9c1e-7b4d-4e8a-9c21-5d6e7f8a9b0c",
-  description: "Cena de grupo",
+  titulo: "Cena de grupo",
+  description: "Cena de grupo con amigos",
   dueDate: "2026-12-24",
   estado: "borrador",
   createdAt: "2026-01-01T00:00:00.000Z",
@@ -37,7 +38,8 @@ const saved: Plan = {
 
 async function createViaForm() {
   await userEvent.click(screen.getByRole("button", { name: "Nuevo plan" }));
-  await userEvent.type(screen.getByLabelText("Descripción"), "Cena de grupo");
+  await userEvent.type(screen.getByLabelText("Título"), "Cena de grupo");
+  await userEvent.type(screen.getByLabelText("Descripción"), "Cena de grupo con amigos");
   await userEvent.type(screen.getByLabelText("Fecha límite"), "2026-12-24");
   await userEvent.click(screen.getByRole("button", { name: "Crear plan" }));
 }
@@ -72,7 +74,8 @@ describe("MyPlansPage", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Plan creado");
     expect(screen.queryByLabelText("ID del plan")).not.toBeInTheDocument();
     expect(createPlan).toHaveBeenCalledWith({
-      description: "Cena de grupo",
+      titulo: "Cena de grupo",
+      description: "Cena de grupo con amigos",
       dueDate: "2026-12-24",
     });
     expect(listPlans).toHaveBeenCalledTimes(1);
@@ -154,7 +157,8 @@ describe("MyPlansPage", () => {
     await waitFor(() =>
       expect(screen.getByText("Ingresa una fecha válida", { selector: "p" })).toBeInTheDocument(),
     );
-    expect(screen.getByLabelText("Descripción")).toHaveValue("Cena de grupo");
+    expect(screen.getByLabelText("Título")).toHaveValue("Cena de grupo");
+    expect(screen.getByLabelText("Descripción")).toHaveValue("Cena de grupo con amigos");
     // The modal hides the page behind it from the accessibility tree, hence `hidden: true`.
     expect(screen.getAllByRole("article", { hidden: true })).toHaveLength(1);
   });
@@ -174,6 +178,7 @@ describe("MyPlansPage", () => {
     const updateMock = vi.mocked(api.updatePlan);
     const updatedPlan: Plan = {
       ...saved,
+      titulo: "Cena modificada",
       description: "Cena de grupo modificada",
       dueDate: "2026-12-25",
     };
@@ -187,9 +192,12 @@ describe("MyPlansPage", () => {
 
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("Editar plan");
-    expect(screen.getByLabelText("Descripción")).toHaveValue("Cena de grupo");
+    expect(screen.getByLabelText("Título")).toHaveValue("Cena de grupo");
+    expect(screen.getByLabelText("Descripción")).toHaveValue("Cena de grupo con amigos");
     expect(screen.getByLabelText("Fecha límite")).toHaveValue("2026-12-24");
 
+    await userEvent.clear(screen.getByLabelText("Título"));
+    await userEvent.type(screen.getByLabelText("Título"), "Cena modificada");
     await userEvent.clear(screen.getByLabelText("Descripción"));
     await userEvent.type(screen.getByLabelText("Descripción"), "Cena de grupo modificada");
     await userEvent.clear(screen.getByLabelText("Fecha límite"));
@@ -198,6 +206,7 @@ describe("MyPlansPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
     expect(updateMock).toHaveBeenCalledWith(saved.id, {
+      titulo: "Cena modificada",
       description: "Cena de grupo modificada",
       dueDate: "2026-12-25",
     });
@@ -240,5 +249,25 @@ describe("MyPlansPage", () => {
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("Editar plan");
     expect(screen.getByRole("note")).toHaveTextContent("Este plan ya está confirmado");
+  });
+
+  it("filters plans by search title and shows empty message when no plan matches", async () => {
+    listPlans.mockResolvedValue({ plans: [saved] });
+    render(<MyPlansPage />);
+    await screen.findByRole("article");
+
+    const searchInput = screen.getByLabelText("Buscar planes por título");
+    await userEvent.type(searchInput, "Playa");
+
+    // Empty state should appear
+    expect(
+      screen.getByText("No existen planes con estas características"),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+
+    // Reset filters restores the card
+    await userEvent.click(screen.getByRole("button", { name: "Restablecer filtros" }));
+    expect(await screen.findByRole("article")).toBeInTheDocument();
+    expect(searchInput).toHaveValue("");
   });
 });

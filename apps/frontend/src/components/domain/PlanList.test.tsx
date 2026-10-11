@@ -6,6 +6,7 @@ import { PlanList } from "./PlanList";
 
 const plan = (name: string, dueDate: string): Plan => ({
   id: `3f2a9c1e-0000-4000-8000-${name.padStart(12, "0")}`,
+  titulo: `Plan ${name}`,
   description: `Descripción de ${name}`,
   dueDate,
   estado: "borrador",

@@ -154,7 +154,10 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
           </DropdownMenu.Root>
         ) : null}
       </div>
-      <p className={cn("wrap-break-word text-base font-semibold leading-snug", isCancelled && "text-muted-foreground")}>
+      <h3 className={cn("wrap-break-word text-lg font-bold leading-snug", isCancelled && "text-muted-foreground")}>
+        {plan.titulo}
+      </h3>
+      <p className={cn("wrap-break-word text-sm text-muted-foreground leading-relaxed", isCancelled && "opacity-75")}>
         {plan.description}
       </p>
 
@@ -226,7 +229,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
           if (!pending) setOpenDialog(open ? "confirm" : null);
         }}
         title="¿Confirmar este plan?"
-        description={`«${plan.description}» pasará a Confirmado y ya no podrá volver a borrador.`}
+        description={`«${plan.titulo || plan.description}» pasará a Confirmado y ya no podrá volver a borrador.`}
         confirmLabel="Confirmar"
         pendingLabel="Confirmando…"
         pending={pending}
@@ -238,7 +241,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
           if (!pending) setOpenDialog(open ? "cancel" : null);
         }}
         title="¿Cancelar este plan?"
-        description={`«${plan.description}» pasará a Cancelado. Podrás eliminarlo una vez cancelado.`}
+        description={`«${plan.titulo || plan.description}» pasará a Cancelado. Podrás eliminarlo una vez cancelado.`}
         confirmLabel="Cancelar plan"
         pendingLabel="Cancelando…"
         pending={pending}
@@ -251,7 +254,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
           if (!pending) setOpenDialog(open ? "delete" : null);
         }}
         title="¿Eliminar este plan?"
-        description={`«${plan.description}» se eliminará de forma permanente.`}
+        description={`«${plan.titulo || plan.description}» se eliminará de forma permanente.`}
         confirmLabel="Eliminar"
         pendingLabel="Eliminando…"
         pending={pending}

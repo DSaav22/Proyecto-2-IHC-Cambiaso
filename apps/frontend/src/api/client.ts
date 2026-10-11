@@ -9,6 +9,7 @@ export type PlanStatus = "borrador" | "confirmado" | "cancelado";
 
 export interface Plan {
   id: string;
+  titulo: string;
   description: string;
   /** Calendar date as YYYY-MM-DD. */
   dueDate: string;
@@ -20,6 +21,7 @@ export interface Plan {
 }
 
 export interface PlanInput {
+  titulo: string;
   description: string;
   dueDate: string;
 }

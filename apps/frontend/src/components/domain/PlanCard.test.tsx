@@ -6,7 +6,8 @@ import { PlanCard } from "./PlanCard";
 
 const basePlan: Plan = {
   id: "3f2a9c1e-7b4d-4e8a-9c21-5d6e7f8a9b0c",
-  description: "Cena de equipo",
+  titulo: "Cena de equipo",
+  description: "Cena de fin de año en restaurante",
   dueDate: "2026-12-24",
   estado: "borrador",
   createdAt: "2026-01-01T00:00:00.000Z",
@@ -48,6 +49,13 @@ describe("PlanCard - state", () => {
   it("does not render a state select", () => {
     render(<PlanCard plan={basePlan} />);
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
+  it("renders plan title as a heading and description as body text", () => {
+    render(<PlanCard plan={basePlan} />);
+    const heading = screen.getByRole("heading", { level: 3, name: "Cena de equipo" });
+    expect(heading).toBeInTheDocument();
+    expect(screen.getByText("Cena de fin de año en restaurante")).toBeInTheDocument();
   });
 });
 

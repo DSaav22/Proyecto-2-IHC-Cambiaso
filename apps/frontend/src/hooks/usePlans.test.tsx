@@ -23,6 +23,7 @@ vi.mock("../api/client", async (importOriginal) => {
 
 const plan = (name: string, dueDate: string, createdAt: string): Plan => ({
   id: `3f2a9c1e-0000-4000-8000-${name.padStart(12, "0")}`,
+  titulo: `Título ${name}`,
   description: `Descripción ${name}`,
   dueDate,
   estado: "borrador",
@@ -64,6 +65,7 @@ describe("usePlans", () => {
     let outcome: Awaited<ReturnType<typeof result.current.addPlan>> | undefined;
     await act(async () => {
       outcome = await result.current.addPlan({
+        titulo: "t",
         description: "d",
         dueDate: "2026-05-01",
       });
@@ -81,7 +83,7 @@ describe("usePlans", () => {
 
     let outcome: Awaited<ReturnType<typeof result.current.addPlan>> | undefined;
     await act(async () => {
-      outcome = await result.current.addPlan({ description: "d", dueDate: "2026-03-01" });
+      outcome = await result.current.addPlan({ titulo: "t", description: "d", dueDate: "2026-03-01" });
     });
     expect(outcome).toEqual({ ok: false, message: "Datos inválidos", fieldErrors: { dueDate: "Ingresa una fecha válida" } });
     expect(result.current.plans).toHaveLength(1);
@@ -133,7 +135,7 @@ describe("usePlans", () => {
   it("updates plan and resort in state on successful updatePlan", async () => {
     const existing = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
     listPlans.mockResolvedValue({ plans: [existing] });
-    const updated = { ...existing, description: "Descripción Actualizada", dueDate: "2026-06-01" };
+    const updated = { ...existing, titulo: "Título Actualizado", description: "Descripción Actualizada", dueDate: "2026-06-01" };
     updatePlanMock.mockResolvedValue({ plan: updated });
 
     const { result } = renderHook(() => usePlans());
@@ -142,12 +144,14 @@ describe("usePlans", () => {
     let outcome: Awaited<ReturnType<typeof result.current.updatePlan>> | undefined;
     await act(async () => {
       outcome = await result.current.updatePlan(existing.id, {
+        titulo: "Título Actualizado",
         description: "Descripción Actualizada",
         dueDate: "2026-06-01",
       });
     });
 
     expect(updatePlanMock).toHaveBeenCalledWith(existing.id, {
+      titulo: "Título Actualizado",
       description: "Descripción Actualizada",
       dueDate: "2026-06-01",
     });
@@ -168,6 +172,7 @@ describe("usePlans", () => {
     let outcome: Awaited<ReturnType<typeof result.current.updatePlan>> | undefined;
     await act(async () => {
       outcome = await result.current.updatePlan(existing.id, {
+        titulo: "t",
         description: "",
         dueDate: "2026-05-01",
       });

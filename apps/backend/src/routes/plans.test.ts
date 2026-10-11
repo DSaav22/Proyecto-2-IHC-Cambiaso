@@ -53,6 +53,7 @@ function createMemoryStore(): PlansStore {
       const row = {
         id: randomUUID(),
         userId,
+        titulo: data.titulo,
         description: data.description,
         dueDate: new Date(`${data.dueDate}T00:00:00.000Z`),
         estado: INITIAL_PLAN_STATE,
@@ -89,6 +90,7 @@ function createMemoryStore(): PlansStore {
       if (!canEdit(row)) {
         throw new EditBlockedError(row.estado as any);
       }
+      row.titulo = data.titulo;
       row.description = data.description;
       row.dueDate = new Date(`${data.dueDate}T00:00:00.000Z`);
       return {
@@ -151,7 +153,7 @@ function createMemoryStore(): PlansStore {
 const cookieFor = (userId: string) =>
   `${SESSION_COOKIE}=${jwt.sign({ sub: userId }, config.jwtSecret)}`;
 
-const body = { description: "Cena de grupo", dueDate: "2026-12-24" };
+const body = { titulo: "Cena de Navidad", description: "Cena de grupo", dueDate: "2026-12-24" };
 
 describe("plans router", () => {
   let app: ReturnType<typeof createApp>;
@@ -198,18 +200,18 @@ describe("plans router", () => {
     const res = await request(app)
       .post("/api/plans")
       .set("Cookie", cookieFor("u1"))
-      .send({ description: " hola ", dueDate: "2026-01-02" });
+      .send({ titulo: "  Plan fiesta  ", description: " hola ", dueDate: "2026-01-02" });
     expect(res.status).toBe(201);
-    expect(res.body.plan).toMatchObject({ description: "hola" });
+    expect(res.body.plan).toMatchObject({ titulo: "Plan fiesta", description: "hola" });
   });
 
   it("rejects invalid bodies with 400 and errors keyed by field", async () => {
     const res = await request(app)
       .post("/api/plans")
       .set("Cookie", cookieFor("u1"))
-      .send({ description: "   ", dueDate: "2026-02-30" });
+      .send({ titulo: " ", description: "   ", dueDate: "2026-02-30" });
     expect(res.status).toBe(400);
-    expect(Object.keys(res.body.errors).sort()).toEqual(["description", "dueDate"]);
+    expect(Object.keys(res.body.errors).sort()).toEqual(["description", "dueDate", "titulo"]);
   });
 
   it("responds 401 without a session", async () => {
@@ -237,7 +239,7 @@ describe("plans router", () => {
       request(app)
         .post("/api/plans")
         .set("Cookie", cookieFor("u1"))
-        .send({ description, dueDate });
+        .send({ titulo: "Plan " + description, description, dueDate });
     await send("late", "2026-12-01");
     await send("early-first", "2026-03-01");
     await send("early-second", "2026-03-01");
@@ -324,7 +326,7 @@ describe("plans router", () => {
       const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
       const planId = created.body.plan.id;
 
-      const updateData = { description: "Cena de fin de año actualizada", dueDate: "2026-12-31" };
+      const updateData = { titulo: "Cena fin de año", description: "Cena de fin de año actualizada", dueDate: "2026-12-31" };
       const res = await request(app)
         .put(`/api/plans/${planId}`)
         .set("Cookie", cookieFor("u1"))
@@ -333,6 +335,7 @@ describe("plans router", () => {
       expect(res.status).toBe(200);
       expect(res.body.plan).toMatchObject({
         id: planId,
+        titulo: updateData.titulo,
         description: updateData.description,
         dueDate: updateData.dueDate,
         estado: "borrador",
@@ -347,7 +350,7 @@ describe("plans router", () => {
       const planId = created.body.plan.id;
       await request(app).post(`/api/plans/${planId}/confirm`).set("Cookie", cookieFor("u1"));
 
-      const updateData = { description: "Nueva descripción", dueDate: "2026-12-25" };
+      const updateData = { titulo: "Nuevo título", description: "Nueva descripción", dueDate: "2026-12-25" };
       const res = await request(app)
         .put(`/api/plans/${planId}`)
         .set("Cookie", cookieFor("u1"))
@@ -355,6 +358,7 @@ describe("plans router", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.plan.estado).toBe("confirmado");
+      expect(res.body.plan.titulo).toBe("Nuevo título");
       expect(res.body.plan.description).toBe("Nueva descripción");
     });
 
@@ -364,7 +368,7 @@ describe("plans router", () => {
       await request(app).post(`/api/plans/${planId}/confirm`).set("Cookie", cookieFor("u1"));
       await request(app).post(`/api/plans/${planId}/cancel`).set("Cookie", cookieFor("u1"));
 
-      const updateData = { description: "Intentando editar cancelado", dueDate: "2026-12-25" };
+      const updateData = { titulo: "Título cancelado", description: "Intentando editar cancelado", dueDate: "2026-12-25" };
       const res = await request(app)
         .put(`/api/plans/${planId}`)
         .set("Cookie", cookieFor("u1"))
@@ -381,9 +385,10 @@ describe("plans router", () => {
       const res = await request(app)
         .put(`/api/plans/${planId}`)
         .set("Cookie", cookieFor("u1"))
-        .send({ description: "", dueDate: "fecha-invalida" });
+        .send({ titulo: "AB", description: "", dueDate: "fecha-invalida" });
 
       expect(res.status).toBe(400);
+      expect(res.body.errors).toHaveProperty("titulo");
       expect(res.body.errors).toHaveProperty("description");
       expect(res.body.errors).toHaveProperty("dueDate");
     });
@@ -678,7 +683,7 @@ describe("plans router", () => {
       const editRes = await request(app)
         .put(`/api/plans/${planId}`)
         .set("Cookie", cookieFor("u2"))
-        .send({ description: "Intento de edición por invitado", dueDate: "2026-12-25" });
+        .send({ titulo: "Plan invitado", description: "Intento de edición por invitado", dueDate: "2026-12-25" });
 
       expect(editRes.status).toBe(403);
       expect(editRes.body.message).toBe("Solo el creador puede editar este plan");
