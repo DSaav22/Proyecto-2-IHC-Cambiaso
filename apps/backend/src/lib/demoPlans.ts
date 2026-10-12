@@ -72,6 +72,14 @@ export const DEMO_PLAN_DEFINITIONS: readonly DemoPlanDefinition[] = [
     offsetDays: 20,
     guest: "usuario1",
   },
+  {
+    shareCode: "PLZ-SEED2G",
+    owner: "usuario2",
+    titulo: "Aniversario de la empresa",
+    description: "Plan lejano, más de 30 días adelante, fuera de Próximos 30 días.",
+    estado: "pendiente",
+    offsetDays: 45,
+  },
 ];
 
 /** Resolve the demo plans against a run date (UTC calendar day), adding the computed due date. */
