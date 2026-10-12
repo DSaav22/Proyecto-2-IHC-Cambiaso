@@ -159,7 +159,11 @@ export function createPlansRouter(store: PlansStore): Router {
           return;
         }
         if (error instanceof InvalidTransitionError) {
-          res.status(409).json({ message: "El plan ya está confirmado" });
+          const message =
+            error.from === "cancelado"
+              ? "Un plan cancelado no puede confirmarse"
+              : "El plan ya está confirmado";
+          res.status(409).json({ message });
           return;
         }
         throw error;

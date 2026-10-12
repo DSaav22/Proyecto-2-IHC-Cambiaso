@@ -293,6 +293,26 @@ describe("plans router", () => {
       expect(res.status).toBe(409);
     });
 
+    it("explains that an already confirmed plan cannot be confirmed again", async () => {
+      const planId = await create();
+      await request(app).post(`/api/plans/${planId}/confirm`).set("Cookie", cookieFor("u1"));
+      const res = await request(app)
+        .post(`/api/plans/${planId}/confirm`)
+        .set("Cookie", cookieFor("u1"));
+      expect(res.status).toBe(409);
+      expect(res.body.message).toBe("El plan ya está confirmado");
+    });
+
+    it("rejects confirming a cancelled plan with a distinct 409 message", async () => {
+      const planId = await create();
+      await request(app).post(`/api/plans/${planId}/cancel`).set("Cookie", cookieFor("u1"));
+      const res = await request(app)
+        .post(`/api/plans/${planId}/confirm`)
+        .set("Cookie", cookieFor("u1"));
+      expect(res.status).toBe(409);
+      expect(res.body.message).toBe("Un plan cancelado no puede confirmarse");
+    });
+
     it("returns 404 if plan does not exist or belongs to another user", async () => {
       const planId = await create();
       const otherUser = await request(app)
