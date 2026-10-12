@@ -672,6 +672,27 @@ describe("plans router", () => {
       expect(confirmRes.body.message).toBe("Solo el creador puede confirmar este plan");
     });
 
+    it("rejects guest attempts to cancel plan with 403 and keeps the plan state", async () => {
+      const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
+      const planId = created.body.plan.id;
+      const shareCode = created.body.plan.shareCode;
+
+      await request(app)
+        .post("/api/plans/join")
+        .set("Cookie", cookieFor("u2"))
+        .send({ code: shareCode });
+
+      const cancelRes = await request(app)
+        .post(`/api/plans/${planId}/cancel`)
+        .set("Cookie", cookieFor("u2"));
+
+      expect(cancelRes.status).toBe(403);
+      expect(cancelRes.body.message).toBe("Solo el creador puede cancelar este plan");
+
+      const listRes = await request(app).get("/api/plans").set("Cookie", cookieFor("u1"));
+      expect(listRes.body.plans[0].estado).toBe("borrador");
+    });
+
     it("rejects guest attempts to delete plan with 403 Forbidden", async () => {
       const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
       const planId = created.body.plan.id;
