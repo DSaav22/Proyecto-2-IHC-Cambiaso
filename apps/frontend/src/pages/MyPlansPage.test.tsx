@@ -58,8 +58,10 @@ describe("MyPlansPage", () => {
     expect(screen.queryByRole("button", { name: "Cerrar sesión" })).not.toBeInTheDocument();
   });
 
-  it("opens the form, creates a plan and shows its card without reloading", async () => {
-    listPlans.mockResolvedValue({ plans: [], summary: emptySummary });
+  it("opens the form, creates a plan and shows its card, then refetches in the background", async () => {
+    listPlans
+      .mockResolvedValueOnce({ plans: [], summary: emptySummary })
+      .mockResolvedValue({ plans: [saved], summary: emptySummary });
     createPlan.mockResolvedValue({ plan: saved });
     render(<MyPlansPage />);
     await screen.findByText(/todavía no tienes planes/i);
@@ -79,7 +81,7 @@ describe("MyPlansPage", () => {
       description: "Cena de grupo con amigos",
       dueDate: "2026-12-24",
     });
-    expect(listPlans).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(listPlans).toHaveBeenCalledTimes(2));
   });
 
   it("still shows the card after a remount with the persisted list", async () => {
@@ -93,7 +95,9 @@ describe("MyPlansPage", () => {
   });
 
   it("confirms a draft through the dialog and shows the confirmed badge", async () => {
-    listPlans.mockResolvedValue({ plans: [saved], summary: emptySummary });
+    listPlans
+      .mockResolvedValueOnce({ plans: [saved], summary: emptySummary })
+      .mockResolvedValue({ plans: [{ ...saved, estado: "confirmado" }], summary: emptySummary });
     const confirmMock = vi.mocked(api.confirmPlan);
     confirmMock.mockResolvedValue({ plan: { ...saved, estado: "confirmado" } });
 
@@ -130,7 +134,9 @@ describe("MyPlansPage", () => {
   });
 
   it("deletes a plan from the actions menu after confirmation", async () => {
-    listPlans.mockResolvedValue({ plans: [saved], summary: emptySummary });
+    listPlans
+      .mockResolvedValueOnce({ plans: [saved], summary: emptySummary })
+      .mockResolvedValue({ plans: [], summary: emptySummary });
     const deleteMock = vi.mocked(api.deletePlan);
     deleteMock.mockResolvedValue({ message: "Plan eliminado" });
 
@@ -175,14 +181,16 @@ describe("MyPlansPage", () => {
   });
 
   it("edits a plan through the edit dialog and updates the card", async () => {
-    listPlans.mockResolvedValue({ plans: [saved], summary: emptySummary });
-    const updateMock = vi.mocked(api.updatePlan);
     const updatedPlan: Plan = {
       ...saved,
       titulo: "Cena modificada",
       description: "Cena de grupo modificada",
       dueDate: "2026-12-25",
     };
+    listPlans
+      .mockResolvedValueOnce({ plans: [saved], summary: emptySummary })
+      .mockResolvedValue({ plans: [updatedPlan], summary: emptySummary });
+    const updateMock = vi.mocked(api.updatePlan);
     updateMock.mockResolvedValue({ plan: updatedPlan });
 
     render(<MyPlansPage />);
@@ -217,7 +225,9 @@ describe("MyPlansPage", () => {
 
   it("cancels a confirmed plan through the cancel dialog", async () => {
     const confirmedPlan: Plan = { ...saved, estado: "confirmado" };
-    listPlans.mockResolvedValue({ plans: [confirmedPlan], summary: emptySummary });
+    listPlans
+      .mockResolvedValueOnce({ plans: [confirmedPlan], summary: emptySummary })
+      .mockResolvedValue({ plans: [{ ...confirmedPlan, estado: "cancelado" }], summary: emptySummary });
     const cancelMock = vi.mocked(api.cancelPlan);
     cancelMock.mockResolvedValue({ plan: { ...confirmedPlan, estado: "cancelado" } });
 
