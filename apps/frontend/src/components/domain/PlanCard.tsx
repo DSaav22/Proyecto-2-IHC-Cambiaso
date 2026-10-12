@@ -27,12 +27,15 @@ const toneStyles: Record<DueTone, { badge: "danger" | "warning" | "default" | "m
   later: { badge: "default", bar: "bg-primary" },
 };
 
+/** Outcome of a card action; a failure keeps its dialog open with the message. */
+export type PlanActionResult = { ok: true } | { ok: false; message: string };
+
 interface PlanCardProps {
   plan: Plan;
   onEdit?: (plan: Plan) => void;
-  onConfirm?: (id: string) => Promise<void> | void;
-  onCancel?: (id: string) => Promise<void> | void;
-  onDelete?: (id: string) => Promise<void> | void;
+  onConfirm?: (id: string) => Promise<PlanActionResult>;
+  onCancel?: (id: string) => Promise<PlanActionResult>;
+  onDelete?: (id: string) => Promise<PlanActionResult>;
 }
 
 type OpenDialog = "confirm" | "cancel" | "delete" | null;
@@ -48,14 +51,25 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
   const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
   const [pending, setPending] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  async function run(action?: (id: string) => Promise<void> | void) {
+  function changeDialog(next: OpenDialog) {
+    setActionError(null);
+    setOpenDialog(next);
+  }
+
+  async function run(action?: (id: string) => Promise<PlanActionResult>) {
     setPending(true);
+    setActionError(null);
     try {
-      await action?.(plan.id);
+      const result = await action?.(plan.id);
+      if (result && !result.ok) {
+        setActionError(result.message);
+        return;
+      }
+      setOpenDialog(null);
     } finally {
       setPending(false);
-      setOpenDialog(null);
     }
   }
 
@@ -128,7 +142,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
                 <DropdownMenu.Item
                   disabled={isConfirmed}
                   onSelect={() => {
-                    if (!isConfirmed) setOpenDialog("delete");
+                    if (!isConfirmed) changeDialog("delete");
                   }}
                   title={isConfirmed ? "Debes cancelar el plan antes de eliminarlo" : undefined}
                   className={cn(
@@ -202,16 +216,16 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
       {isOwner ? (
         isDraft ? (
           <div className="flex flex-wrap gap-2 border-t pt-3">
-            <Button type="button" size="sm" onClick={() => setOpenDialog("confirm")}>
+            <Button type="button" size="sm" onClick={() => changeDialog("confirm")}>
               Confirmar plan
             </Button>
-            <Button type="button" size="sm" onClick={() => setOpenDialog("cancel")}>
+            <Button type="button" size="sm" onClick={() => changeDialog("cancel")}>
               Cancelar plan
             </Button>
           </div>
         ) : isConfirmed ? (
           <div className="flex flex-wrap gap-2 border-t pt-3">
-            <Button type="button" size="sm" onClick={() => setOpenDialog("cancel")}>
+            <Button type="button" size="sm" onClick={() => changeDialog("cancel")}>
               Cancelar plan
             </Button>
           </div>
@@ -226,38 +240,41 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
       <ConfirmDialog
         open={openDialog === "confirm"}
         onOpenChange={(open) => {
-          if (!pending) setOpenDialog(open ? "confirm" : null);
+          if (!pending) changeDialog(open ? "confirm" : null);
         }}
         title="¿Confirmar este plan?"
         description={`«${plan.titulo || plan.description}» pasará a Confirmado y ya no podrá volver a borrador.`}
         confirmLabel="Confirmar"
         pendingLabel="Confirmando…"
         pending={pending}
+        error={actionError}
         onConfirm={() => void run(onConfirm)}
       />
       <ConfirmDialog
         open={openDialog === "cancel"}
         onOpenChange={(open) => {
-          if (!pending) setOpenDialog(open ? "cancel" : null);
+          if (!pending) changeDialog(open ? "cancel" : null);
         }}
         title="¿Cancelar este plan?"
         description={`«${plan.titulo || plan.description}» pasará a Cancelado. Podrás eliminarlo una vez cancelado.`}
         confirmLabel="Cancelar plan"
         pendingLabel="Cancelando…"
         pending={pending}
+        error={actionError}
         destructive
         onConfirm={() => void run(onCancel)}
       />
       <ConfirmDialog
         open={openDialog === "delete"}
         onOpenChange={(open) => {
-          if (!pending) setOpenDialog(open ? "delete" : null);
+          if (!pending) changeDialog(open ? "delete" : null);
         }}
         title="¿Eliminar este plan?"
         description={`«${plan.titulo || plan.description}» se eliminará de forma permanente.`}
         confirmLabel="Eliminar"
         pendingLabel="Eliminando…"
         pending={pending}
+        error={actionError}
         destructive
         onConfirm={() => void run(onDelete)}
       />

@@ -1,15 +1,15 @@
 import { CalendarPlus, Plus } from "lucide-react";
 import type { Plan } from "../../api/client";
 import { Button } from "@/components/ui/button";
-import { PlanCard } from "./PlanCard";
+import { PlanCard, type PlanActionResult } from "./PlanCard";
 
 interface PlanListProps {
   plans: Plan[];
   onCreate?: () => void;
   onEdit?: (plan: Plan) => void;
-  onConfirm?: (id: string) => Promise<void> | void;
-  onCancel?: (id: string) => Promise<void> | void;
-  onDelete?: (id: string) => Promise<void> | void;
+  onConfirm?: (id: string) => Promise<PlanActionResult>;
+  onCancel?: (id: string) => Promise<PlanActionResult>;
+  onDelete?: (id: string) => Promise<PlanActionResult>;
 }
 
 export function PlanList({

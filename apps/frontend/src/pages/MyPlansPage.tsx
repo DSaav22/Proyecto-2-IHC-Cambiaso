@@ -89,6 +89,7 @@ export default function MyPlansPage() {
     const result = await confirmPlan(id);
     if (result.ok) setNotice("Plan confirmado correctamente.");
     else setActionError(result.message);
+    return result;
   }
 
   async function handleCancel(id: string) {
@@ -97,6 +98,7 @@ export default function MyPlansPage() {
     const result = await cancelPlan(id);
     if (result.ok) setNotice("Plan cancelado correctamente.");
     else setActionError(result.message);
+    return result;
   }
 
   async function handleDelete(id: string) {
@@ -105,6 +107,7 @@ export default function MyPlansPage() {
     const result = await deletePlan(id);
     if (result.ok) setNotice("Plan eliminado correctamente.");
     else setActionError(result.message);
+    return result;
   }
 
   const nextPlan = plans.find((plan) => daysUntil(plan.dueDate) >= 0);

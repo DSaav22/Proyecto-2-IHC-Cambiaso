@@ -72,7 +72,7 @@ describe("PlanCard - confirm flow", () => {
   });
 
   it("calls onConfirm with the plan id when the user accepts", async () => {
-    const onConfirm = vi.fn().mockResolvedValue(undefined);
+    const onConfirm = vi.fn().mockResolvedValue({ ok: true });
     render(<PlanCard plan={basePlan} onConfirm={onConfirm} />);
     await userEvent.click(screen.getByRole("button", { name: "Confirmar plan" }));
     await userEvent.click(
@@ -94,7 +94,7 @@ describe("PlanCard - confirm flow", () => {
 
   it("disables the accept button while the request is pending", async () => {
     let finish: () => void = () => {};
-    const onConfirm = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    const onConfirm = vi.fn(() => new Promise<{ ok: true }>((resolve) => (finish = () => resolve({ ok: true }))));
     render(<PlanCard plan={basePlan} onConfirm={onConfirm} />);
     await userEvent.click(screen.getByRole("button", { name: "Confirmar plan" }));
     await userEvent.click(
@@ -119,7 +119,7 @@ describe("PlanCard - cancel flow", () => {
   });
 
   it("allows cancelling a draft plan", async () => {
-    const onCancel = vi.fn().mockResolvedValue(undefined);
+    const onCancel = vi.fn().mockResolvedValue({ ok: true });
     render(<PlanCard plan={basePlan} onCancel={onCancel} />);
     await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
 
@@ -135,7 +135,7 @@ describe("PlanCard - cancel flow", () => {
   });
 
   it("calls onCancel with the plan id when the user accepts", async () => {
-    const onCancel = vi.fn().mockResolvedValue(undefined);
+    const onCancel = vi.fn().mockResolvedValue({ ok: true });
     render(<PlanCard plan={confirmed} onCancel={onCancel} />);
     await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
     await userEvent.click(
@@ -144,6 +144,51 @@ describe("PlanCard - cancel flow", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledWith(confirmed.id);
     await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+  });
+
+  it("keeps the dialog open and shows an inline alert when cancelling fails", async () => {
+    const onCancel = vi.fn().mockResolvedValue({ ok: false, message: "No se pudo cancelar el plan." });
+    render(<PlanCard plan={confirmed} onCancel={onCancel} />);
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
+    await userEvent.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancelar plan" }),
+    );
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("No se pudo cancelar el plan.");
+    expect(within(dialog).getByRole("button", { name: "Cancelar plan" })).toBeEnabled();
+  });
+
+  it("allows retrying after a failure and closes once the retry succeeds", async () => {
+    const onCancel = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, message: "Sin conexión" })
+      .mockResolvedValueOnce({ ok: true });
+    render(<PlanCard plan={confirmed} onCancel={onCancel} />);
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
+    const accept = () =>
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancelar plan" });
+    await userEvent.click(accept());
+    expect(await screen.findByRole("alert")).toHaveTextContent("Sin conexión");
+
+    await userEvent.click(accept());
+    expect(onCancel).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+  });
+
+  it("clears the previous error when the dialog is dismissed and reopened", async () => {
+    const onCancel = vi.fn().mockResolvedValue({ ok: false, message: "Sin conexión" });
+    render(<PlanCard plan={confirmed} onCancel={onCancel} />);
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
+    await userEvent.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancelar plan" }),
+    );
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancelar" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
 
@@ -194,7 +239,7 @@ describe("PlanCard - actions menu", () => {
   });
 
   it("asks for confirmation naming the plan before deleting a draft", async () => {
-    const onDelete = vi.fn().mockResolvedValue(undefined);
+    const onDelete = vi.fn().mockResolvedValue({ ok: true });
     render(<PlanCard plan={basePlan} onDelete={onDelete} />);
     await openMenu();
     await userEvent.click(await screen.findByRole("menuitem", { name: "Eliminar" }));
