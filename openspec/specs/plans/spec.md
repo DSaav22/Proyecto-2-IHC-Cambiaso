@@ -9,12 +9,28 @@ Lets a signed-in user create plans (ID, description, due date) and see them as a
 ### Requirement: Create plan form
 The `/mis-planes` screen SHALL show a "Nuevo plan" button. Pressing it SHALL reveal a form with fields for `titulo`, description, and due date, plus a submit button and a cancel control. All field labels and messages SHALL be in Spanish.
 
+#### Scenario: Open the form
+- **WHEN** a signed-in user presses "Nuevo plan"
+- **THEN** a dialog titled "Nuevo plan" opens with the "Título", "Descripción", and "Fecha límite" fields and a "Crear plan" submit button
+
+#### Scenario: Cancel the form
+- **WHEN** the user presses "Cancelar" in the open form
+- **THEN** the dialog closes and no plan is created
+
 #### Scenario: Form includes title field
 - **WHEN** a signed-in user opens the "Nuevo plan" or "Editar plan" dialog
 - **THEN** the form contains an input for "Título" alongside description and due date
 
 ### Requirement: Plan field validation
 A plan SHALL require a non-empty `titulo` of at least 3 and at most 100 characters, a non-empty description of at most 500 characters, and a valid due date. Leading and trailing whitespace SHALL be ignored. Validation errors SHALL be shown as text next to the offending field and SHALL NOT rely on color alone. The same rules SHALL be enforced by the API.
+
+#### Scenario: Empty fields rejected
+- **WHEN** the user submits the form with an empty title, description, or due date
+- **THEN** no request is sent, no plan is created, and each invalid field shows a Spanish error message next to it
+
+#### Scenario: Server rejects invalid data
+- **WHEN** a client sends `POST /api/plans` with a missing or invalid field
+- **THEN** the API responds `400` with `{ message: "Datos inválidos", errors }`, where `errors` is keyed by field name (`titulo`, `description`, `dueDate`)
 
 #### Scenario: Valid title accepted
 - **WHEN** a user submits a plan with a `titulo` between 3 and 100 characters, a valid description, and a valid due date
