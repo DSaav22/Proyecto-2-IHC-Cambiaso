@@ -48,6 +48,33 @@ describe("ConfirmDialog", () => {
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
   });
 
+  it("renders the error inside an alert region when an error is provided", () => {
+    render(<ConfirmDialog {...baseProps} error="No se pudo cancelar el plan." />);
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("No se pudo cancelar el plan.");
+    expect(screen.getByRole("alertdialog")).toContainElement(alert);
+  });
+
+  it("renders no alert when the error is null or undefined", () => {
+    const { rerender } = render(<ConfirmDialog {...baseProps} error={null} />);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    rerender(<ConfirmDialog {...baseProps} />);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("removes the alert when the parent clears the error", () => {
+    const { rerender } = render(<ConfirmDialog {...baseProps} error="Falló" />);
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    rerender(<ConfirmDialog {...baseProps} error={null} />);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps the accept button disabled while pending even if an error is shown", () => {
+    render(<ConfirmDialog {...baseProps} error="Falló" pending pendingLabel="Confirmando…" />);
+    expect(screen.getByRole("button", { name: "Confirmando…" })).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Falló");
+  });
+
   it("uses the destructive style for destructive confirmations", () => {
     render(<ConfirmDialog {...baseProps} confirmLabel="Eliminar" destructive />);
     expect(screen.getByRole("button", { name: "Eliminar" }).className).toContain("bg-destructive");
