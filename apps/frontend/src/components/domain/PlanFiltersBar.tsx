@@ -5,31 +5,22 @@ import {
   type DateFilter,
   type PlanFilterCriteria,
   type StatusFilter,
+  DATE_FILTER_LABELS,
   hasActiveFilters,
-  INITIAL_PLAN_FILTERS,
 } from "../../lib/planFilters";
+import { PLAN_STATUS_LABELS } from "../../lib/plans";
 
 interface PlanFiltersBarProps {
   criteria: PlanFilterCriteria;
   onChange: (criteria: PlanFilterCriteria) => void;
   onReset: () => void;
   totalCount: number;
-  filteredCount: number;
+  resultCount: number;
 }
 
-const statusLabels: Record<StatusFilter, string> = {
+const STATUS_OPTION_LABELS: Record<StatusFilter, string> = {
   all: "Todos los estados",
-  pendiente: "Pendiente",
-  confirmado: "Confirmado",
-  cancelado: "Cancelado",
-};
-
-const dateLabels: Record<DateFilter, string> = {
-  all: "Cualquier fecha",
-  today: "Hoy",
-  next7: "Próximos 7 días",
-  next30: "Próximos 30 días",
-  overdue: "Vencidos",
+  ...PLAN_STATUS_LABELS,
 };
 
 export function PlanFiltersBar({
@@ -37,7 +28,7 @@ export function PlanFiltersBar({
   onChange,
   onReset,
   totalCount,
-  filteredCount,
+  resultCount,
 }: PlanFiltersBarProps) {
   const isActive = hasActiveFilters(criteria);
 
@@ -78,38 +69,37 @@ export function PlanFiltersBar({
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-1.5">
             <label htmlFor="plan-status-filter" className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
-              Estado:
+              Estado
             </label>
             <select
               id="plan-status-filter"
-              aria-label="Filtrar por estado"
               value={criteria.status}
               onChange={(e) => onChange({ ...criteria, status: e.target.value as StatusFilter })}
               className="min-h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/40"
             >
-              <option value="all">Todos</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="confirmado">Confirmado</option>
-              <option value="cancelado">Cancelado</option>
+              {(Object.keys(STATUS_OPTION_LABELS) as StatusFilter[]).map((value) => (
+                <option key={value} value={value}>
+                  {STATUS_OPTION_LABELS[value]}
+                </option>
+              ))}
             </select>
           </div>
 
           <div className="flex items-center gap-1.5">
             <label htmlFor="plan-date-filter" className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
-              Fecha:
+              Fecha límite
             </label>
             <select
               id="plan-date-filter"
-              aria-label="Filtrar por fecha límite"
               value={criteria.dateRange}
               onChange={(e) => onChange({ ...criteria, dateRange: e.target.value as DateFilter })}
               className="min-h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/40"
             >
-              <option value="all">Todas</option>
-              <option value="today">Hoy</option>
-              <option value="next7">Próximos 7 días</option>
-              <option value="next30">Próximos 30 días</option>
-              <option value="overdue">Vencidos</option>
+              {(Object.keys(DATE_FILTER_LABELS) as DateFilter[]).map((value) => (
+                <option key={value} value={value}>
+                  {DATE_FILTER_LABELS[value]}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -121,7 +111,7 @@ export function PlanFiltersBar({
               onClick={onReset}
               className="min-h-11 text-xs"
             >
-              Quitar filtros
+              Limpiar filtros
             </Button>
           ) : null}
         </div>
@@ -151,7 +141,7 @@ export function PlanFiltersBar({
 
           {criteria.status !== "all" ? (
             <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-foreground">
-              Estado: <strong>{statusLabels[criteria.status]}</strong>
+              Estado: <strong>{STATUS_OPTION_LABELS[criteria.status]}</strong>
               <button
                 type="button"
                 onClick={() => onChange({ ...criteria, status: "all" })}
@@ -165,7 +155,7 @@ export function PlanFiltersBar({
 
           {criteria.dateRange !== "all" ? (
             <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-foreground">
-              Fecha: <strong>{dateLabels[criteria.dateRange]}</strong>
+              Fecha: <strong>{DATE_FILTER_LABELS[criteria.dateRange]}</strong>
               <button
                 type="button"
                 onClick={() => onChange({ ...criteria, dateRange: "all" })}
@@ -176,12 +166,12 @@ export function PlanFiltersBar({
               </button>
             </span>
           ) : null}
-
-          <span className="ml-auto text-muted-foreground">
-            Mostrando {filteredCount} de {totalCount} planes
-          </span>
         </div>
       ) : null}
+
+      <p role="status" aria-live="polite" aria-atomic="true" className="text-sm text-muted-foreground">
+        Mostrando {resultCount} de {totalCount} planes
+      </p>
     </section>
   );
 }

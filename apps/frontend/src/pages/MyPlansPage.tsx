@@ -203,7 +203,7 @@ export default function MyPlansPage() {
                 onChange={setCriteria}
                 onReset={() => setCriteria(INITIAL_PLAN_FILTERS)}
                 totalCount={summary.total}
-                filteredCount={plans.length}
+                resultCount={plans.length}
               />
             </>
           ) : null}

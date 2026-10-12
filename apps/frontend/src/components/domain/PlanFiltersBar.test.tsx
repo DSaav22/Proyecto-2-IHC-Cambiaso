@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { INITIAL_PLAN_FILTERS } from "../../lib/planFilters";
@@ -12,13 +12,13 @@ describe("PlanFiltersBar", () => {
         onChange={vi.fn()}
         onReset={vi.fn()}
         totalCount={5}
-        filteredCount={5}
+        resultCount={5}
       />,
     );
 
     expect(screen.getByLabelText("Buscar planes por título")).toBeInTheDocument();
-    expect(screen.getByLabelText("Filtrar por estado")).toBeInTheDocument();
-    expect(screen.getByLabelText("Filtrar por fecha límite")).toBeInTheDocument();
+    expect(screen.getByLabelText("Estado")).toBeInTheDocument();
+    expect(screen.getByLabelText("Fecha límite")).toBeInTheDocument();
     expect(screen.queryByText(/Filtros activos:/i)).not.toBeInTheDocument();
   });
 
@@ -30,7 +30,7 @@ describe("PlanFiltersBar", () => {
         onChange={onChange}
         onReset={vi.fn()}
         totalCount={5}
-        filteredCount={5}
+        resultCount={5}
       />,
     );
 
@@ -48,17 +48,17 @@ describe("PlanFiltersBar", () => {
         onChange={onChange}
         onReset={vi.fn()}
         totalCount={5}
-        filteredCount={5}
+        resultCount={5}
       />,
     );
 
-    await userEvent.selectOptions(screen.getByLabelText("Filtrar por estado"), "confirmado");
+    await userEvent.selectOptions(screen.getByLabelText("Estado"), "confirmado");
     expect(onChange).toHaveBeenCalledWith({
       ...INITIAL_PLAN_FILTERS,
       status: "confirmado",
     });
 
-    await userEvent.selectOptions(screen.getByLabelText("Filtrar por fecha límite"), "next7");
+    await userEvent.selectOptions(screen.getByLabelText("Fecha límite"), "next7");
     expect(onChange).toHaveBeenCalledWith({
       ...INITIAL_PLAN_FILTERS,
       dateRange: "next7",
@@ -79,7 +79,7 @@ describe("PlanFiltersBar", () => {
         onChange={onChange}
         onReset={onReset}
         totalCount={10}
-        filteredCount={2}
+        resultCount={2}
       />,
     );
 
@@ -87,7 +87,7 @@ describe("PlanFiltersBar", () => {
     expect(screen.getByText(/«Fiesta»/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Quitar filtro de estado" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Quitar filtro de fecha" })).toBeInTheDocument();
-    expect(screen.getByText("Mostrando 2 de 10 planes")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Mostrando 2 de 10 planes");
 
     // Click remove title filter
     await userEvent.click(screen.getByRole("button", { name: "Quitar filtro de título" }));
@@ -98,7 +98,81 @@ describe("PlanFiltersBar", () => {
     });
 
     // Click global reset
-    await userEvent.click(screen.getByRole("button", { name: "Quitar filtros" }));
+    await userEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
     expect(onReset).toHaveBeenCalledTimes(1);
+  });
+
+  it("labels the selects with visible text and no conflicting aria-label", () => {
+    render(
+      <PlanFiltersBar
+        criteria={INITIAL_PLAN_FILTERS}
+        onChange={vi.fn()}
+        onReset={vi.fn()}
+        totalCount={5}
+        resultCount={5}
+      />,
+    );
+
+    for (const name of ["Estado", "Fecha límite"]) {
+      const select = screen.getByRole("combobox", { name });
+      expect(select).not.toHaveAttribute("aria-label");
+      expect(screen.getByText(name, { selector: "label" })).toBeVisible();
+    }
+  });
+
+  it("builds select options from the shared status and date label maps", () => {
+    render(
+      <PlanFiltersBar
+        criteria={INITIAL_PLAN_FILTERS}
+        onChange={vi.fn()}
+        onReset={vi.fn()}
+        totalCount={5}
+        resultCount={5}
+      />,
+    );
+
+    const statuses = within(screen.getByLabelText("Estado")).getAllByRole("option");
+    expect(statuses.map((o) => o.textContent)).toEqual([
+      "Todos los estados",
+      "Pendiente",
+      "Confirmado",
+      "Cancelado",
+    ]);
+    const dates = within(screen.getByLabelText("Fecha límite")).getAllByRole("option");
+    expect(dates.map((o) => o.textContent)).toEqual([
+      "Cualquier fecha",
+      "Hoy",
+      "Próximos 7 días",
+      "Próximos 30 días",
+      "Vencidos",
+    ]);
+  });
+
+  it("announces the result count politely, also when no filter is active", () => {
+    const { rerender } = render(
+      <PlanFiltersBar
+        criteria={INITIAL_PLAN_FILTERS}
+        onChange={vi.fn()}
+        onReset={vi.fn()}
+        totalCount={7}
+        resultCount={7}
+      />,
+    );
+
+    const live = screen.getByRole("status");
+    expect(live).toHaveAttribute("aria-live", "polite");
+    expect(live).toHaveTextContent("Mostrando 7 de 7 planes");
+
+    rerender(
+      <PlanFiltersBar
+        criteria={{ ...INITIAL_PLAN_FILTERS, status: "cancelado" }}
+        onChange={vi.fn()}
+        onReset={vi.fn()}
+        totalCount={7}
+        resultCount={2}
+      />,
+    );
+    expect(screen.getByRole("status")).toBe(live);
+    expect(live).toHaveTextContent("Mostrando 2 de 7 planes");
   });
 });

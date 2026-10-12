@@ -61,9 +61,16 @@ async function createViaForm() {
   await userEvent.click(screen.getByRole("button", { name: "Nuevo plan" }));
   await userEvent.type(screen.getByLabelText("Título"), "Cena de grupo");
   await userEvent.type(screen.getByLabelText("Descripción"), "Cena de grupo con amigos");
-  await userEvent.type(screen.getByLabelText("Fecha límite"), "2026-12-24");
+  await userEvent.type(within(screen.getByRole("dialog")).getByLabelText("Fecha límite"), "2026-12-24");
   await userEvent.click(screen.getByRole("button", { name: "Crear plan" }));
 }
+
+/** Text of every live status region (notice + result count live side by side). */
+const statusText = () =>
+  screen
+    .getAllByRole("status")
+    .map((node) => node.textContent)
+    .join(" ");
 
 describe("MyPlansPage", () => {
   beforeEach(() => {
@@ -94,7 +101,7 @@ describe("MyPlansPage", () => {
 
     expect(await screen.findByRole("article")).toHaveTextContent("Cena de grupo");
     expect(screen.getByText("24 de diciembre de 2026")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Plan creado");
+    expect(statusText()).toContain("Plan creado");
     expect(screen.queryByLabelText("ID del plan")).not.toBeInTheDocument();
     expect(createPlan).toHaveBeenCalledWith({
       titulo: "Cena de grupo",
@@ -135,7 +142,7 @@ describe("MyPlansPage", () => {
       expect(screen.getByTestId("plan-status-badge")).toHaveTextContent("Confirmado"),
     );
     expect(screen.queryByRole("button", { name: "Confirmar plan" })).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Plan confirmado");
+    expect(statusText()).toContain("Plan confirmado");
   });
 
   it("shows an error and keeps the draft when confirming fails", async () => {
@@ -149,7 +156,9 @@ describe("MyPlansPage", () => {
       within(screen.getByRole("alertdialog")).getByRole("button", { name: "Confirmar" }),
     );
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("El plan ya está confirmado");
+    // The page alert stays exposed too (the live region keeps siblings out of aria-hidden), so scope to the dialog.
+    const dialogAlert = await within(screen.getByRole("alertdialog")).findByRole("alert");
+    expect(dialogAlert).toHaveTextContent("El plan ya está confirmado");
     expect(screen.getByTestId("plan-status-badge")).toHaveTextContent("Pendiente");
   });
 
@@ -223,14 +232,14 @@ describe("MyPlansPage", () => {
     expect(dialog).toHaveTextContent("Editar plan");
     expect(screen.getByLabelText("Título")).toHaveValue("Cena de grupo");
     expect(screen.getByLabelText("Descripción")).toHaveValue("Cena de grupo con amigos");
-    expect(screen.getByLabelText("Fecha límite")).toHaveValue("2026-12-24");
+    expect(within(dialog).getByLabelText("Fecha límite")).toHaveValue("2026-12-24");
 
     await userEvent.clear(screen.getByLabelText("Título"));
     await userEvent.type(screen.getByLabelText("Título"), "Cena modificada");
     await userEvent.clear(screen.getByLabelText("Descripción"));
     await userEvent.type(screen.getByLabelText("Descripción"), "Cena de grupo modificada");
-    await userEvent.clear(screen.getByLabelText("Fecha límite"));
-    await userEvent.type(screen.getByLabelText("Fecha límite"), "2026-12-25");
+    await userEvent.clear(within(dialog).getByLabelText("Fecha límite"));
+    await userEvent.type(within(dialog).getByLabelText("Fecha límite"), "2026-12-25");
 
     await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
@@ -240,7 +249,7 @@ describe("MyPlansPage", () => {
       dueDate: "2026-12-25",
     });
     expect(await screen.findByRole("article")).toHaveTextContent("Cena de grupo modificada");
-    expect(screen.getByRole("status")).toHaveTextContent("Plan actualizado");
+    expect(statusText()).toContain("Plan actualizado");
   });
 
   it("cancels a confirmed plan through the cancel dialog", async () => {
@@ -264,7 +273,7 @@ describe("MyPlansPage", () => {
     await waitFor(() =>
       expect(screen.getByTestId("plan-status-badge")).toHaveTextContent("Cancelado"),
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Plan cancelado");
+    expect(statusText()).toContain("Plan cancelado");
   });
 
   it("shows caution warning when editing a confirmed plan", async () => {
@@ -319,8 +328,8 @@ describe("MyPlansPage", () => {
       expect.anything(),
     );
     expect(screen.getByLabelText("Buscar planes por título")).toHaveValue("cena");
-    expect(screen.getByLabelText("Filtrar por estado")).toHaveValue("confirmado");
-    expect(screen.getByLabelText("Filtrar por fecha límite")).toHaveValue("next7");
+    expect(screen.getByLabelText("Estado")).toHaveValue("confirmado");
+    expect(screen.getByLabelText("Fecha límite")).toHaveValue("next7");
   });
 
   it("ignores corrupted URL values and rewrites the URL to its canonical form", async () => {
@@ -344,7 +353,7 @@ describe("MyPlansPage", () => {
     renderPage();
     await screen.findByRole("article");
 
-    await userEvent.selectOptions(screen.getByLabelText("Filtrar por estado"), "cancelado");
+    await userEvent.selectOptions(screen.getByLabelText("Estado"), "cancelado");
     expect(screen.getByTestId("search")).toHaveTextContent(/^\?estado=cancelado$/);
     await waitFor(() =>
       expect(listPlans).toHaveBeenLastCalledWith(
@@ -353,7 +362,7 @@ describe("MyPlansPage", () => {
       ),
     );
 
-    await userEvent.selectOptions(screen.getByLabelText("Filtrar por estado"), "all");
+    await userEvent.selectOptions(screen.getByLabelText("Estado"), "all");
     expect(screen.getByTestId("search")).toBeEmptyDOMElement();
   });
 
@@ -388,7 +397,7 @@ describe("MyPlansPage", () => {
     renderPage();
     await screen.findByRole("article");
 
-    await userEvent.selectOptions(screen.getByLabelText("Filtrar por estado"), "cancelado");
+    await userEvent.selectOptions(screen.getByLabelText("Estado"), "cancelado");
     await screen.findByText("No existen planes con estas características");
 
     expect(statValue("Planes")).toBe("4");
@@ -462,7 +471,7 @@ describe("MyPlansPage", () => {
     renderPage();
     await screen.findByRole("article");
 
-    await userEvent.selectOptions(screen.getByLabelText("Filtrar por estado"), "confirmado");
+    await userEvent.selectOptions(screen.getByLabelText("Estado"), "confirmado");
     expect(await screen.findByRole("alert")).toHaveTextContent("Error del servidor");
     expect(screen.getByRole("article")).toHaveTextContent("Cena de grupo");
 
