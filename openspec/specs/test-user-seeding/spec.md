@@ -28,7 +28,7 @@ The seed SHALL run automatically on backend container start (after migrations) a
 - **THEN** the seeded users exist once the backend is ready
 
 ### Requirement: SEED-01 Demo plans for seeded users
-The seed script SHALL create demo plans for `usuario1@planazo.com` and `usuario2@planazo.com` so evaluators can exercise search, state filters, and due-date filters without typing data. The demo set SHALL cover: at least one `pendiente`, one `confirmado`, and one `cancelado` plan; due dates relative to the seed run date covering overdue, today, within 7 days, within 30 days, and later; distinct titles that allow a text search to return some but not all plans; and at least one plan joined as guest by the other seeded user.
+The seed script SHALL create demo plans for `usuario1@planazo.com` and `usuario2@planazo.com` so evaluators can exercise search, state filters, and due-date filters without typing data. The demo set SHALL cover: at least one `pendiente`, one `confirmado`, and one `cancelado` plan; due dates relative to the seed run date covering overdue, today, within 7 days, within 30 days, and later (at least one plan more than 30 days out, so it is excluded by the "Próximos 30 días" filter); distinct titles that allow a text search to return some but not all plans; and at least one plan joined as guest by the other seeded user.
 
 #### Scenario: Evaluator sees varied plans
 - GIVEN the seed has run
