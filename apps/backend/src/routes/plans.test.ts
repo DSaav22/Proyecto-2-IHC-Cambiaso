@@ -251,10 +251,10 @@ describe("plans router", () => {
     ]);
   });
 
-  it("creates every plan as 'borrador'", async () => {
+  it("creates every plan as 'pendiente'", async () => {
     const res = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
     expect(res.status).toBe(201);
-    expect(res.body.plan.estado).toBe("borrador");
+    expect(res.body.plan.estado).toBe("pendiente");
   });
 
   it("ignores a client-sent estado on creation", async () => {
@@ -263,7 +263,7 @@ describe("plans router", () => {
       .set("Cookie", cookieFor("u1"))
       .send({ ...body, estado: "confirmado" });
     expect(res.status).toBe(201);
-    expect(res.body.plan.estado).toBe("borrador");
+    expect(res.body.plan.estado).toBe("pendiente");
   });
 
   describe("POST /api/plans/:id/confirm", () => {
@@ -358,7 +358,7 @@ describe("plans router", () => {
         titulo: updateData.titulo,
         description: updateData.description,
         dueDate: updateData.dueDate,
-        estado: "borrador",
+        estado: "pendiente",
       });
 
       const listRes = await request(app).get("/api/plans").set("Cookie", cookieFor("u1"));
@@ -690,7 +690,7 @@ describe("plans router", () => {
       expect(cancelRes.body.message).toBe("Solo el creador puede cancelar este plan");
 
       const listRes = await request(app).get("/api/plans").set("Cookie", cookieFor("u1"));
-      expect(listRes.body.plans[0].estado).toBe("borrador");
+      expect(listRes.body.plans[0].estado).toBe("pendiente");
     });
 
     it("rejects guest attempts to delete plan with 403 Forbidden", async () => {

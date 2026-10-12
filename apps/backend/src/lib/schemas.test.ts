@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { fieldErrors, planSchema, planStatusValues } from "./schemas.js";
 
 const valid = {
@@ -87,8 +88,15 @@ describe("planSchema", () => {
     if (result.success) expect(result.data).toEqual(valid);
   });
 
-  it("exposes borrador, confirmado and cancelado as plan states", () => {
-    expect([...planStatusValues]).toEqual(["borrador", "confirmado", "cancelado"]);
+  it("exposes pendiente, confirmado and cancelado as plan states", () => {
+    expect([...planStatusValues]).toEqual(["pendiente", "confirmado", "cancelado"]);
+  });
+
+  it("accepts pendiente and rejects the retired borrador value as a plan state", () => {
+    const stateEnum = z.enum(planStatusValues);
+    expect(stateEnum.safeParse("pendiente").success).toBe(true);
+    expect(stateEnum.safeParse("borrador").success).toBe(false);
+    expect(planStatusValues).not.toContain("borrador");
   });
 
   it("drops a client-sent estado from the parsed data", () => {

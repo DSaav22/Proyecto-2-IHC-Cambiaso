@@ -63,12 +63,12 @@ export interface PlansStore {
    */
   update(userId: string, planId: string, data: PlanInput): Promise<StoredPlan | null>;
   /**
-   * Moves an owned `borrador` plan to `confirmado`. Resolves `null` when not found;
+   * Moves an owned `pendiente` plan to `confirmado`. Resolves `null` when not found;
    * throws ForbiddenPlanActionError if caller is a guest member; rejects with `InvalidTransitionError` when `confirmado` or `cancelado`.
    */
   confirm(userId: string, planId: string): Promise<StoredPlan | null>;
   /**
-   * Moves an owned `borrador` or `confirmado` plan to `cancelado`. Resolves `null` when not found;
+   * Moves an owned `pendiente` or `confirmado` plan to `cancelado`. Resolves `null` when not found;
    * throws ForbiddenPlanActionError if caller is a guest member; rejects with `InvalidTransitionError` when already `cancelado`.
    */
   cancel(userId: string, planId: string): Promise<StoredPlan | null>;

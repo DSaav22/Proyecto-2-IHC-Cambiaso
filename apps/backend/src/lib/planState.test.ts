@@ -20,12 +20,12 @@ const draft = {
 };
 
 describe("plan state machine", () => {
-  it("starts every plan as borrador", () => {
-    expect(INITIAL_PLAN_STATE).toBe("borrador");
-    expect(PLAN_STATES).toEqual(["borrador", "confirmado", "cancelado"]);
+  it("starts every plan as pendiente", () => {
+    expect(INITIAL_PLAN_STATE).toBe("pendiente");
+    expect(PLAN_STATES).toEqual(["pendiente", "confirmado", "cancelado"]);
   });
 
-  it("moves a borrador plan to confirmado", () => {
+  it("moves a pendiente plan to confirmado", () => {
     expect(confirmPlan(draft).estado).toBe("confirmado");
   });
 
@@ -42,7 +42,7 @@ describe("plan state machine", () => {
       dueDate: draft.dueDate,
       userId: draft.userId,
     });
-    expect(draft.estado).toBe("borrador");
+    expect(draft.estado).toBe("pendiente");
   });
 
   it("cancels a confirmed plan", () => {
@@ -51,7 +51,7 @@ describe("plan state machine", () => {
     expect(cancelled.estado).toBe("cancelado");
   });
 
-  it("cancels a borrador plan", () => {
+  it("cancels a pendiente plan", () => {
     const cancelled = cancelPlan(draft);
     expect(cancelled.estado).toBe("cancelado");
   });
