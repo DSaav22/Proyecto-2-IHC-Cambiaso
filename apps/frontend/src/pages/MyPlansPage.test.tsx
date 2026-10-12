@@ -403,4 +403,70 @@ describe("MyPlansPage", () => {
     expect(screen.queryByText("Próximo plan")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Buscar planes por título")).not.toBeInTheDocument();
   });
+
+  it("shows only the page loader on the first load", async () => {
+    listPlans.mockReturnValue(new Promise(() => {}));
+    renderPage();
+
+    expect(screen.getByText("Cargando tus planes…")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Buscar planes por título")).not.toBeInTheDocument();
+  });
+
+  it("keeps the search input mounted and focused while results refresh", async () => {
+    let release: (value: { plans: Plan[]; summary: typeof oneSummary }) => void = () => {};
+    listPlans.mockImplementation((params) =>
+      params?.q
+        ? new Promise((resolve) => {
+            release = resolve;
+          })
+        : Promise.resolve({ plans: [saved], summary: oneSummary }),
+    );
+    renderPage();
+    await screen.findByRole("article");
+
+    const searchInput = screen.getByLabelText("Buscar planes por título");
+    await userEvent.type(searchInput, "ce");
+    const results = screen.getByRole("region", { name: "Tus planes" });
+    await waitFor(() => expect(results).toHaveAttribute("aria-busy", "true"));
+
+    expect(screen.queryByText("Cargando tus planes…")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Buscar planes por título")).toBe(searchInput);
+    expect(searchInput).toHaveFocus();
+
+    release({ plans: [saved], summary: oneSummary });
+    await waitFor(() => expect(results).toHaveAttribute("aria-busy", "false"));
+    expect(searchInput).toHaveFocus();
+  });
+
+  it("shows the load error with a retry button instead of the empty state", async () => {
+    const { ApiError } = await import("../api/client");
+    listPlans
+      .mockRejectedValueOnce(new ApiError(500, "Error del servidor"))
+      .mockResolvedValue({ plans: [saved], summary: oneSummary });
+    renderPage();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Error del servidor");
+    expect(screen.queryByText(/todavía no tienes planes/i)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(await screen.findByRole("article")).toHaveTextContent("Cena de grupo");
+    expect(screen.queryByRole("button", { name: "Reintentar" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the previous plans visible when a refresh fails and retries on demand", async () => {
+    const { ApiError } = await import("../api/client");
+    listPlans
+      .mockResolvedValueOnce({ plans: [saved], summary: oneSummary })
+      .mockRejectedValueOnce(new ApiError(500, "Error del servidor"))
+      .mockResolvedValue({ plans: [saved], summary: oneSummary });
+    renderPage();
+    await screen.findByRole("article");
+
+    await userEvent.selectOptions(screen.getByLabelText("Filtrar por estado"), "confirmado");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Error del servidor");
+    expect(screen.getByRole("article")).toHaveTextContent("Cena de grupo");
+
+    await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+  });
 });

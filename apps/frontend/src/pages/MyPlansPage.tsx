@@ -33,7 +33,9 @@ export default function MyPlansPage() {
     plans,
     summary,
     loading,
+    refreshing,
     loadError,
+    reload,
     addPlan,
     joinPlan,
     updatePlan,
@@ -162,6 +164,13 @@ export default function MyPlansPage() {
         <SuccessNotice onClose={() => setNotice(null)}>{notice}</SuccessNotice>
       ) : null}
       <ErrorAlert message={loadError || actionError} />
+      {loadError ? (
+        <div>
+          <Button type="button" variant="outline" onClick={() => void reload()}>
+            Reintentar
+          </Button>
+        </div>
+      ) : null}
 
       {loading ? (
         <p role="status" className="text-muted-foreground">
@@ -199,40 +208,42 @@ export default function MyPlansPage() {
             </>
           ) : null}
 
-          {summary.total > 0 && plans.length === 0 ? (
-            <div
-              role="status"
-              className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card/60 p-10 text-center"
-            >
-              <div className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-                <FilterX aria-hidden="true" className="size-6" />
-              </div>
-              <div className="max-w-md space-y-1">
-                <p className="text-base font-semibold text-foreground">
-                  No existen planes con estas características
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Prueba a ajustar o quitar los filtros aplicados para volver a ver tus planes.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCriteria(INITIAL_PLAN_FILTERS)}
+          <section aria-label="Tus planes" aria-busy={refreshing}>
+            {summary.total > 0 && plans.length === 0 ? (
+              <div
+                role="status"
+                className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card/60 p-10 text-center"
               >
-                Restablecer filtros
-              </Button>
-            </div>
-          ) : (
-            <PlanList
-              plans={plans}
-              onEdit={handleEdit}
-              onConfirm={handleConfirm}
-              onCancel={handleCancel}
-              onDelete={handleDelete}
-            />
-          )}
+                <div className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                  <FilterX aria-hidden="true" className="size-6" />
+                </div>
+                <div className="max-w-md space-y-1">
+                  <p className="text-base font-semibold text-foreground">
+                    No existen planes con estas características
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Prueba a ajustar o quitar los filtros aplicados para volver a ver tus planes.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCriteria(INITIAL_PLAN_FILTERS)}
+                >
+                  Restablecer filtros
+                </Button>
+              </div>
+            ) : loadError && summary.total === 0 && plans.length === 0 ? null : (
+              <PlanList
+                plans={plans}
+                onEdit={handleEdit}
+                onConfirm={handleConfirm}
+                onCancel={handleCancel}
+                onDelete={handleDelete}
+              />
+            )}
+          </section>
         </>
       )}
 
