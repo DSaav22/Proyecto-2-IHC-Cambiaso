@@ -16,7 +16,7 @@ import type { Plan } from "../../api/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatDueDate, getDueStatus } from "../../lib/plans";
+import { formatDueDate, getDueStatus, PLAN_STATUS_LABELS } from "../../lib/plans";
 import type { DueTone } from "../../lib/plans";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -102,7 +102,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
             ) : isCancelled ? (
               <Ban aria-hidden="true" />
             ) : null}
-            {isConfirmed ? "Confirmado" : isCancelled ? "Cancelado" : "Pendiente"}
+            {PLAN_STATUS_LABELS[plan.estado]}
           </Badge>
           {isOwner ? (
             <Badge variant="default" className="text-xs">
