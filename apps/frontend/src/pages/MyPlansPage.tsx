@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CalendarClock, FilterX, ListChecks, Plus, TriangleAlert, Users } from "lucide-react";
+import { CalendarClock, ListChecks, Plus, TriangleAlert, Users } from "lucide-react";
 import type { Plan, PlanInput } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -209,34 +209,11 @@ export default function MyPlansPage() {
           ) : null}
 
           <section aria-label="Tus planes" aria-busy={refreshing}>
-            {summary.total > 0 && plans.length === 0 ? (
-              <div
-                role="status"
-                className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card/60 p-10 text-center"
-              >
-                <div className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-                  <FilterX aria-hidden="true" className="size-6" />
-                </div>
-                <div className="max-w-md space-y-1">
-                  <p className="text-base font-semibold text-foreground">
-                    No existen planes con estas características
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Prueba a ajustar o quitar los filtros aplicados para volver a ver tus planes.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCriteria(INITIAL_PLAN_FILTERS)}
-                >
-                  Restablecer filtros
-                </Button>
-              </div>
-            ) : loadError && summary.total === 0 && plans.length === 0 ? null : (
+            {loadError && summary.total === 0 && plans.length === 0 ? null : (
               <PlanList
                 plans={plans}
+                emptyState={summary.total > 0 ? "no-match" : "no-plans"}
+                onClearFilters={() => setCriteria(INITIAL_PLAN_FILTERS)}
                 onEdit={handleEdit}
                 onConfirm={handleConfirm}
                 onCancel={handleCancel}

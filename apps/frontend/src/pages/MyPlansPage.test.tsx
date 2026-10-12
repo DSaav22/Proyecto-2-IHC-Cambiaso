@@ -85,6 +85,14 @@ describe("MyPlansPage", () => {
     expect(screen.queryByRole("button", { name: "Cerrar sesión" })).not.toBeInTheDocument();
   });
 
+  it("hides the filter bar and no-match copy when the user has no plans at all", async () => {
+    listPlans.mockResolvedValue({ plans: [], summary: noSummary });
+    renderPage("/mis-planes?estado=confirmado");
+    expect(await screen.findByText(/todavía no tienes planes/i)).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: /filtros y búsqueda/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/no hay planes que coincidan/i)).not.toBeInTheDocument();
+  });
+
   it("opens the form, creates a plan and shows its card, then refetches in the background", async () => {
     listPlans
       .mockResolvedValueOnce({ plans: [], summary: noSummary })
@@ -302,7 +310,7 @@ describe("MyPlansPage", () => {
     await userEvent.type(searchInput, "Playa");
 
     expect(
-      await screen.findByText("No existen planes con estas características"),
+      await screen.findByText("No hay planes que coincidan con los filtros"),
     ).toBeInTheDocument();
     expect(listPlans).toHaveBeenLastCalledWith(
       expect.objectContaining({ q: "Playa" }),
@@ -312,7 +320,12 @@ describe("MyPlansPage", () => {
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
     expect(screen.getByTestId("search")).toHaveTextContent("?q=Playa");
 
-    await userEvent.click(screen.getByRole("button", { name: "Restablecer filtros" }));
+    // Both the bar and the no-match state offer the action; use the one inside the empty state.
+    await userEvent.click(
+      within(screen.getByRole("region", { name: "Tus planes" })).getByRole("button", {
+        name: "Limpiar filtros",
+      }),
+    );
     expect(await screen.findByRole("article")).toBeInTheDocument();
     expect(searchInput).toHaveValue("");
     expect(screen.getByTestId("search")).toBeEmptyDOMElement();
@@ -398,7 +411,7 @@ describe("MyPlansPage", () => {
     await screen.findByRole("article");
 
     await userEvent.selectOptions(screen.getByLabelText("Estado"), "cancelado");
-    await screen.findByText("No existen planes con estas características");
+    await screen.findByText("No hay planes que coincidan con los filtros");
 
     expect(statValue("Planes")).toBe("4");
     expect(statValue("Vencidos")).toBe("1");
