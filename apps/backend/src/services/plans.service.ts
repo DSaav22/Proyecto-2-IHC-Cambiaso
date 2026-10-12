@@ -72,7 +72,15 @@ export function toUtcDate(ymd: string): Date {
   return new Date(`${ymd}T00:00:00.000Z`);
 }
 
-const addDays = (date: Date, days: number) => new Date(date.getTime() + days * MS_PER_DAY);
+/**
+ * Prisma passes `contains` to PostgreSQL `LIKE`/`ILIKE` without escaping, so `%` and `_` act as
+ * wildcards. Escape them (and the escape character) so a search term is always literal.
+ */
+export function escapeLikePattern(term: string): string {
+  return term.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
+const addDays =(date: Date, days: number) => new Date(date.getTime() + days * MS_PER_DAY);
 
 /**
  * Builds the Prisma `where` for the plan list. The owner-or-member scope is always the first
@@ -87,7 +95,7 @@ export function buildPlanWhere(
     { OR: [{ userId }, { members: { some: { userId } } }] },
   ];
   if (filter.q) {
-    and.push({ titulo: { contains: filter.q, mode: "insensitive" } });
+    and.push({ titulo: { contains: escapeLikePattern(filter.q), mode: "insensitive" } });
   }
   if (filter.estado) {
     and.push({ estado: filter.estado });

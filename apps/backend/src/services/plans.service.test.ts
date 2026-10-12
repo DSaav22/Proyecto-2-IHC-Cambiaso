@@ -7,6 +7,7 @@ import {
   buildPlanWhere,
   computePlanSummary,
   createPrismaPlansStore,
+  escapeLikePattern,
   toUtcDate,
 } from "./plans.service.js";
 
@@ -78,6 +79,29 @@ describe("buildPlanWhere", () => {
   it("combines search, estado and date clauses in one AND", () => {
     const where = buildPlanWhere("u1", { q: "a", estado: "confirmado", fecha: "next7" }, today);
     expect(clauses(where)).toHaveLength(4);
+  });
+});
+
+describe("escapeLikePattern and literal search", () => {
+  it("escapes percent, underscore and backslash with a backslash", () => {
+    expect(escapeLikePattern("100%")).toBe("100\\%");
+    expect(escapeLikePattern("a_b")).toBe("a\\_b");
+    expect(escapeLikePattern("c:\\d")).toBe("c:\\\\d");
+  });
+
+  it("leaves ordinary text untouched", () => {
+    expect(escapeLikePattern("Cena de Navidad")).toBe("Cena de Navidad");
+  });
+
+  it("passes the escaped term to contains so % and _ are literal", () => {
+    const where = buildPlanWhere("u1", { q: "50%_off" }, today);
+    expect(clauses(where)).toContainEqual({
+      titulo: { contains: "50\\%\\_off", mode: "insensitive" },
+    });
+  });
+
+  it("does not alter the filter when q is absent", () => {
+    expect(clauses(buildPlanWhere("u1", {}, today))).toHaveLength(1);
   });
 });
 
