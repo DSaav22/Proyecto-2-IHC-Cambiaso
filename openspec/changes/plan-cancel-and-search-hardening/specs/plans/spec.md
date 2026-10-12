@@ -5,7 +5,7 @@ Terminology: "estado" values are `pendiente`, `confirmado`, `cancelado` (the for
 ## ADDED Requirements
 
 ### Requirement: PLN-01 Server-side plan query API
-`GET /api/plans` SHALL accept optional query parameters `q`, `estado`, `fecha`, and `today`, validated by schema. `q` is trimmed, max 100 characters; `estado` is one of `pendiente|confirmado|cancelado` (`borrador` is rejected with `400`); `fecha` is one of `today|next7|next30|overdue`; `today` is a real calendar date `YYYY-MM-DD`. Unknown parameters or invalid values SHALL yield `400` with a Spanish message. A missing `today` SHALL default to the server's UTC date. The owner-or-member scope SHALL be applied first, then all filters combined with AND. Results SHALL be ordered by due date ascending, then creation time ascending. The response SHALL be `{ plans, summary: { total, overdue, nextDueDate } }`.
+`GET /api/plans` SHALL accept optional query parameters `q`, `estado`, `fecha`, and `today`, validated by schema. `q` is trimmed, max 100 characters; `estado` is one of `pendiente|confirmado|cancelado` (`borrador` is rejected with `400`); `fecha` is one of `today|next7|next30|overdue`; `today` is a real calendar date `YYYY-MM-DD`. Unknown parameters SHALL be ignored; invalid values of the known parameters SHALL yield `400` with a Spanish message. A missing `today` SHALL default to the server's UTC date. The owner-or-member scope SHALL be applied first, then all filters combined with AND. Results SHALL be ordered by due date ascending, then creation time ascending. The response SHALL be `{ plans, summary: { total, overdue, nextDueDate } }`.
 
 #### Scenario: No params
 - GIVEN a user with 3 plans
@@ -24,8 +24,12 @@ Terminology: "estado" values are `pendiente`, `confirmado`, `cancelado` (the for
 - WHEN a client calls `GET /api/plans?today=2026-02-30` or `?today=hoy`
 - THEN the API responds `400`
 
-#### Scenario: Unknown parameter and overlong q
-- WHEN a client sends `?foo=1` or a `q` of 101 characters
+#### Scenario: Unknown parameter is ignored
+- WHEN a client sends `?foo=1`
+- THEN the API responds `200` and the unknown key has no effect on the result
+
+#### Scenario: Overlong q
+- WHEN a client sends a `q` of 101 characters
 - THEN the API responds `400`
 
 #### Scenario: Whitespace-only q
