@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { generateShareCode } from "../lib/shareCode.js";
 import {
@@ -8,8 +9,9 @@ import {
   confirmPlan,
   DeleteBlockedError,
   EditBlockedError,
+  type PlanState,
 } from "../lib/planState.js";
-import type { PlanInput } from "../lib/schemas.js";
+import type { PlanDateFilter, PlanInput } from "../lib/schemas.js";
 
 export class PlanNotFoundError extends Error {
   constructor(message = "Plan no encontrado con este código") {
@@ -49,6 +51,88 @@ export interface StoredPlan {
   shareCode: string;
   isOwner?: boolean;
   ownerName?: string;
+}
+
+export interface PlanListFilter {
+  q?: string;
+  estado?: PlanState;
+  fecha?: PlanDateFilter;
+}
+
+export interface PlanSummary {
+  total: number;
+  overdue: number;
+  nextDueDate: Date | null;
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** Converts a `YYYY-MM-DD` calendar date to UTC midnight (matches `@db.Date` columns). */
+export function toUtcDate(ymd: string): Date {
+  return new Date(`${ymd}T00:00:00.000Z`);
+}
+
+const addDays = (date: Date, days: number) => new Date(date.getTime() + days * MS_PER_DAY);
+
+/**
+ * Builds the Prisma `where` for the plan list. The owner-or-member scope is always the first
+ * `AND` clause. Date filters exclude `cancelado` plans unless `estado` is set explicitly.
+ */
+export function buildPlanWhere(
+  userId: string,
+  filter: PlanListFilter,
+  todayUtc: Date,
+): Prisma.PlanWhereInput {
+  const and: Prisma.PlanWhereInput[] = [
+    { OR: [{ userId }, { members: { some: { userId } } }] },
+  ];
+  if (filter.q) {
+    and.push({ titulo: { contains: filter.q, mode: "insensitive" } });
+  }
+  if (filter.estado) {
+    and.push({ estado: filter.estado });
+  }
+  if (filter.fecha) {
+    switch (filter.fecha) {
+      case "today":
+        and.push({ dueDate: { gte: todayUtc, lte: todayUtc } });
+        break;
+      case "next7":
+        and.push({ dueDate: { gte: todayUtc, lte: addDays(todayUtc, 7) } });
+        break;
+      case "next30":
+        and.push({ dueDate: { gte: todayUtc, lte: addDays(todayUtc, 30) } });
+        break;
+      case "overdue":
+        and.push({ dueDate: { lt: todayUtc } });
+        break;
+    }
+    if (!filter.estado) {
+      and.push({ estado: { not: "cancelado" } });
+    }
+  }
+  return { AND: and };
+}
+
+/**
+ * Summarizes the whole scope (never filtered). `total` counts every plan; `overdue` and
+ * `nextDueDate` ignore `cancelado` plans.
+ */
+export function computePlanSummary(
+  rows: { dueDate: Date; estado: string }[],
+  todayUtc: Date,
+): PlanSummary {
+  let overdue = 0;
+  let nextDueDate: Date | null = null;
+  for (const row of rows) {
+    if (row.estado === "cancelado") continue;
+    if (row.dueDate.getTime() < todayUtc.getTime()) {
+      overdue += 1;
+    } else if (nextDueDate === null || row.dueDate.getTime() < nextDueDate.getTime()) {
+      nextDueDate = row.dueDate;
+    }
+  }
+  return { total: rows.length, overdue, nextDueDate };
 }
 
 export interface PlansStore {
