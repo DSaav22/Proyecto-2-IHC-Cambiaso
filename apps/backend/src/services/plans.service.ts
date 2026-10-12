@@ -57,16 +57,19 @@ export interface PlansStore {
   create(userId: string, data: PlanInput): Promise<StoredPlan>;
   /** Joins a plan using a share code. */
   joinByCode(userId: string, code: string): Promise<StoredPlan>;
-  /** Updates description and dueDate for an owned plan. Resolves null if not found. Throws ForbiddenPlanActionError if caller is a guest member. */
+  /**
+   * Updates titulo, description and dueDate for an owned plan. Resolves null if not found.
+   * Throws ForbiddenPlanActionError if caller is a guest member; throws EditBlockedError when the plan is `cancelado`.
+   */
   update(userId: string, planId: string, data: PlanInput): Promise<StoredPlan | null>;
   /**
-   * Moves an owned draft to `confirmado`. Resolves `null` when not found;
-   * throws ForbiddenPlanActionError if caller is a guest member; rejects with `InvalidTransitionError` when already confirmed.
+   * Moves an owned `borrador` plan to `confirmado`. Resolves `null` when not found;
+   * throws ForbiddenPlanActionError if caller is a guest member; rejects with `InvalidTransitionError` when `confirmado` or `cancelado`.
    */
   confirm(userId: string, planId: string): Promise<StoredPlan | null>;
   /**
-   * Moves an owned confirmed plan to `cancelado`. Resolves `null` when not found;
-   * throws ForbiddenPlanActionError if caller is a guest member; rejects with `InvalidTransitionError` when not confirmed.
+   * Moves an owned `borrador` or `confirmado` plan to `cancelado`. Resolves `null` when not found;
+   * throws ForbiddenPlanActionError if caller is a guest member; rejects with `InvalidTransitionError` when already `cancelado`.
    */
   cancel(userId: string, planId: string): Promise<StoredPlan | null>;
   /**
