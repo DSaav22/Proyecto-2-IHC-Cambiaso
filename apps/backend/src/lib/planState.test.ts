@@ -62,6 +62,18 @@ describe("plan state machine", () => {
     expect(() => cancelPlan(cancelled)).toThrow(InvalidTransitionError);
   });
 
+  it("rejects confirming a cancelado plan with from === 'cancelado'", () => {
+    const cancelled = cancelPlan(draft);
+    try {
+      confirmPlan(cancelled);
+      expect.unreachable("confirmPlan should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(InvalidTransitionError);
+      expect((error as InvalidTransitionError).from).toBe("cancelado");
+      expect((error as InvalidTransitionError).to).toBe("confirmado");
+    }
+  });
+
   it("preserves plan data when cancelling", () => {
     const confirmed = confirmPlan(draft);
     const cancelled = cancelPlan(confirmed);
