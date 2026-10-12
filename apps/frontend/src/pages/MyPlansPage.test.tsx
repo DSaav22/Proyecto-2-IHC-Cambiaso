@@ -32,7 +32,7 @@ const saved: Plan = {
   titulo: "Cena de grupo",
   description: "Cena de grupo con amigos",
   dueDate: "2026-12-24",
-  estado: "borrador",
+  estado: "pendiente",
   createdAt: "2026-01-01T00:00:00.000Z",
 };
 
@@ -97,7 +97,7 @@ describe("MyPlansPage", () => {
     confirmMock.mockResolvedValue({ plan: { ...saved, estado: "confirmado" } });
 
     render(<MyPlansPage />);
-    expect(await screen.findByTestId("plan-status-badge")).toHaveTextContent("Borrador");
+    expect(await screen.findByTestId("plan-status-badge")).toHaveTextContent("Pendiente");
 
     await userEvent.click(screen.getByRole("button", { name: "Confirmar plan" }));
     expect(confirmMock).not.toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe("MyPlansPage", () => {
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent("El plan ya está confirmado");
-    expect(screen.getByTestId("plan-status-badge")).toHaveTextContent("Borrador");
+    expect(screen.getByTestId("plan-status-badge")).toHaveTextContent("Pendiente");
   });
 
   it("deletes a plan from the actions menu after confirmation", async () => {

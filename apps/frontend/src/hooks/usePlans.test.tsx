@@ -26,7 +26,7 @@ const plan = (name: string, dueDate: string, createdAt: string): Plan => ({
   titulo: `Título ${name}`,
   description: `Descripción ${name}`,
   dueDate,
-  estado: "borrador",
+  estado: "pendiente",
   createdAt,
 });
 
@@ -115,7 +115,7 @@ describe("usePlans", () => {
     expect(result.current.plans[0].estado).toBe("confirmado");
   });
 
-  it("returns the error message and keeps borrador when confirming fails", async () => {
+  it("returns the error message and keeps pendiente when confirming fails", async () => {
     const existing = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
     listPlans.mockResolvedValue({ plans: [existing] });
     confirmPlanMock.mockRejectedValue(new ApiError(409, "El plan ya está confirmado"));
@@ -129,7 +129,7 @@ describe("usePlans", () => {
     });
 
     expect(outcome).toEqual({ ok: false, message: "El plan ya está confirmado" });
-    expect(result.current.plans[0].estado).toBe("borrador");
+    expect(result.current.plans[0].estado).toBe("pendiente");
   });
 
   it("updates plan and resort in state on successful updatePlan", async () => {
@@ -205,7 +205,7 @@ describe("usePlans", () => {
   });
 
   it("returns error message and retains state when cancelPlan fails", async () => {
-    const existing: Plan = { ...plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z"), estado: "borrador" };
+    const existing: Plan = { ...plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z"), estado: "pendiente" };
     listPlans.mockResolvedValue({ plans: [existing] });
     cancelPlanMock.mockRejectedValue(new ApiError(409, "Solo un plan confirmado puede ser cancelado"));
 
@@ -218,7 +218,7 @@ describe("usePlans", () => {
     });
 
     expect(outcome).toEqual({ ok: false, message: "Solo un plan confirmado puede ser cancelado" });
-    expect(result.current.plans[0].estado).toBe("borrador");
+    expect(result.current.plans[0].estado).toBe("pendiente");
   });
 
   it("removes plan from state on successful deletion", async () => {

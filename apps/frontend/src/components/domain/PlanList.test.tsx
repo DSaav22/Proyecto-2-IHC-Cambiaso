@@ -9,7 +9,7 @@ const plan = (name: string, dueDate: string): Plan => ({
   titulo: `Plan ${name}`,
   description: `Descripción de ${name}`,
   dueDate,
-  estado: "borrador",
+  estado: "pendiente",
   createdAt: "2026-01-01T00:00:00.000Z",
 });
 

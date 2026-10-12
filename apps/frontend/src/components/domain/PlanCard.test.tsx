@@ -9,7 +9,7 @@ const basePlan: Plan = {
   titulo: "Cena de equipo",
   description: "Cena de fin de año en restaurante",
   dueDate: "2026-12-24",
-  estado: "borrador",
+  estado: "pendiente",
   createdAt: "2026-01-01T00:00:00.000Z",
 };
 const confirmed: Plan = { ...basePlan, estado: "confirmado" };
@@ -20,10 +20,10 @@ async function openMenu() {
 }
 
 describe("PlanCard - state", () => {
-  it("shows a text 'Borrador' badge and the confirm and cancel buttons for a draft", () => {
+  it("shows a text 'Pendiente' badge and the confirm and cancel buttons for a draft", () => {
     render(<PlanCard plan={basePlan} />);
-    expect(screen.getByTestId("plan-status-badge")).toHaveTextContent("Borrador");
-    expect(screen.getByTestId("plan-status-badge")).toHaveAttribute("data-status", "borrador");
+    expect(screen.getByTestId("plan-status-badge")).toHaveTextContent("Pendiente");
+    expect(screen.getByTestId("plan-status-badge")).toHaveAttribute("data-status", "pendiente");
     expect(screen.getByRole("button", { name: "Confirmar plan" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancelar plan" })).toBeInTheDocument();
   });
@@ -67,7 +67,7 @@ describe("PlanCard - confirm flow", () => {
 
     const dialog = screen.getByRole("alertdialog");
     expect(dialog).toHaveTextContent("Cena de equipo");
-    expect(dialog).toHaveTextContent(/no podrá volver a borrador/i);
+    expect(dialog).toHaveTextContent(/no podrá volver a pendiente/i);
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
@@ -334,7 +334,7 @@ describe("PlanCard - actions menu", () => {
     });
 
     it("does not render confirm button for guest and shows read-only indicator", () => {
-      render(<PlanCard plan={{ ...basePlan, estado: "borrador", isOwner: false }} />);
+      render(<PlanCard plan={{ ...basePlan, estado: "pendiente", isOwner: false }} />);
       expect(screen.queryByRole("button", { name: "Confirmar plan" })).not.toBeInTheDocument();
       expect(screen.getByRole("note")).toHaveTextContent(/^Solo lectura/);
     });

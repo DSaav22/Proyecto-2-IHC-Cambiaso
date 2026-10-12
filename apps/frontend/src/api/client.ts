@@ -5,7 +5,7 @@ export interface PublicUser {
   createdAt: string;
 }
 
-export type PlanStatus = "borrador" | "confirmado" | "cancelado";
+export type PlanStatus = "pendiente" | "confirmado" | "cancelado";
 
 export interface Plan {
   id: string;

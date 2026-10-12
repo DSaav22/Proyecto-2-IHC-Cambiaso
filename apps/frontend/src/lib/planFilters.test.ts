@@ -18,7 +18,7 @@ const plans: Plan[] = [
     titulo: "Viaje a la playa",
     description: "Fin de semana",
     dueDate: "2026-10-20", // En 5 días (next7 & next30)
-    estado: "borrador",
+    estado: "pendiente",
     createdAt: "2026-10-01T00:00:00.000Z",
   },
   {
@@ -52,7 +52,7 @@ describe("planFilters", () => {
   });
 
   it("filters plans by status", () => {
-    const drafts = filterPlans(plans, { ...INITIAL_PLAN_FILTERS, status: "borrador" }, mockNow);
+    const drafts = filterPlans(plans, { ...INITIAL_PLAN_FILTERS, status: "pendiente" }, mockNow);
     expect(drafts.map((p) => p.id)).toEqual(["2"]);
 
     const cancelled = filterPlans(plans, { ...INITIAL_PLAN_FILTERS, status: "cancelado" }, mockNow);
