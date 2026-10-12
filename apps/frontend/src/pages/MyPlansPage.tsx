@@ -21,7 +21,7 @@ import {
   serializePlanFilters,
   type PlanFilterCriteria,
 } from "../lib/planFilters";
-import { daysUntil, getDueStatus } from "../lib/plans";
+import { getDueStatus } from "../lib/plans";
 
 export default function MyPlansPage() {
   const { user } = useAuth();
@@ -128,9 +128,6 @@ export default function MyPlansPage() {
     return result;
   }
 
-  const nextPlan = plans.find((plan) => daysUntil(plan.dueDate) >= 0);
-  const overdue = plans.filter((plan) => daysUntil(plan.dueDate) < 0).length;
-
   return (
     <div className="grid gap-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -175,18 +172,20 @@ export default function MyPlansPage() {
           {summary.total > 0 ? (
             <>
               <div className="grid gap-4 sm:grid-cols-3">
-                <StatCard icon={ListChecks} label="Planes" value={String(plans.length)} />
+                <StatCard icon={ListChecks} label="Planes" value={String(summary.total)} />
                 <StatCard
                   icon={CalendarClock}
                   label="Próximo plan"
                   tone="accent"
-                  value={nextPlan ? getDueStatus(nextPlan.dueDate).label : "Sin pendientes"}
+                  value={
+                    summary.nextDueDate ? getDueStatus(summary.nextDueDate).label : "Sin pendientes"
+                  }
                 />
                 <StatCard
                   icon={TriangleAlert}
                   label="Vencidos"
                   tone="danger"
-                  value={String(overdue)}
+                  value={String(summary.overdue)}
                 />
               </div>
 

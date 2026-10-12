@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../api/client";
 import type { Plan } from "../api/client";
 import { MemoryRouter, useLocation } from "react-router-dom";
+import { getDueStatus } from "../lib/plans";
 import MyPlansPage from "./MyPlansPage";
 
 vi.mock("../auth/AuthContext", () => ({
@@ -50,6 +51,10 @@ function renderPage(initialEntry = "/mis-planes") {
       <LocationProbe />
     </MemoryRouter>,
   );
+}
+
+function statValue(label: string): string {
+  return screen.getByText(label, { selector: "p" }).nextElementSibling?.textContent ?? "";
 }
 
 async function createViaForm() {
@@ -350,5 +355,52 @@ describe("MyPlansPage", () => {
 
     await userEvent.selectOptions(screen.getByLabelText("Filtrar por estado"), "all");
     expect(screen.getByTestId("search")).toBeEmptyDOMElement();
+  });
+
+  it("shows the stat cards from the server summary, not from the visible plans", async () => {
+    const summary = { total: 5, overdue: 2, nextDueDate: "2099-01-01" };
+    listPlans.mockResolvedValue({ plans: [saved], summary });
+    renderPage();
+    await screen.findByRole("article");
+
+    expect(statValue("Planes")).toBe("5");
+    expect(statValue("Vencidos")).toBe("2");
+    expect(statValue("Próximo plan")).toBe(getDueStatus("2099-01-01").label);
+  });
+
+  it("shows \"Sin pendientes\" when the summary has no next due date", async () => {
+    listPlans.mockResolvedValue({
+      plans: [saved],
+      summary: { total: 1, overdue: 0, nextDueDate: null },
+    });
+    renderPage();
+    await screen.findByRole("article");
+
+    expect(statValue("Próximo plan")).toBe("Sin pendientes");
+    expect(statValue("Vencidos")).toBe("0");
+  });
+
+  it("keeps the stat cards unchanged while filters narrow the list", async () => {
+    const summary = { total: 4, overdue: 1, nextDueDate: "2099-01-01" };
+    listPlans.mockImplementation(async (params) =>
+      params?.estado ? { plans: [], summary } : { plans: [saved], summary },
+    );
+    renderPage();
+    await screen.findByRole("article");
+
+    await userEvent.selectOptions(screen.getByLabelText("Filtrar por estado"), "cancelado");
+    await screen.findByText("No existen planes con estas características");
+
+    expect(statValue("Planes")).toBe("4");
+    expect(statValue("Vencidos")).toBe("1");
+  });
+
+  it("hides the stat cards when the user has no plans at all", async () => {
+    listPlans.mockResolvedValue({ plans: [], summary: noSummary });
+    renderPage();
+    await screen.findByText(/todavía no tienes planes/i);
+
+    expect(screen.queryByText("Próximo plan")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Buscar planes por título")).not.toBeInTheDocument();
   });
 });
