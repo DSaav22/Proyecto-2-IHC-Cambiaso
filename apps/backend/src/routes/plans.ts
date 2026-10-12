@@ -2,11 +2,12 @@ import { Router, type NextFunction, type Request, type Response } from "express"
 import type { User } from "@prisma/client";
 import { z } from "zod";
 import { DeleteBlockedError, EditBlockedError, InvalidTransitionError } from "../lib/planState.js";
-import { fieldErrors, planSchema } from "../lib/schemas.js";
+import { fieldErrors, planListQuerySchema, planSchema } from "../lib/schemas.js";
 import {
   type StoredPlan,
   type PlansStore,
   createPrismaPlansStore,
+  toUtcDate,
   AlreadyJoinedError,
   CreatorCannotJoinError,
   ForbiddenPlanActionError,
@@ -59,10 +60,30 @@ export function createPlansRouter(store: PlansStore): Router {
 
   router.get(
     "/",
-    wrap(async (_req, res) => {
+    wrap(async (req, res) => {
       const user = res.locals.user as User;
-      const plans = (await store.list(user.id)).slice().sort(comparePlans);
-      res.status(200).json({ plans: plans.map(serialize) });
+      const parsed = planListQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+        res
+          .status(400)
+          .json({ message: "Parámetros de búsqueda inválidos", errors: fieldErrors(parsed.error) });
+        return;
+      }
+      const { today, ...filter } = parsed.data;
+      const todayUtc = toUtcDate(today ?? new Date().toISOString().slice(0, 10));
+      const [list, summary] = await Promise.all([
+        store.list(user.id, filter, todayUtc),
+        store.summary(user.id, todayUtc),
+      ]);
+      const plans = list.slice().sort(comparePlans);
+      res.status(200).json({
+        plans: plans.map(serialize),
+        summary: {
+          total: summary.total,
+          overdue: summary.overdue,
+          nextDueDate: summary.nextDueDate ? toDateString(summary.nextDueDate) : null,
+        },
+      });
     }),
   );
 
