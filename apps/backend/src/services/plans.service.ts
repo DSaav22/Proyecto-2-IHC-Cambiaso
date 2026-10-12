@@ -136,7 +136,10 @@ export function computePlanSummary(
 }
 
 export interface PlansStore {
-  list(userId: string): Promise<StoredPlan[]>;
+  /** No `filter` lists every owned or joined plan. `todayUtc` defaults to the server UTC date. */
+  list(userId: string, filter?: PlanListFilter, todayUtc?: Date): Promise<StoredPlan[]>;
+  /** Unfiltered summary of the caller's plans (cancelled count in total only). */
+  summary(userId: string, todayUtc: Date): Promise<PlanSummary>;
   /** The store generates the plan id and shareCode. */
   create(userId: string, data: PlanInput): Promise<StoredPlan>;
   /** Joins a plan using a share code. */
@@ -165,11 +168,9 @@ export interface PlansStore {
 
 export function createPrismaPlansStore(): PlansStore {
   return {
-    list: async (userId: string) => {
+    list: async (userId: string, filter: PlanListFilter = {}, todayUtc?: Date) => {
       const plans = await prisma.plan.findMany({
-        where: {
-          OR: [{ userId }, { members: { some: { userId } } }],
-        },
+        where: buildPlanWhere(userId, filter, todayUtc ?? toUtcDate(new Date().toISOString().slice(0, 10))),
         orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
         include: {
           user: { select: { name: true } },
@@ -186,6 +187,13 @@ export function createPrismaPlansStore(): PlansStore {
         isOwner: p.userId === userId,
         ownerName: p.user.name,
       }));
+    },
+    summary: async (userId: string, todayUtc: Date) => {
+      const rows = await prisma.plan.findMany({
+        where: buildPlanWhere(userId, {}, todayUtc),
+        select: { dueDate: true, estado: true },
+      });
+      return computePlanSummary(rows, todayUtc);
     },
     create: async (userId: string, data: PlanInput) => {
       let attempts = 0;

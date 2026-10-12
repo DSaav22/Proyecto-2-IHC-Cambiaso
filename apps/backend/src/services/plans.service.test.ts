@@ -1,8 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("../lib/prisma.js", () => ({ prisma: {} }));
+const findMany = vi.hoisted(() => vi.fn());
+vi.mock("../lib/prisma.js", () => ({ prisma: { plan: { findMany } } }));
 
-import { buildPlanWhere, computePlanSummary, toUtcDate } from "./plans.service.js";
+import {
+  buildPlanWhere,
+  computePlanSummary,
+  createPrismaPlansStore,
+  toUtcDate,
+} from "./plans.service.js";
 
 const today = toUtcDate("2026-06-15");
 const day = (ymd: string) => new Date(`${ymd}T00:00:00.000Z`);
@@ -118,5 +124,57 @@ describe("computePlanSummary", () => {
 
   it("returns zeros for no plans", () => {
     expect(computePlanSummary([], today)).toEqual({ total: 0, overdue: 0, nextDueDate: null });
+  });
+});
+
+describe("createPrismaPlansStore list and summary", () => {
+  const createdAt = new Date("2026-01-01T00:00:00.000Z");
+  const row = {
+    id: "p1",
+    userId: "u1",
+    titulo: "Cena",
+    description: "d",
+    dueDate: day("2026-06-20"),
+    estado: "pendiente",
+    createdAt,
+    shareCode: "PLZ-AAAAAA",
+    user: { name: "Ana" },
+  };
+
+  it("lists with the scoped where built from the filter and keeps the order", async () => {
+    findMany.mockResolvedValueOnce([row]);
+    const plans = await createPrismaPlansStore().list("u1", { q: "ce", fecha: "next7" }, today);
+    const args = findMany.mock.calls.at(-1)![0];
+    expect(args.where).toEqual(buildPlanWhere("u1", { q: "ce", fecha: "next7" }, today));
+    expect(args.orderBy).toEqual([{ dueDate: "asc" }, { createdAt: "asc" }]);
+    expect(plans[0]).toMatchObject({ id: "p1", isOwner: true, ownerName: "Ana" });
+  });
+
+  it("lists without a filter using only the scope clause", async () => {
+    findMany.mockResolvedValueOnce([]);
+    await createPrismaPlansStore().list("u1");
+    expect(findMany.mock.calls.at(-1)![0].where).toEqual({ AND: [scope("u1")] });
+  });
+
+  it("summarizes the unfiltered scope selecting only dueDate and estado", async () => {
+    findMany.mockResolvedValueOnce([
+      { dueDate: day("2026-06-10"), estado: "pendiente" },
+      { dueDate: day("2026-06-16"), estado: "confirmado" },
+      { dueDate: day("2026-06-12"), estado: "cancelado" },
+    ]);
+    const summary = await createPrismaPlansStore().summary("u1", today);
+    const args = findMany.mock.calls.at(-1)![0];
+    expect(args.select).toEqual({ dueDate: true, estado: true });
+    expect(args.where).toEqual({ AND: [scope("u1")] });
+    expect(summary).toEqual({ total: 3, overdue: 1, nextDueDate: day("2026-06-16") });
+  });
+
+  it("returns an empty summary when the user has no plans", async () => {
+    findMany.mockResolvedValueOnce([]);
+    expect(await createPrismaPlansStore().summary("u1", today)).toEqual({
+      total: 0,
+      overdue: 0,
+      nextDueDate: null,
+    });
   });
 });

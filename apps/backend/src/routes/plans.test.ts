@@ -39,6 +39,9 @@ function createMemoryStore(): PlansStore {
   const rows: Array<StoredPlan & { userId: string; members: string[] }> = [];
   let counter = 0;
   return {
+    async summary() {
+      return { total: 0, overdue: 0, nextDueDate: null };
+    },
     async list(userId) {
       return rows
         .filter((row) => row.userId === userId || row.members.includes(userId))
