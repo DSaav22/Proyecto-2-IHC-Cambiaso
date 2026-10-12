@@ -20,6 +20,28 @@ export interface Plan {
   ownerName?: string;
 }
 
+export type PlanDateFilter = "today" | "next7" | "next30" | "overdue";
+
+export interface PlanListParams {
+  q?: string;
+  estado?: PlanStatus;
+  fecha?: PlanDateFilter;
+  /** Local calendar date as YYYY-MM-DD used by the server for date ranges. */
+  today?: string;
+}
+
+export interface PlanSummary {
+  total: number;
+  overdue: number;
+  /** Earliest non-cancelled due date from today on, as YYYY-MM-DD, or null. */
+  nextDueDate: string | null;
+}
+
+export interface PlansResponse {
+  plans: Plan[];
+  summary: PlanSummary;
+}
+
 export interface PlanInput {
   titulo: string;
   description: string;
@@ -45,7 +67,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       headers: { "Content-Type": "application/json" },
       ...init,
     });
-  } catch {
+  } catch (error) {
+    // A caller-initiated abort is not a connectivity failure: let it propagate.
+    if (init.signal?.aborted) throw error;
     throw new ApiError(0, "No se pudo conectar con el servidor. Inténtalo de nuevo.");
   }
 
@@ -82,7 +106,14 @@ export const api = {
   recover: (email: string) => post<{ message: string; token?: string }>("/auth/recover", { email }),
   recoverConfirm: (email: string, token: string, newPassword: string) =>
     post<{ message: string }>("/auth/recover/confirm", { email, token, newPassword }),
-  listPlans: () => request<{ plans: Plan[] }>("/plans"),
+  listPlans: (params: PlanListParams = {}, signal?: AbortSignal) => {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value) query.set(key, value);
+    }
+    const qs = query.toString();
+    return request<PlansResponse>(qs ? `/plans?${qs}` : "/plans", { signal });
+  },
   createPlan: (input: PlanInput) => post<{ plan: Plan }>("/plans", input),
   joinPlan: (code: string) => post<{ plan: Plan }>("/plans/join", { code }),
   updatePlan: (id: string, input: PlanInput) => put<{ plan: Plan }>(`/plans/${id}`, input),
