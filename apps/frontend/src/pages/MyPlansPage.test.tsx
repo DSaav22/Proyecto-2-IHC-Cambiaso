@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../api/client";
 import type { Plan } from "../api/client";
+import { MemoryRouter } from "react-router-dom";
 import MyPlansPage from "./MyPlansPage";
 
 vi.mock("../auth/AuthContext", () => ({
@@ -24,7 +25,8 @@ vi.mock("../api/client", async (importOriginal) => {
   };
 });
 
-const emptySummary = { total: 0, overdue: 0, nextDueDate: null };
+const noSummary = { total: 0, overdue: 0, nextDueDate: null };
+const oneSummary = { total: 1, overdue: 0, nextDueDate: null };
 const listPlans = vi.mocked(api.listPlans);
 const createPlan = vi.mocked(api.createPlan);
 
@@ -36,6 +38,14 @@ const saved: Plan = {
   estado: "pendiente",
   createdAt: "2026-01-01T00:00:00.000Z",
 };
+
+function renderPage(initialEntry = "/mis-planes") {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <MyPlansPage />
+    </MemoryRouter>,
+  );
+}
 
 async function createViaForm() {
   await userEvent.click(screen.getByRole("button", { name: "Nuevo plan" }));
@@ -51,8 +61,8 @@ describe("MyPlansPage", () => {
   });
 
   it("greets the user and shows the empty state with no logout button in the body", async () => {
-    listPlans.mockResolvedValue({ plans: [], summary: emptySummary });
-    render(<MyPlansPage />);
+    listPlans.mockResolvedValue({ plans: [], summary: noSummary });
+    renderPage();
     expect(screen.getByRole("heading", { name: "Hola, Ana" })).toBeInTheDocument();
     expect(await screen.findByText(/todavía no tienes planes/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cerrar sesión" })).not.toBeInTheDocument();
@@ -60,10 +70,10 @@ describe("MyPlansPage", () => {
 
   it("opens the form, creates a plan and shows its card, then refetches in the background", async () => {
     listPlans
-      .mockResolvedValueOnce({ plans: [], summary: emptySummary })
-      .mockResolvedValue({ plans: [saved], summary: emptySummary });
+      .mockResolvedValueOnce({ plans: [], summary: noSummary })
+      .mockResolvedValue({ plans: [saved], summary: oneSummary });
     createPlan.mockResolvedValue({ plan: saved });
-    render(<MyPlansPage />);
+    renderPage();
     await screen.findByText(/todavía no tienes planes/i);
     expect(screen.queryByLabelText("ID del plan")).not.toBeInTheDocument();
 
@@ -85,23 +95,23 @@ describe("MyPlansPage", () => {
   });
 
   it("still shows the card after a remount with the persisted list", async () => {
-    listPlans.mockResolvedValue({ plans: [saved], summary: emptySummary });
-    const first = render(<MyPlansPage />);
+    listPlans.mockResolvedValue({ plans: [saved], summary: oneSummary });
+    const first = renderPage();
     expect(await screen.findByRole("article")).toHaveTextContent("Cena de grupo");
     first.unmount();
 
-    render(<MyPlansPage />);
+    renderPage();
     expect(await screen.findByRole("article")).toHaveTextContent("Cena de grupo");
   });
 
   it("confirms a draft through the dialog and shows the confirmed badge", async () => {
     listPlans
-      .mockResolvedValueOnce({ plans: [saved], summary: emptySummary })
-      .mockResolvedValue({ plans: [{ ...saved, estado: "confirmado" }], summary: emptySummary });
+      .mockResolvedValueOnce({ plans: [saved], summary: oneSummary })
+      .mockResolvedValue({ plans: [{ ...saved, estado: "confirmado" }], summary: oneSummary });
     const confirmMock = vi.mocked(api.confirmPlan);
     confirmMock.mockResolvedValue({ plan: { ...saved, estado: "confirmado" } });
 
-    render(<MyPlansPage />);
+    renderPage();
     expect(await screen.findByTestId("plan-status-badge")).toHaveTextContent("Pendiente");
 
     await userEvent.click(screen.getByRole("button", { name: "Confirmar plan" }));
@@ -119,11 +129,11 @@ describe("MyPlansPage", () => {
   });
 
   it("shows an error and keeps the draft when confirming fails", async () => {
-    listPlans.mockResolvedValue({ plans: [saved], summary: emptySummary });
+    listPlans.mockResolvedValue({ plans: [saved], summary: oneSummary });
     const { ApiError } = await import("../api/client");
     vi.mocked(api.confirmPlan).mockRejectedValue(new ApiError(409, "El plan ya está confirmado"));
 
-    render(<MyPlansPage />);
+    renderPage();
     await userEvent.click(await screen.findByRole("button", { name: "Confirmar plan" }));
     await userEvent.click(
       within(screen.getByRole("alertdialog")).getByRole("button", { name: "Confirmar" }),
@@ -135,12 +145,12 @@ describe("MyPlansPage", () => {
 
   it("deletes a plan from the actions menu after confirmation", async () => {
     listPlans
-      .mockResolvedValueOnce({ plans: [saved], summary: emptySummary })
-      .mockResolvedValue({ plans: [], summary: emptySummary });
+      .mockResolvedValueOnce({ plans: [saved], summary: oneSummary })
+      .mockResolvedValue({ plans: [], summary: noSummary });
     const deleteMock = vi.mocked(api.deletePlan);
     deleteMock.mockResolvedValue({ message: "Plan eliminado" });
 
-    render(<MyPlansPage />);
+    renderPage();
     await userEvent.click(await screen.findByRole("button", { name: "Más acciones" }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Eliminar" }));
     const dialog = await screen.findByRole("alertdialog");
@@ -153,10 +163,10 @@ describe("MyPlansPage", () => {
   });
 
   it("keeps the form open with an error when the server rejects the plan", async () => {
-    listPlans.mockResolvedValue({ plans: [saved], summary: emptySummary });
+    listPlans.mockResolvedValue({ plans: [saved], summary: oneSummary });
     const { ApiError } = await import("../api/client");
     createPlan.mockRejectedValue(new ApiError(400, "inválido", { dueDate: "Ingresa una fecha válida" }));
-    render(<MyPlansPage />);
+    renderPage();
     await screen.findByRole("article");
 
     await createViaForm();
@@ -171,8 +181,8 @@ describe("MyPlansPage", () => {
   });
 
   it("closes the form on cancel without creating a plan", async () => {
-    listPlans.mockResolvedValue({ plans: [], summary: emptySummary });
-    render(<MyPlansPage />);
+    listPlans.mockResolvedValue({ plans: [], summary: noSummary });
+    renderPage();
     await screen.findByText(/todavía no tienes planes/i);
     await userEvent.click(screen.getByRole("button", { name: "Nuevo plan" }));
     await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
@@ -188,12 +198,12 @@ describe("MyPlansPage", () => {
       dueDate: "2026-12-25",
     };
     listPlans
-      .mockResolvedValueOnce({ plans: [saved], summary: emptySummary })
-      .mockResolvedValue({ plans: [updatedPlan], summary: emptySummary });
+      .mockResolvedValueOnce({ plans: [saved], summary: oneSummary })
+      .mockResolvedValue({ plans: [updatedPlan], summary: oneSummary });
     const updateMock = vi.mocked(api.updatePlan);
     updateMock.mockResolvedValue({ plan: updatedPlan });
 
-    render(<MyPlansPage />);
+    renderPage();
     await screen.findByRole("article");
 
     await userEvent.click(screen.getByRole("button", { name: "Más acciones" }));
@@ -226,12 +236,12 @@ describe("MyPlansPage", () => {
   it("cancels a confirmed plan through the cancel dialog", async () => {
     const confirmedPlan: Plan = { ...saved, estado: "confirmado" };
     listPlans
-      .mockResolvedValueOnce({ plans: [confirmedPlan], summary: emptySummary })
-      .mockResolvedValue({ plans: [{ ...confirmedPlan, estado: "cancelado" }], summary: emptySummary });
+      .mockResolvedValueOnce({ plans: [confirmedPlan], summary: oneSummary })
+      .mockResolvedValue({ plans: [{ ...confirmedPlan, estado: "cancelado" }], summary: oneSummary });
     const cancelMock = vi.mocked(api.cancelPlan);
     cancelMock.mockResolvedValue({ plan: { ...confirmedPlan, estado: "cancelado" } });
 
-    render(<MyPlansPage />);
+    renderPage();
     await screen.findByRole("article");
 
     await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
@@ -249,9 +259,9 @@ describe("MyPlansPage", () => {
 
   it("shows caution warning when editing a confirmed plan", async () => {
     const confirmedPlan: Plan = { ...saved, estado: "confirmado" };
-    listPlans.mockResolvedValue({ plans: [confirmedPlan], summary: emptySummary });
+    listPlans.mockResolvedValue({ plans: [confirmedPlan], summary: oneSummary });
 
-    render(<MyPlansPage />);
+    renderPage();
     await screen.findByRole("article");
 
     await userEvent.click(screen.getByRole("button", { name: "Más acciones" }));
@@ -263,8 +273,8 @@ describe("MyPlansPage", () => {
   });
 
   it("filters plans by search title and shows empty message when no plan matches", async () => {
-    listPlans.mockResolvedValue({ plans: [saved], summary: emptySummary });
-    render(<MyPlansPage />);
+    listPlans.mockResolvedValue({ plans: [saved], summary: oneSummary });
+    renderPage();
     await screen.findByRole("article");
 
     const searchInput = screen.getByLabelText("Buscar planes por título");
