@@ -140,6 +140,11 @@ describe("serializePlanFilters", () => {
     expect(serializePlanFilters(INITIAL_PLAN_FILTERS).toString()).toBe("");
   });
 
+  it("keeps spaces inside and after the query so typing is not interrupted", () => {
+    const params = serializePlanFilters({ ...INITIAL_PLAN_FILTERS, query: "cena de " });
+    expect(parsePlanFilters(params).query).toBe("cena de ");
+  });
+
   it("omits a blank query", () => {
     const params = serializePlanFilters({ ...INITIAL_PLAN_FILTERS, query: "   " });
     expect(params.has("q")).toBe(false);

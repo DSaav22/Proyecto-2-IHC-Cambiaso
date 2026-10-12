@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { CalendarClock, FilterX, ListChecks, Plus, TriangleAlert, Users } from "lucide-react";
 import type { Plan, PlanInput } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
@@ -14,13 +15,23 @@ import {
 } from "../components/domain";
 
 import { usePlans } from "../hooks/usePlans";
-import { filterPlans, hasActiveFilters, INITIAL_PLAN_FILTERS, type PlanFilterCriteria } from "../lib/planFilters";
+import {
+  INITIAL_PLAN_FILTERS,
+  parsePlanFilters,
+  serializePlanFilters,
+  type PlanFilterCriteria,
+} from "../lib/planFilters";
 import { daysUntil, getDueStatus } from "../lib/plans";
 
 export default function MyPlansPage() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawParams = searchParams.toString();
+  const criteria = useMemo(() => parsePlanFilters(new URLSearchParams(rawParams)), [rawParams]);
+  const canonicalParams = serializePlanFilters(criteria).toString();
   const {
     plans,
+    summary,
     loading,
     loadError,
     addPlan,
@@ -29,17 +40,24 @@ export default function MyPlansPage() {
     confirmPlan,
     cancelPlan,
     deletePlan,
-  } = usePlans();
+  } = usePlans(criteria);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<PlanFilterCriteria>(INITIAL_PLAN_FILTERS);
 
-  const filteredPlans = useMemo(() => {
-    return filterPlans(plans, filters);
-  }, [plans, filters]);
+  // Rewrite a corrupted or non-canonical URL once so it always mirrors the criteria in use.
+  useEffect(() => {
+    if (canonicalParams !== rawParams) {
+      setSearchParams(new URLSearchParams(canonicalParams), { replace: true });
+    }
+  }, [canonicalParams, rawParams, setSearchParams]);
+
+  // Typing replaces the history entry; discrete changes (selects, chips, reset) push one.
+  function setCriteria(next: PlanFilterCriteria) {
+    setSearchParams(serializePlanFilters(next), { replace: next.query !== criteria.query });
+  }
 
   async function handleSubmit(input: PlanInput) {
     setActionError(null);
@@ -154,7 +172,7 @@ export default function MyPlansPage() {
         </p>
       ) : (
         <>
-          {plans.length > 0 ? (
+          {summary.total > 0 ? (
             <>
               <div className="grid gap-4 sm:grid-cols-3">
                 <StatCard icon={ListChecks} label="Planes" value={String(plans.length)} />
@@ -173,16 +191,16 @@ export default function MyPlansPage() {
               </div>
 
               <PlanFiltersBar
-                criteria={filters}
-                onChange={setFilters}
-                onReset={() => setFilters(INITIAL_PLAN_FILTERS)}
-                totalCount={plans.length}
-                filteredCount={filteredPlans.length}
+                criteria={criteria}
+                onChange={setCriteria}
+                onReset={() => setCriteria(INITIAL_PLAN_FILTERS)}
+                totalCount={summary.total}
+                filteredCount={plans.length}
               />
             </>
           ) : null}
 
-          {plans.length > 0 && filteredPlans.length === 0 ? (
+          {summary.total > 0 && plans.length === 0 ? (
             <div
               role="status"
               className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card/60 p-10 text-center"
@@ -202,14 +220,14 @@ export default function MyPlansPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setFilters(INITIAL_PLAN_FILTERS)}
+                onClick={() => setCriteria(INITIAL_PLAN_FILTERS)}
               >
                 Restablecer filtros
               </Button>
             </div>
           ) : (
             <PlanList
-              plans={filteredPlans}
+              plans={plans}
               onEdit={handleEdit}
               onConfirm={handleConfirm}
               onCancel={handleCancel}

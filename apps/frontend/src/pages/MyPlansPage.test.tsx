@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../api/client";
 import type { Plan } from "../api/client";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import MyPlansPage from "./MyPlansPage";
 
 vi.mock("../auth/AuthContext", () => ({
@@ -39,10 +39,15 @@ const saved: Plan = {
   createdAt: "2026-01-01T00:00:00.000Z",
 };
 
+function LocationProbe() {
+  return <span data-testid="search">{useLocation().search}</span>;
+}
+
 function renderPage(initialEntry = "/mis-planes") {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <MyPlansPage />
+      <LocationProbe />
     </MemoryRouter>,
   );
 }
@@ -272,23 +277,78 @@ describe("MyPlansPage", () => {
     expect(screen.getByRole("note")).toHaveTextContent("Este plan ya está confirmado");
   });
 
-  it("filters plans by search title and shows empty message when no plan matches", async () => {
-    listPlans.mockResolvedValue({ plans: [saved], summary: oneSummary });
+  it("sends the search to the server after the debounce and shows the no-match state", async () => {
+    listPlans.mockImplementation(async (params) =>
+      params?.q ? { plans: [], summary: oneSummary } : { plans: [saved], summary: oneSummary },
+    );
     renderPage();
     await screen.findByRole("article");
 
     const searchInput = screen.getByLabelText("Buscar planes por título");
     await userEvent.type(searchInput, "Playa");
 
-    // Empty state should appear
     expect(
-      screen.getByText("No existen planes con estas características"),
+      await screen.findByText("No existen planes con estas características"),
     ).toBeInTheDocument();
+    expect(listPlans).toHaveBeenLastCalledWith(
+      expect.objectContaining({ q: "Playa" }),
+      expect.anything(),
+    );
+    expect(listPlans.mock.calls.filter(([params]) => params?.q)).toHaveLength(1);
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
+    expect(screen.getByTestId("search")).toHaveTextContent("?q=Playa");
 
-    // Reset filters restores the card
     await userEvent.click(screen.getByRole("button", { name: "Restablecer filtros" }));
     expect(await screen.findByRole("article")).toBeInTheDocument();
     expect(searchInput).toHaveValue("");
+    expect(screen.getByTestId("search")).toBeEmptyDOMElement();
+  });
+
+  it("reads the initial filters from the URL and requests them from the server", async () => {
+    listPlans.mockResolvedValue({ plans: [saved], summary: oneSummary });
+    renderPage("/mis-planes?estado=confirmado&fecha=next7&q=cena");
+
+    await screen.findByRole("article");
+    expect(listPlans).toHaveBeenCalledWith(
+      expect.objectContaining({ q: "cena", estado: "confirmado", fecha: "next7" }),
+      expect.anything(),
+    );
+    expect(screen.getByLabelText("Buscar planes por título")).toHaveValue("cena");
+    expect(screen.getByLabelText("Filtrar por estado")).toHaveValue("confirmado");
+    expect(screen.getByLabelText("Filtrar por fecha límite")).toHaveValue("next7");
+  });
+
+  it("ignores corrupted URL values and rewrites the URL to its canonical form", async () => {
+    listPlans.mockResolvedValue({ plans: [saved], summary: oneSummary });
+    renderPage("/mis-planes?estado=zzz&fecha=next7&foo=1");
+
+    await screen.findByRole("article");
+    expect(listPlans).not.toHaveBeenCalledWith(
+      expect.objectContaining({ estado: expect.anything() }),
+      expect.anything(),
+    );
+    expect(listPlans).toHaveBeenCalledWith(
+      expect.objectContaining({ fecha: "next7" }),
+      expect.anything(),
+    );
+    await waitFor(() => expect(screen.getByTestId("search")).toHaveTextContent(/^\?fecha=next7$/));
+  });
+
+  it("writes select changes to the URL and omits defaults", async () => {
+    listPlans.mockResolvedValue({ plans: [saved], summary: oneSummary });
+    renderPage();
+    await screen.findByRole("article");
+
+    await userEvent.selectOptions(screen.getByLabelText("Filtrar por estado"), "cancelado");
+    expect(screen.getByTestId("search")).toHaveTextContent(/^\?estado=cancelado$/);
+    await waitFor(() =>
+      expect(listPlans).toHaveBeenLastCalledWith(
+        expect.objectContaining({ estado: "cancelado" }),
+        expect.anything(),
+      ),
+    );
+
+    await userEvent.selectOptions(screen.getByLabelText("Filtrar por estado"), "all");
+    expect(screen.getByTestId("search")).toBeEmptyDOMElement();
   });
 });

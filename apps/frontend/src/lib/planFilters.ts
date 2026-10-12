@@ -39,11 +39,14 @@ export function parsePlanFilters(params: URLSearchParams): PlanFilterCriteria {
   };
 }
 
-/** Writes only non-default criteria, using the canonical keys q, estado and fecha. */
+/**
+ * Writes only non-default criteria, using the canonical keys q, estado and fecha.
+ * The query keeps its spaces so the search input is not altered while typing;
+ * `toPlanListParams` trims it before it reaches the API.
+ */
 export function serializePlanFilters(criteria: PlanFilterCriteria): URLSearchParams {
   const params = new URLSearchParams();
-  const query = criteria.query.trim();
-  if (query) params.set("q", query);
+  if (criteria.query.trim()) params.set("q", criteria.query);
   if (criteria.status !== "all") params.set("estado", criteria.status);
   if (criteria.dateRange !== "all") params.set("fecha", criteria.dateRange);
   return params;
