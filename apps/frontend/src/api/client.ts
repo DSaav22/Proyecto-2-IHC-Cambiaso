@@ -9,14 +9,19 @@ export type PlanStatus = "borrador" | "confirmado" | "cancelado";
 
 export interface Plan {
   id: string;
+  titulo: string;
   description: string;
   /** Calendar date as YYYY-MM-DD. */
   dueDate: string;
   estado: PlanStatus;
   createdAt: string;
+  shareCode?: string;
+  isOwner?: boolean;
+  ownerName?: string;
 }
 
 export interface PlanInput {
+  titulo: string;
   description: string;
   dueDate: string;
 }
@@ -79,6 +84,7 @@ export const api = {
     post<{ message: string }>("/auth/recover/confirm", { email, token, newPassword }),
   listPlans: () => request<{ plans: Plan[] }>("/plans"),
   createPlan: (input: PlanInput) => post<{ plan: Plan }>("/plans", input),
+  joinPlan: (code: string) => post<{ plan: Plan }>("/plans/join", { code }),
   updatePlan: (id: string, input: PlanInput) => put<{ plan: Plan }>(`/plans/${id}`, input),
   confirmPlan: (id: string) => post<{ plan: Plan }>(`/plans/${id}/confirm`),
   cancelPlan: (id: string) => post<{ plan: Plan }>(`/plans/${id}/cancel`),

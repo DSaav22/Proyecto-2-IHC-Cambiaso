@@ -6,7 +6,8 @@ import { PlanCard } from "./PlanCard";
 
 const basePlan: Plan = {
   id: "3f2a9c1e-7b4d-4e8a-9c21-5d6e7f8a9b0c",
-  description: "Cena de equipo",
+  titulo: "Cena de equipo",
+  description: "Cena de fin de año en restaurante",
   dueDate: "2026-12-24",
   estado: "borrador",
   createdAt: "2026-01-01T00:00:00.000Z",
@@ -19,11 +20,12 @@ async function openMenu() {
 }
 
 describe("PlanCard - state", () => {
-  it("shows a text 'Borrador' badge and the confirm button for a draft", () => {
+  it("shows a text 'Borrador' badge and the confirm and cancel buttons for a draft", () => {
     render(<PlanCard plan={basePlan} />);
     expect(screen.getByTestId("plan-status-badge")).toHaveTextContent("Borrador");
     expect(screen.getByTestId("plan-status-badge")).toHaveAttribute("data-status", "borrador");
     expect(screen.getByRole("button", { name: "Confirmar plan" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancelar plan" })).toBeInTheDocument();
   });
 
   it("shows a 'Confirmado' badge with a check icon and a cancel button", () => {
@@ -47,6 +49,13 @@ describe("PlanCard - state", () => {
   it("does not render a state select", () => {
     render(<PlanCard plan={basePlan} />);
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
+  it("renders plan title as a heading and description as body text", () => {
+    render(<PlanCard plan={basePlan} />);
+    const heading = screen.getByRole("heading", { level: 3, name: "Cena de equipo" });
+    expect(heading).toBeInTheDocument();
+    expect(screen.getByText("Cena de fin de año en restaurante")).toBeInTheDocument();
   });
 });
 
@@ -107,6 +116,22 @@ describe("PlanCard - cancel flow", () => {
     expect(dialog).toHaveTextContent("Cena de equipo");
     expect(dialog).toHaveTextContent(/pasará a Cancelado/i);
     expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it("allows cancelling a draft plan", async () => {
+    const onCancel = vi.fn().mockResolvedValue(undefined);
+    render(<PlanCard plan={basePlan} onCancel={onCancel} />);
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
+
+    const dialog = screen.getByRole("alertdialog");
+    expect(dialog).toHaveTextContent("Cena de equipo");
+    expect(dialog).toHaveTextContent(/pasará a Cancelado/i);
+
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Cancelar plan" }),
+    );
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onCancel).toHaveBeenCalledWith(basePlan.id);
   });
 
   it("calls onCancel with the plan id when the user accepts", async () => {
@@ -198,5 +223,40 @@ describe("PlanCard - actions menu", () => {
     await userEvent.click(await screen.findByRole("menuitem", { name: "Eliminar" }));
     await userEvent.click(await screen.findByRole("button", { name: "Cancelar" }));
     expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  describe("ownership & guest read-only view", () => {
+    it("renders 'Creador' badge, share code, and copy button when isOwner is true", () => {
+      render(<PlanCard plan={{ ...basePlan, isOwner: true, shareCode: "PLZ-ABC123" }} />);
+      expect(screen.getByText("Creador")).toBeInTheDocument();
+      expect(screen.getByText("PLZ-ABC123")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Copiar código" })).toBeInTheDocument();
+    });
+
+    it("renders 'Invitado' badge and owner name when isOwner is false", () => {
+      render(
+        <PlanCard
+          plan={{
+            ...basePlan,
+            isOwner: false,
+            ownerName: "Carlos Gómez",
+          }}
+        />,
+      );
+      expect(screen.getByTestId("guest-badge")).toHaveTextContent("Invitado");
+      expect(screen.getByText(/Creado por:/i)).toBeInTheDocument();
+      expect(screen.getByText("Carlos Gómez")).toBeInTheDocument();
+    });
+
+    it("does not render actions menu for a guest", () => {
+      render(<PlanCard plan={{ ...basePlan, isOwner: false }} />);
+      expect(screen.queryByRole("button", { name: "Más acciones" })).not.toBeInTheDocument();
+    });
+
+    it("does not render confirm button for guest and shows read-only indicator", () => {
+      render(<PlanCard plan={{ ...basePlan, estado: "borrador", isOwner: false }} />);
+      expect(screen.queryByRole("button", { name: "Confirmar plan" })).not.toBeInTheDocument();
+      expect(screen.getByText("Solo lectura")).toBeInTheDocument();
+    });
   });
 });

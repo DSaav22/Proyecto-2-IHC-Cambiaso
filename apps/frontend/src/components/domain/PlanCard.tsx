@@ -2,9 +2,12 @@ import { useState } from "react";
 import {
   Ban,
   CalendarDays,
+  Check,
   CircleCheck,
   Clock,
+  Copy,
   EllipsisVertical,
+  Eye,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -40,9 +43,11 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
   const isConfirmed = plan.estado === "confirmado";
   const isCancelled = plan.estado === "cancelado";
   const isDraft = plan.estado === "borrador";
+  const isOwner = plan.isOwner ?? true;
 
   const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
   const [pending, setPending] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   async function run(action?: (id: string) => Promise<void> | void) {
     setPending(true);
@@ -83,83 +88,140 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
             ) : null}
             {isConfirmed ? "Confirmado" : isCancelled ? "Cancelado" : "Borrador"}
           </Badge>
+          {isOwner ? (
+            <Badge variant="default" className="text-xs">
+              Creador
+            </Badge>
+          ) : (
+            <Badge variant="muted" data-testid="guest-badge" className="text-xs">
+              Invitado
+            </Badge>
+          )}
         </div>
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              aria-label="Más acciones"
-              className="-mr-2 -mt-2 size-11 p-0 text-muted-foreground"
-            >
-              <EllipsisVertical aria-hidden="true" />
-            </Button>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content
-              align="end"
-              sideOffset={4}
-              className="z-50 min-w-40 rounded-lg border bg-card p-1 shadow-md data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
-            >
-              {!isCancelled ? (
-                <DropdownMenu.Item
-                  onSelect={() => onEdit?.(plan)}
-                  className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-semibold text-foreground outline-none data-highlighted:bg-accent/10"
-                >
-                  <Pencil aria-hidden="true" className="size-4" />
-                  Editar
-                </DropdownMenu.Item>
-              ) : null}
-              <DropdownMenu.Item
-                disabled={isConfirmed}
-                onSelect={() => {
-                  if (!isConfirmed) setOpenDialog("delete");
-                }}
-                title={isConfirmed ? "Debes cancelar el plan antes de eliminarlo" : undefined}
-                className={cn(
-                  "flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold outline-none",
-                  isConfirmed
-                    ? "cursor-not-allowed text-muted-foreground opacity-50"
-                    : "cursor-pointer text-destructive data-highlighted:bg-destructive/10",
-                )}
+        {isOwner ? (
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                aria-label="Más acciones"
+                className="-mr-2 -mt-2 size-11 p-0 text-muted-foreground"
               >
-                <Trash2 aria-hidden="true" className="size-4" />
-                Eliminar
-              </DropdownMenu.Item>
-              {isConfirmed ? (
-                <div
-                  role="note"
-                  className="border-t mt-1 px-3 py-1.5 text-xs text-muted-foreground"
+                <EllipsisVertical aria-hidden="true" />
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                align="end"
+                sideOffset={4}
+                className="z-50 min-w-40 rounded-lg border bg-card p-1 shadow-md data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
+              >
+                {!isCancelled ? (
+                  <DropdownMenu.Item
+                    onSelect={() => onEdit?.(plan)}
+                    className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-semibold text-foreground outline-none data-highlighted:bg-accent/10"
+                  >
+                    <Pencil aria-hidden="true" className="size-4" />
+                    Editar
+                  </DropdownMenu.Item>
+                ) : null}
+                <DropdownMenu.Item
+                  disabled={isConfirmed}
+                  onSelect={() => {
+                    if (!isConfirmed) setOpenDialog("delete");
+                  }}
+                  title={isConfirmed ? "Debes cancelar el plan antes de eliminarlo" : undefined}
+                  className={cn(
+                    "flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold outline-none",
+                    isConfirmed
+                      ? "cursor-not-allowed text-muted-foreground opacity-50"
+                      : "cursor-pointer text-destructive data-highlighted:bg-destructive/10",
+                  )}
                 >
-                  Debes cancelar el plan antes de eliminarlo
-                </div>
-              ) : null}
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
+                  <Trash2 aria-hidden="true" className="size-4" />
+                  Eliminar
+                </DropdownMenu.Item>
+                {isConfirmed ? (
+                  <div
+                    role="note"
+                    className="border-t mt-1 px-3 py-1.5 text-xs text-muted-foreground"
+                  >
+                    Debes cancelar el plan antes de eliminarlo
+                  </div>
+                ) : null}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        ) : null}
       </div>
-      <p className={cn("wrap-break-word text-base font-semibold leading-snug", isCancelled && "text-muted-foreground")}>
+      <h3 className={cn("wrap-break-word text-lg font-bold leading-snug", isCancelled && "text-muted-foreground")}>
+        {plan.titulo}
+      </h3>
+      <p className={cn("wrap-break-word text-sm text-muted-foreground leading-relaxed", isCancelled && "opacity-75")}>
         {plan.description}
       </p>
+
+      {isOwner && plan.shareCode ? (
+        <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground">
+          <span>
+            Código: <strong className="font-mono text-foreground select-all">{plan.shareCode}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof navigator !== "undefined" && navigator.clipboard) {
+                navigator.clipboard.writeText(plan.shareCode!);
+              }
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            aria-label="Copiar código"
+            className="ml-auto inline-flex items-center gap-1 font-semibold text-primary hover:underline focus-visible:outline-none"
+          >
+            {copied ? (
+              <Check aria-hidden="true" className="size-3.5 text-success" />
+            ) : (
+              <Copy aria-hidden="true" className="size-3.5" />
+            )}
+            <span>{copied ? "Copiado" : "Copiar"}</span>
+          </button>
+        </div>
+      ) : !isOwner ? (
+        <p className="text-xs text-muted-foreground">
+          Creado por: <span className="font-semibold text-foreground">{plan.ownerName || "Organizador"}</span>
+        </p>
+      ) : null}
+
       <p className="mt-auto flex items-center gap-2 border-t pt-3 text-sm text-muted-foreground">
         <CalendarDays aria-hidden="true" className={cn("size-4", isCancelled ? "text-muted-foreground" : "text-primary")} />
         <time dateTime={plan.dueDate} className={cn(isCancelled && "text-muted-foreground")}>
           {formatDueDate(plan.dueDate)}
         </time>
       </p>
-      {isDraft ? (
-        <div className="flex flex-wrap gap-2 border-t pt-3">
-          <Button type="button" size="sm" onClick={() => setOpenDialog("confirm")}>
-            Confirmar plan
-          </Button>
+
+      {isOwner ? (
+        isDraft ? (
+          <div className="flex flex-wrap gap-2 border-t pt-3">
+            <Button type="button" size="sm" onClick={() => setOpenDialog("confirm")}>
+              Confirmar plan
+            </Button>
+            <Button type="button" size="sm" onClick={() => setOpenDialog("cancel")}>
+              Cancelar plan
+            </Button>
+          </div>
+        ) : isConfirmed ? (
+          <div className="flex flex-wrap gap-2 border-t pt-3">
+            <Button type="button" size="sm" onClick={() => setOpenDialog("cancel")}>
+              Cancelar plan
+            </Button>
+          </div>
+        ) : null
+      ) : (
+        <div className="flex items-center gap-1.5 border-t pt-3 text-xs text-muted-foreground">
+          <Eye aria-hidden="true" className="size-3.5" />
+          <span>Solo lectura</span>
         </div>
-      ) : isConfirmed ? (
-        <div className="flex flex-wrap gap-2 border-t pt-3">
-          <Button type="button" size="sm" onClick={() => setOpenDialog("cancel")}>
-            Cancelar plan
-          </Button>
-        </div>
-      ) : null}
+      )}
 
       <ConfirmDialog
         open={openDialog === "confirm"}
@@ -167,7 +229,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
           if (!pending) setOpenDialog(open ? "confirm" : null);
         }}
         title="¿Confirmar este plan?"
-        description={`«${plan.description}» pasará a Confirmado y ya no podrá volver a borrador.`}
+        description={`«${plan.titulo || plan.description}» pasará a Confirmado y ya no podrá volver a borrador.`}
         confirmLabel="Confirmar"
         pendingLabel="Confirmando…"
         pending={pending}
@@ -179,7 +241,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
           if (!pending) setOpenDialog(open ? "cancel" : null);
         }}
         title="¿Cancelar este plan?"
-        description={`«${plan.description}» pasará a Cancelado. Podrás eliminarlo una vez cancelado.`}
+        description={`«${plan.titulo || plan.description}» pasará a Cancelado. Podrás eliminarlo una vez cancelado.`}
         confirmLabel="Cancelar plan"
         pendingLabel="Cancelando…"
         pending={pending}
@@ -192,7 +254,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
           if (!pending) setOpenDialog(open ? "delete" : null);
         }}
         title="¿Eliminar este plan?"
-        description={`«${plan.description}» se eliminará de forma permanente.`}
+        description={`«${plan.titulo || plan.description}» se eliminará de forma permanente.`}
         confirmLabel="Eliminar"
         pendingLabel="Eliminando…"
         pending={pending}

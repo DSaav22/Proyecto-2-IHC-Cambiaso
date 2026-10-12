@@ -1,24 +1,41 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
 import type { User } from "@prisma/client";
+import { z } from "zod";
 import { DeleteBlockedError, EditBlockedError, InvalidTransitionError } from "../lib/planState.js";
 import { fieldErrors, planSchema } from "../lib/schemas.js";
 import {
   type StoredPlan,
   type PlansStore,
   createPrismaPlansStore,
+  AlreadyJoinedError,
+  CreatorCannotJoinError,
+  ForbiddenPlanActionError,
+  PlanNotFoundError,
 } from "../services/plans.service.js";
 
-export { type StoredPlan, type PlansStore, createPrismaPlansStore };
+export {
+  type StoredPlan,
+  type PlansStore,
+  createPrismaPlansStore,
+  AlreadyJoinedError,
+  CreatorCannotJoinError,
+  ForbiddenPlanActionError,
+  PlanNotFoundError,
+};
 
 const toDateString = (date: Date) => date.toISOString().slice(0, 10);
 
 function serialize(plan: StoredPlan) {
   return {
     id: plan.id,
+    titulo: plan.titulo,
     description: plan.description,
     dueDate: toDateString(plan.dueDate),
     estado: plan.estado,
     createdAt: plan.createdAt.toISOString(),
+    shareCode: plan.shareCode,
+    isOwner: plan.isOwner ?? false,
+    ownerName: plan.ownerName ?? "",
   };
 }
 
@@ -27,6 +44,10 @@ function comparePlans(a: StoredPlan, b: StoredPlan): number {
     a.dueDate.getTime() - b.dueDate.getTime() || a.createdAt.getTime() - b.createdAt.getTime()
   );
 }
+
+const joinPlanSchema = z.object({
+  code: z.string().trim().min(1, "El código es requerido"),
+});
 
 type Handler = (req: Request, res: Response) => Promise<void>;
 const wrap = (handler: Handler) => (req: Request, res: Response, next: NextFunction) => {
@@ -59,6 +80,36 @@ export function createPlansRouter(store: PlansStore): Router {
     }),
   );
 
+  router.post(
+    "/join",
+    wrap(async (req, res) => {
+      const user = res.locals.user as User;
+      const parsed = joinPlanSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        res.status(400).json({ message: "Código inválido", errors: fieldErrors(parsed.error) });
+        return;
+      }
+      try {
+        const plan = await store.joinByCode(user.id, parsed.data.code);
+        res.status(200).json({ plan: serialize(plan) });
+      } catch (error) {
+        if (error instanceof PlanNotFoundError) {
+          res.status(404).json({ message: error.message });
+          return;
+        }
+        if (error instanceof CreatorCannotJoinError) {
+          res.status(400).json({ message: error.message });
+          return;
+        }
+        if (error instanceof AlreadyJoinedError) {
+          res.status(409).json({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }),
+  );
+
   router.put(
     "/:id",
     wrap(async (req, res) => {
@@ -77,6 +128,10 @@ export function createPlansRouter(store: PlansStore): Router {
         }
         res.status(200).json({ plan: serialize(updated) });
       } catch (error) {
+        if (error instanceof ForbiddenPlanActionError) {
+          res.status(403).json({ message: error.message });
+          return;
+        }
         if (error instanceof EditBlockedError) {
           res.status(409).json({ message: "No se puede editar un plan cancelado" });
           return;
@@ -99,6 +154,10 @@ export function createPlansRouter(store: PlansStore): Router {
         }
         res.status(200).json({ plan: serialize(confirmed) });
       } catch (error) {
+        if (error instanceof ForbiddenPlanActionError) {
+          res.status(403).json({ message: error.message });
+          return;
+        }
         if (error instanceof InvalidTransitionError) {
           res.status(409).json({ message: "El plan ya está confirmado" });
           return;
@@ -121,8 +180,12 @@ export function createPlansRouter(store: PlansStore): Router {
         }
         res.status(200).json({ plan: serialize(cancelled) });
       } catch (error) {
+        if (error instanceof ForbiddenPlanActionError) {
+          res.status(403).json({ message: error.message });
+          return;
+        }
         if (error instanceof InvalidTransitionError) {
-          res.status(409).json({ message: "Solo un plan confirmado puede ser cancelado" });
+          res.status(409).json({ message: "Un plan cancelado no puede volver a cancelarse" });
           return;
         }
         throw error;
@@ -143,6 +206,10 @@ export function createPlansRouter(store: PlansStore): Router {
         }
         res.status(200).json({ message: "Plan eliminado" });
       } catch (error) {
+        if (error instanceof ForbiddenPlanActionError) {
+          res.status(403).json({ message: error.message });
+          return;
+        }
         if (error instanceof DeleteBlockedError) {
           res.status(409).json({ message: error.message });
           return;

@@ -44,11 +44,11 @@ export function confirmPlan<T extends { estado: string }>(
   return { ...plan, estado: "confirmado" };
 }
 
-/** Returns a new plan in `cancelado`; only a `confirmado` plan can be cancelled. */
+/** Returns a new plan in `cancelado`; only a `borrador` or `confirmado` plan can be cancelled. */
 export function cancelPlan<T extends { estado: string }>(
   plan: T,
 ): Omit<T, "estado"> & { estado: "cancelado" } {
-  if (plan.estado !== "confirmado") {
+  if (plan.estado !== "confirmado" && plan.estado !== "borrador") {
     throw new InvalidTransitionError(plan.estado as PlanState, "cancelado");
   }
   return { ...plan, estado: "cancelado" };

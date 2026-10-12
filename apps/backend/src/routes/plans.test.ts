@@ -14,7 +14,14 @@ import {
   EditBlockedError,
 } from "../lib/planState.js";
 import { SESSION_COOKIE } from "../lib/session.js";
-import type { PlansStore, StoredPlan } from "./plans.js";
+import {
+  type PlansStore,
+  type StoredPlan,
+  AlreadyJoinedError,
+  CreatorCannotJoinError,
+  ForbiddenPlanActionError,
+  PlanNotFoundError,
+} from "./plans.js";
 
 const users = vi.hoisted(
   () => new Map<string, { id: string; email: string; name: string; passwordHash: string }>(),
@@ -29,51 +36,112 @@ vi.mock("../lib/prisma.js", () => ({
 }));
 
 function createMemoryStore(): PlansStore {
-  const rows: Array<StoredPlan & { userId: string }> = [];
+  const rows: Array<StoredPlan & { userId: string; members: string[] }> = [];
   let counter = 0;
   return {
     async list(userId) {
-      return rows.filter((row) => row.userId === userId);
+      return rows
+        .filter((row) => row.userId === userId || row.members.includes(userId))
+        .map((row) => ({
+          ...row,
+          isOwner: row.userId === userId,
+          ownerName: users.get(row.userId)?.name ?? "Usuario",
+        }));
     },
     async create(userId, data) {
       counter += 1;
       const row = {
         id: randomUUID(),
         userId,
+        titulo: data.titulo,
         description: data.description,
         dueDate: new Date(`${data.dueDate}T00:00:00.000Z`),
         estado: INITIAL_PLAN_STATE,
+        shareCode: `PLZ-TEST0${counter}`,
         createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, counter)),
+        members: [] as string[],
+        isOwner: true,
+        ownerName: users.get(userId)?.name ?? "Usuario",
       };
       rows.push(row);
       return row;
     },
+    async joinByCode(userId, code) {
+      const plan = rows.find((r) => r.shareCode === code.trim().toUpperCase());
+      if (!plan) throw new PlanNotFoundError();
+      if (plan.userId === userId) throw new CreatorCannotJoinError();
+      if (plan.members.includes(userId)) throw new AlreadyJoinedError();
+      plan.members.push(userId);
+      return {
+        ...plan,
+        isOwner: false,
+        ownerName: users.get(plan.userId)?.name ?? "Usuario",
+      };
+    },
     async update(userId, planId, data) {
-      const row = rows.find((r) => r.id === planId && r.userId === userId);
+      const row = rows.find((r) => r.id === planId);
       if (!row) return null;
+      if (row.userId !== userId) {
+        if (row.members.includes(userId)) {
+          throw new ForbiddenPlanActionError("Solo el creador puede editar este plan");
+        }
+        return null;
+      }
       if (!canEdit(row)) {
         throw new EditBlockedError(row.estado as any);
       }
+      row.titulo = data.titulo;
       row.description = data.description;
       row.dueDate = new Date(`${data.dueDate}T00:00:00.000Z`);
-      return row;
+      return {
+        ...row,
+        isOwner: true,
+        ownerName: users.get(row.userId)?.name ?? "Usuario",
+      };
     },
     async confirm(userId, planId) {
-      const row = rows.find((r) => r.id === planId && r.userId === userId);
+      const row = rows.find((r) => r.id === planId);
       if (!row) return null;
+      if (row.userId !== userId) {
+        if (row.members.includes(userId)) {
+          throw new ForbiddenPlanActionError("Solo el creador puede confirmar este plan");
+        }
+        return null;
+      }
       row.estado = confirmPlan(row).estado;
-      return row;
+      return {
+        ...row,
+        isOwner: true,
+        ownerName: users.get(row.userId)?.name ?? "Usuario",
+      };
     },
     async cancel(userId, planId) {
-      const row = rows.find((r) => r.id === planId && r.userId === userId);
+      const row = rows.find((r) => r.id === planId);
       if (!row) return null;
+      if (row.userId !== userId) {
+        if (row.members.includes(userId)) {
+          throw new ForbiddenPlanActionError("Solo el creador puede cancelar este plan");
+        }
+        return null;
+      }
       row.estado = cancelPlan(row).estado;
-      return row;
+      return {
+        ...row,
+        isOwner: true,
+        ownerName: users.get(row.userId)?.name ?? "Usuario",
+      };
     },
     async delete(userId, planId) {
-      const index = rows.findIndex((r) => r.id === planId && r.userId === userId);
+      const index = rows.findIndex((r) => r.id === planId);
       if (index === -1) return false;
-      if (!canDelete(rows[index])) {
+      const row = rows[index];
+      if (row.userId !== userId) {
+        if (row.members.includes(userId)) {
+          throw new ForbiddenPlanActionError("Solo el creador puede eliminar este plan");
+        }
+        return false;
+      }
+      if (!canDelete(row)) {
         throw new DeleteBlockedError("confirmado");
       }
       rows.splice(index, 1);
@@ -85,7 +153,7 @@ function createMemoryStore(): PlansStore {
 const cookieFor = (userId: string) =>
   `${SESSION_COOKIE}=${jwt.sign({ sub: userId }, config.jwtSecret)}`;
 
-const body = { description: "Cena de grupo", dueDate: "2026-12-24" };
+const body = { titulo: "Cena de Navidad", description: "Cena de grupo", dueDate: "2026-12-24" };
 
 describe("plans router", () => {
   let app: ReturnType<typeof createApp>;
@@ -132,18 +200,18 @@ describe("plans router", () => {
     const res = await request(app)
       .post("/api/plans")
       .set("Cookie", cookieFor("u1"))
-      .send({ description: " hola ", dueDate: "2026-01-02" });
+      .send({ titulo: "  Plan fiesta  ", description: " hola ", dueDate: "2026-01-02" });
     expect(res.status).toBe(201);
-    expect(res.body.plan).toMatchObject({ description: "hola" });
+    expect(res.body.plan).toMatchObject({ titulo: "Plan fiesta", description: "hola" });
   });
 
   it("rejects invalid bodies with 400 and errors keyed by field", async () => {
     const res = await request(app)
       .post("/api/plans")
       .set("Cookie", cookieFor("u1"))
-      .send({ description: "   ", dueDate: "2026-02-30" });
+      .send({ titulo: " ", description: "   ", dueDate: "2026-02-30" });
     expect(res.status).toBe(400);
-    expect(Object.keys(res.body.errors).sort()).toEqual(["description", "dueDate"]);
+    expect(Object.keys(res.body.errors).sort()).toEqual(["description", "dueDate", "titulo"]);
   });
 
   it("responds 401 without a session", async () => {
@@ -171,7 +239,7 @@ describe("plans router", () => {
       request(app)
         .post("/api/plans")
         .set("Cookie", cookieFor("u1"))
-        .send({ description, dueDate });
+        .send({ titulo: "Plan " + description, description, dueDate });
     await send("late", "2026-12-01");
     await send("early-first", "2026-03-01");
     await send("early-second", "2026-03-01");
@@ -258,7 +326,7 @@ describe("plans router", () => {
       const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
       const planId = created.body.plan.id;
 
-      const updateData = { description: "Cena de fin de año actualizada", dueDate: "2026-12-31" };
+      const updateData = { titulo: "Cena fin de año", description: "Cena de fin de año actualizada", dueDate: "2026-12-31" };
       const res = await request(app)
         .put(`/api/plans/${planId}`)
         .set("Cookie", cookieFor("u1"))
@@ -267,6 +335,7 @@ describe("plans router", () => {
       expect(res.status).toBe(200);
       expect(res.body.plan).toMatchObject({
         id: planId,
+        titulo: updateData.titulo,
         description: updateData.description,
         dueDate: updateData.dueDate,
         estado: "borrador",
@@ -281,7 +350,7 @@ describe("plans router", () => {
       const planId = created.body.plan.id;
       await request(app).post(`/api/plans/${planId}/confirm`).set("Cookie", cookieFor("u1"));
 
-      const updateData = { description: "Nueva descripción", dueDate: "2026-12-25" };
+      const updateData = { titulo: "Nuevo título", description: "Nueva descripción", dueDate: "2026-12-25" };
       const res = await request(app)
         .put(`/api/plans/${planId}`)
         .set("Cookie", cookieFor("u1"))
@@ -289,6 +358,7 @@ describe("plans router", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.plan.estado).toBe("confirmado");
+      expect(res.body.plan.titulo).toBe("Nuevo título");
       expect(res.body.plan.description).toBe("Nueva descripción");
     });
 
@@ -298,7 +368,7 @@ describe("plans router", () => {
       await request(app).post(`/api/plans/${planId}/confirm`).set("Cookie", cookieFor("u1"));
       await request(app).post(`/api/plans/${planId}/cancel`).set("Cookie", cookieFor("u1"));
 
-      const updateData = { description: "Intentando editar cancelado", dueDate: "2026-12-25" };
+      const updateData = { titulo: "Título cancelado", description: "Intentando editar cancelado", dueDate: "2026-12-25" };
       const res = await request(app)
         .put(`/api/plans/${planId}`)
         .set("Cookie", cookieFor("u1"))
@@ -315,9 +385,10 @@ describe("plans router", () => {
       const res = await request(app)
         .put(`/api/plans/${planId}`)
         .set("Cookie", cookieFor("u1"))
-        .send({ description: "", dueDate: "fecha-invalida" });
+        .send({ titulo: "AB", description: "", dueDate: "fecha-invalida" });
 
       expect(res.status).toBe(400);
+      expect(res.body.errors).toHaveProperty("titulo");
       expect(res.body.errors).toHaveProperty("description");
       expect(res.body.errors).toHaveProperty("dueDate");
     });
@@ -363,7 +434,7 @@ describe("plans router", () => {
       expect(listRes.body.plans[0].estado).toBe("cancelado");
     });
 
-    it("rejects cancelling a draft plan with 409", async () => {
+    it("cancels a draft plan and returns 200", async () => {
       const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
       const planId = created.body.plan.id;
 
@@ -371,15 +442,17 @@ describe("plans router", () => {
         .post(`/api/plans/${planId}/cancel`)
         .set("Cookie", cookieFor("u1"));
 
-      expect(res.status).toBe(409);
-      expect(res.body.message).toContain("confirmado");
+      expect(res.status).toBe(200);
+      expect(res.body.plan.estado).toBe("cancelado");
+
+      const listRes = await request(app).get("/api/plans").set("Cookie", cookieFor("u1"));
+      expect(listRes.body.plans[0].estado).toBe("cancelado");
     });
 
     it("rejects cancelling an already cancelled plan with 409", async () => {
       const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
       const planId = created.body.plan.id;
 
-      await request(app).post(`/api/plans/${planId}/confirm`).set("Cookie", cookieFor("u1"));
       await request(app).post(`/api/plans/${planId}/cancel`).set("Cookie", cookieFor("u1"));
 
       const res = await request(app)
@@ -387,6 +460,7 @@ describe("plans router", () => {
         .set("Cookie", cookieFor("u1"));
 
       expect(res.status).toBe(409);
+      expect(res.body.message).toContain("cancelado");
     });
 
     it("returns 404 when plan belongs to another user or does not exist", async () => {
@@ -488,5 +562,133 @@ describe("plans router", () => {
       expect(res.status).toBe(401);
     });
   });
+
+  describe("POST /api/plans/join and guest permissions", () => {
+    it("allows a second user to join with valid share code and returns isOwner false", async () => {
+      const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
+      const shareCode = created.body.plan.shareCode;
+      expect(shareCode).toBeDefined();
+
+      const joinRes = await request(app)
+        .post("/api/plans/join")
+        .set("Cookie", cookieFor("u2"))
+        .send({ code: shareCode });
+
+      expect(joinRes.status).toBe(200);
+      expect(joinRes.body.plan.isOwner).toBe(false);
+      expect(joinRes.body.plan.ownerName).toBe("Ana");
+
+      const listRes = await request(app).get("/api/plans").set("Cookie", cookieFor("u2"));
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.plans).toHaveLength(1);
+      expect(listRes.body.plans[0].id).toBe(created.body.plan.id);
+      expect(listRes.body.plans[0].isOwner).toBe(false);
+    });
+
+    it("returns 404 if share code does not match any plan", async () => {
+      const res = await request(app)
+        .post("/api/plans/join")
+        .set("Cookie", cookieFor("u2"))
+        .send({ code: "PLZ-NONEXIST" });
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe("Plan no encontrado con este código");
+    });
+
+    it("returns 400 if plan creator attempts to join their own plan", async () => {
+      const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
+      const shareCode = created.body.plan.shareCode;
+
+      const res = await request(app)
+        .post("/api/plans/join")
+        .set("Cookie", cookieFor("u1"))
+        .send({ code: shareCode });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe("Ya eres el creador de este plan");
+    });
+
+    it("returns 409 if user has already joined the plan", async () => {
+      const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
+      const shareCode = created.body.plan.shareCode;
+
+      await request(app)
+        .post("/api/plans/join")
+        .set("Cookie", cookieFor("u2"))
+        .send({ code: shareCode });
+
+      const secondJoin = await request(app)
+        .post("/api/plans/join")
+        .set("Cookie", cookieFor("u2"))
+        .send({ code: shareCode });
+
+      expect(secondJoin.status).toBe(409);
+      expect(secondJoin.body.message).toBe("Ya te has unido a este plan");
+    });
+
+    it("requires authentication returning 401 without cookie", async () => {
+      const res = await request(app)
+        .post("/api/plans/join")
+        .send({ code: "PLZ-123456" });
+
+      expect(res.status).toBe(401);
+    });
+
+    it("rejects guest attempts to confirm plan with 403 Forbidden", async () => {
+      const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
+      const planId = created.body.plan.id;
+      const shareCode = created.body.plan.shareCode;
+
+      await request(app)
+        .post("/api/plans/join")
+        .set("Cookie", cookieFor("u2"))
+        .send({ code: shareCode });
+
+      const confirmRes = await request(app)
+        .post(`/api/plans/${planId}/confirm`)
+        .set("Cookie", cookieFor("u2"));
+
+      expect(confirmRes.status).toBe(403);
+      expect(confirmRes.body.message).toBe("Solo el creador puede confirmar este plan");
+    });
+
+    it("rejects guest attempts to delete plan with 403 Forbidden", async () => {
+      const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
+      const planId = created.body.plan.id;
+      const shareCode = created.body.plan.shareCode;
+
+      await request(app)
+        .post("/api/plans/join")
+        .set("Cookie", cookieFor("u2"))
+        .send({ code: shareCode });
+
+      const deleteRes = await request(app)
+        .delete(`/api/plans/${planId}`)
+        .set("Cookie", cookieFor("u2"));
+
+      expect(deleteRes.status).toBe(403);
+      expect(deleteRes.body.message).toBe("Solo el creador puede eliminar este plan");
+    });
+
+    it("rejects guest attempts to edit plan with 403 Forbidden", async () => {
+      const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
+      const planId = created.body.plan.id;
+      const shareCode = created.body.plan.shareCode;
+
+      await request(app)
+        .post("/api/plans/join")
+        .set("Cookie", cookieFor("u2"))
+        .send({ code: shareCode });
+
+      const editRes = await request(app)
+        .put(`/api/plans/${planId}`)
+        .set("Cookie", cookieFor("u2"))
+        .send({ titulo: "Plan invitado", description: "Intento de edición por invitado", dueDate: "2026-12-25" });
+
+      expect(editRes.status).toBe(403);
+      expect(editRes.body.message).toBe("Solo el creador puede editar este plan");
+    });
+  });
 });
+
 

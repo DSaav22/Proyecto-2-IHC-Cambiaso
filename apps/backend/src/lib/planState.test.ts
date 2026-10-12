@@ -51,8 +51,9 @@ describe("plan state machine", () => {
     expect(cancelled.estado).toBe("cancelado");
   });
 
-  it("rejects cancelling a borrador plan", () => {
-    expect(() => cancelPlan(draft)).toThrow(InvalidTransitionError);
+  it("cancels a borrador plan", () => {
+    const cancelled = cancelPlan(draft);
+    expect(cancelled.estado).toBe("cancelado");
   });
 
   it("rejects cancelling an already cancelado plan", () => {

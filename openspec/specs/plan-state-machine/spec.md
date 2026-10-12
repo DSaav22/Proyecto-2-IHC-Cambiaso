@@ -53,9 +53,28 @@ A successful transition SHALL change only the plan state. The description, due d
 - **WHEN** a draft plan is confirmed
 - **THEN** its description, due date, owner, identifier, and creation time are identical to their values before the transition
 
+### Requirement: Cancel plan transition
+The system SHALL provide a cancel action that moves a plan from `borrador` or `confirmado` to `cancelado` and persists the change. The action SHALL be available only to the plan's creator.
+
+#### Scenario: Cancel a draft
+- **GIVEN** an owned plan in state `borrador`
+- **WHEN** the owner cancels the plan
+- **THEN** the plan state becomes `cancelado` and the updated plan is returned
+
+#### Scenario: Cancel a confirmed plan
+- **GIVEN** an owned plan in state `confirmado`
+- **WHEN** the owner cancels the plan
+- **THEN** the plan state becomes `cancelado` and the updated plan is returned
+
+#### Scenario: Cancel twice
+- **GIVEN** an owned plan in state `cancelado`
+- **WHEN** the owner attempts to cancel the plan again
+- **THEN** the request is rejected with 409 Conflict
+
 ### Requirement: State rule has four unit tests
-The transition rule SHALL be covered by exactly four runnable Vitest unit tests: correct initial state, expected transition, invalid transition rejected, and data preserved. The command to run them SHALL be documented in `README.md` and `docs/task-02-state-tests.md`.
+The transition rule SHALL be covered by runnable Vitest unit tests: correct initial state, expected transition, invalid transition rejected, and data preserved. The command to run them SHALL be documented in `README.md` and `docs/task-02-state-tests.md`.
 
 #### Scenario: Tests are runnable and documented
 - **WHEN** a developer follows the documented command
-- **THEN** the four tests run and pass
+- **THEN** the tests run and pass
+

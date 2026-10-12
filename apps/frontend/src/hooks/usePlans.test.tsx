@@ -12,6 +12,7 @@ vi.mock("../api/client", async (importOriginal) => {
     api: {
       listPlans: vi.fn(),
       createPlan: vi.fn(),
+      joinPlan: vi.fn(),
       updatePlan: vi.fn(),
       confirmPlan: vi.fn(),
       cancelPlan: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock("../api/client", async (importOriginal) => {
 
 const plan = (name: string, dueDate: string, createdAt: string): Plan => ({
   id: `3f2a9c1e-0000-4000-8000-${name.padStart(12, "0")}`,
+  titulo: `Título ${name}`,
   description: `Descripción ${name}`,
   dueDate,
   estado: "borrador",
@@ -30,6 +32,7 @@ const plan = (name: string, dueDate: string, createdAt: string): Plan => ({
 
 const listPlans = vi.mocked(api.listPlans);
 const createPlan = vi.mocked(api.createPlan);
+const joinPlanMock = vi.mocked(api.joinPlan);
 const updatePlanMock = vi.mocked(api.updatePlan);
 const confirmPlanMock = vi.mocked(api.confirmPlan);
 const cancelPlanMock = vi.mocked(api.cancelPlan);
@@ -62,6 +65,7 @@ describe("usePlans", () => {
     let outcome: Awaited<ReturnType<typeof result.current.addPlan>> | undefined;
     await act(async () => {
       outcome = await result.current.addPlan({
+        titulo: "t",
         description: "d",
         dueDate: "2026-05-01",
       });
@@ -79,7 +83,7 @@ describe("usePlans", () => {
 
     let outcome: Awaited<ReturnType<typeof result.current.addPlan>> | undefined;
     await act(async () => {
-      outcome = await result.current.addPlan({ description: "d", dueDate: "2026-03-01" });
+      outcome = await result.current.addPlan({ titulo: "t", description: "d", dueDate: "2026-03-01" });
     });
     expect(outcome).toEqual({ ok: false, message: "Datos inválidos", fieldErrors: { dueDate: "Ingresa una fecha válida" } });
     expect(result.current.plans).toHaveLength(1);
@@ -131,7 +135,7 @@ describe("usePlans", () => {
   it("updates plan and resort in state on successful updatePlan", async () => {
     const existing = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
     listPlans.mockResolvedValue({ plans: [existing] });
-    const updated = { ...existing, description: "Descripción Actualizada", dueDate: "2026-06-01" };
+    const updated = { ...existing, titulo: "Título Actualizado", description: "Descripción Actualizada", dueDate: "2026-06-01" };
     updatePlanMock.mockResolvedValue({ plan: updated });
 
     const { result } = renderHook(() => usePlans());
@@ -140,12 +144,14 @@ describe("usePlans", () => {
     let outcome: Awaited<ReturnType<typeof result.current.updatePlan>> | undefined;
     await act(async () => {
       outcome = await result.current.updatePlan(existing.id, {
+        titulo: "Título Actualizado",
         description: "Descripción Actualizada",
         dueDate: "2026-06-01",
       });
     });
 
     expect(updatePlanMock).toHaveBeenCalledWith(existing.id, {
+      titulo: "Título Actualizado",
       description: "Descripción Actualizada",
       dueDate: "2026-06-01",
     });
@@ -166,6 +172,7 @@ describe("usePlans", () => {
     let outcome: Awaited<ReturnType<typeof result.current.updatePlan>> | undefined;
     await act(async () => {
       outcome = await result.current.updatePlan(existing.id, {
+        titulo: "t",
         description: "",
         dueDate: "2026-05-01",
       });
@@ -249,6 +256,46 @@ describe("usePlans", () => {
 
     expect(outcome).toEqual({ ok: false, message: "Error en el servidor" });
     expect(result.current.plans).toHaveLength(1);
+  });
+
+  it("inserts a joined plan in due-date order on success", async () => {
+    listPlans.mockResolvedValue({
+      plans: [plan("A", "2026-03-01", "2026-01-01T00:00:00.000Z")],
+    });
+    const joined = { ...plan("B", "2026-05-01", "2026-01-02T00:00:00.000Z"), isOwner: false };
+    joinPlanMock.mockResolvedValue({ plan: joined });
+
+    const { result } = renderHook(() => usePlans());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let outcome: Awaited<ReturnType<typeof result.current.joinPlan>> | undefined;
+    await act(async () => {
+      outcome = await result.current.joinPlan("PLZ-TEST01");
+    });
+
+    expect(outcome).toEqual({ ok: true });
+    expect(result.current.plans).toHaveLength(2);
+    expect(result.current.plans[1].id).toBe(joined.id);
+  });
+
+  it("returns error message and retains state when joining fails", async () => {
+    listPlans.mockResolvedValue({ plans: [] });
+    joinPlanMock.mockRejectedValue(new ApiError(404, "Plan no encontrado con este código"));
+
+    const { result } = renderHook(() => usePlans());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let outcome: Awaited<ReturnType<typeof result.current.joinPlan>> | undefined;
+    await act(async () => {
+      outcome = await result.current.joinPlan("PLZ-NOTFOUND");
+    });
+
+    expect(outcome).toEqual({
+      ok: false,
+      message: "Plan no encontrado con este código",
+      fieldErrors: {},
+    });
+    expect(result.current.plans).toHaveLength(0);
   });
 });
 
