@@ -1,4 +1,4 @@
-import type { Plan } from "../api/client";
+import type { Plan, PlanStatus } from "../api/client";
 
 /** Mirrors the server order: due date ascending, then creation time ascending. */
 export function comparePlans(a: Plan, b: Plan): number {
@@ -15,6 +15,20 @@ export function formatDueDate(dueDate: string): string {
 
 const DAY_MS = 86_400_000;
 
+/** Display labels for plan states (capitalization only). */
+export const PLAN_STATUS_LABELS: Record<PlanStatus, string> = {
+  pendiente: "Pendiente",
+  confirmado: "Confirmado",
+  cancelado: "Cancelado",
+};
+
+/** Local calendar date as YYYY-MM-DD (not the UTC date). */
+export function localToday(now: Date = new Date()): string {
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 export type DueTone = "overdue" | "today" | "soon" | "later";
 
 export interface DueStatus {
@@ -24,8 +38,8 @@ export interface DueStatus {
 }
 
 export function daysUntil(dueDate: string, now: Date = new Date()): number {
-  const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.round((Date.parse(`${dueDate}T00:00:00.000Z`) - todayUtc) / DAY_MS);
+  const today = Date.parse(`${localToday(now)}T00:00:00.000Z`);
+  return Math.round((Date.parse(`${dueDate}T00:00:00.000Z`) - today) / DAY_MS);
 }
 
 export function getDueStatus(dueDate: string, now: Date = new Date()): DueStatus {
