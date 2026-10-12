@@ -6,12 +6,12 @@ Un plan tiene exactamente un estado:
 
 | Estado | Significado |
 | --- | --- |
-| `borrador` | Estado inicial de todo plan nuevo. El cliente no puede elegirlo. |
-| `confirmado` | El plan fue confirmado por su dueño. No hay vuelta a `borrador`. |
+| `pendiente` | Estado inicial de todo plan nuevo. El cliente no puede elegirlo. |
+| `confirmado` | El plan fue confirmado por su dueño. No hay vuelta a `pendiente`. |
 
-Única transición permitida: `borrador` → `confirmado`. Confirmar un plan ya confirmado es una transición inválida.
+Única transición permitida: `pendiente` → `confirmado`. Confirmar un plan ya confirmado es una transición inválida.
 
-La regla es una función pura en `apps/backend/src/lib/planState.ts` (`PLAN_STATES`, `INITIAL_PLAN_STATE`, `confirmPlan`, `InvalidTransitionError`), sin dependencias de Prisma ni Express. El servicio la aplica con una escritura condicionada (`updateMany` solo si el plan sigue en `borrador`) para que dos confirmaciones simultáneas no puedan tener éxito a la vez.
+La regla es una función pura en `apps/backend/src/lib/planState.ts` (`PLAN_STATES`, `INITIAL_PLAN_STATE`, `confirmPlan`, `InvalidTransitionError`), sin dependencias de Prisma ni Express. El servicio la aplica con una escritura condicionada (`updateMany` solo si el plan sigue en `pendiente`) para que dos confirmaciones simultáneas no puedan tener éxito a la vez.
 
 Endpoint: `POST /api/plans/:id/confirm` (requiere sesión).
 
@@ -27,8 +27,8 @@ Archivo: `apps/backend/src/lib/planState.test.ts`.
 
 | # | Prueba | Qué comprueba |
 | --- | --- | --- |
-| 1 | Estado inicial | `INITIAL_PLAN_STATE` es `borrador`. |
-| 2 | Transición válida | `confirmPlan` sobre un borrador devuelve un plan `confirmado`. |
+| 1 | Estado inicial | `INITIAL_PLAN_STATE` es `pendiente`. |
+| 2 | Transición válida | `confirmPlan` sobre un plan pendiente devuelve un plan `confirmado`. |
 | 3 | Transición inválida | `confirmPlan` sobre un plan confirmado lanza `InvalidTransitionError`. |
 | 4 | Datos preservados | Tras confirmar, `description`, `dueDate`, `userId` (y `id`) no cambian. |
 
