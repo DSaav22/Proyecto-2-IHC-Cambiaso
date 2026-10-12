@@ -192,6 +192,41 @@ describe("PlanCard - cancel flow", () => {
   });
 });
 
+describe("PlanCard - blocked action notes", () => {
+  const pastDraft: Plan = { ...basePlan, dueDate: "2020-01-01" };
+
+  it("explains to the owner that a cancelled plan cannot be edited or confirmed", () => {
+    render(<PlanCard plan={cancelled} />);
+    expect(screen.getByRole("note")).toHaveTextContent(
+      "Este plan está cancelado: no se puede editar ni confirmar. Puedes eliminarlo desde «Más acciones».",
+    );
+  });
+
+  it("explains to a guest that only the creator can edit, confirm or cancel", () => {
+    render(<PlanCard plan={{ ...basePlan, isOwner: false }} />);
+    expect(screen.getByRole("note")).toHaveTextContent(
+      "Solo lectura: solo el creador puede editar, confirmar o cancelar este plan.",
+    );
+  });
+
+  it("shows no note on an active owner card", () => {
+    const { rerender } = render(<PlanCard plan={basePlan} />);
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+    rerender(<PlanCard plan={confirmed} />);
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+
+  it("does not show overdue wording for a cancelled plan", () => {
+    render(<PlanCard plan={{ ...cancelled, dueDate: "2020-01-01" }} />);
+    expect(screen.queryByText(/Venció/)).not.toBeInTheDocument();
+  });
+
+  it("still shows overdue wording for a pending past plan", () => {
+    render(<PlanCard plan={pastDraft} />);
+    expect(screen.getByText(/Venció hace/)).toBeInTheDocument();
+  });
+});
+
 describe("PlanCard - actions menu", () => {
   it("has no standalone delete button and exposes an accessible menu button", () => {
     render(<PlanCard plan={basePlan} />);
@@ -301,7 +336,7 @@ describe("PlanCard - actions menu", () => {
     it("does not render confirm button for guest and shows read-only indicator", () => {
       render(<PlanCard plan={{ ...basePlan, estado: "borrador", isOwner: false }} />);
       expect(screen.queryByRole("button", { name: "Confirmar plan" })).not.toBeInTheDocument();
-      expect(screen.getByText("Solo lectura")).toBeInTheDocument();
+      expect(screen.getByRole("note")).toHaveTextContent(/^Solo lectura/);
     });
   });
 });

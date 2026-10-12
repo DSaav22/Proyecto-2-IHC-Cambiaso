@@ -86,10 +86,12 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
       />
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={isCancelled ? "muted" : tone.badge}>
-            <Clock aria-hidden="true" />
-            {dueStatus.label}
-          </Badge>
+          {!isCancelled ? (
+            <Badge variant={tone.badge}>
+              <Clock aria-hidden="true" />
+              {dueStatus.label}
+            </Badge>
+          ) : null}
           <Badge
             data-testid="plan-status-badge"
             data-status={plan.estado}
@@ -229,11 +231,19 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
               Cancelar plan
             </Button>
           </div>
-        ) : null
+        ) : (
+          <p role="note" className="border-t pt-3 text-xs text-muted-foreground">
+            Este plan está cancelado: no se puede editar ni confirmar. Puedes eliminarlo desde «Más
+            acciones».
+          </p>
+        )
       ) : (
-        <div className="flex items-center gap-1.5 border-t pt-3 text-xs text-muted-foreground">
-          <Eye aria-hidden="true" className="size-3.5" />
-          <span>Solo lectura</span>
+        <div
+          role="note"
+          className="flex items-center gap-1.5 border-t pt-3 text-xs text-muted-foreground"
+        >
+          <Eye aria-hidden="true" className="size-3.5 shrink-0" />
+          <span>Solo lectura: solo el creador puede editar, confirmar o cancelar este plan.</span>
         </div>
       )}
 
