@@ -7,7 +7,7 @@ const baseProps = {
   open: true,
   onOpenChange: vi.fn(),
   title: "¿Confirmar plan?",
-  description: "Cena de grupo no volverá a borrador.",
+  description: "Cena de grupo no volverá a pendiente.",
   confirmLabel: "Confirmar",
   onConfirm: vi.fn(),
 };
@@ -16,7 +16,7 @@ describe("ConfirmDialog", () => {
   it("renders title, description and both actions when open", () => {
     render(<ConfirmDialog {...baseProps} />);
     expect(screen.getByRole("alertdialog", { name: "¿Confirmar plan?" })).toBeInTheDocument();
-    expect(screen.getByText("Cena de grupo no volverá a borrador.")).toBeInTheDocument();
+    expect(screen.getByText("Cena de grupo no volverá a pendiente.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirmar" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeEnabled();
   });

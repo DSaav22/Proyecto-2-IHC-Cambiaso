@@ -1,8 +1,8 @@
 /** Pure plan state machine: no Prisma or Express imports. */
-export const PLAN_STATES = ["borrador", "confirmado", "cancelado"] as const;
+export const PLAN_STATES = ["pendiente", "confirmado", "cancelado"] as const;
 export type PlanState = (typeof PLAN_STATES)[number];
 
-export const INITIAL_PLAN_STATE: PlanState = "borrador";
+export const INITIAL_PLAN_STATE: PlanState = "pendiente";
 
 export class InvalidTransitionError extends Error {
   constructor(
@@ -34,21 +34,21 @@ export class EditBlockedError extends Error {
   }
 }
 
-/** Returns a new plan in `confirmado`; only a `borrador` plan can be confirmed. */
+/** Returns a new plan in `confirmado`; only a `pendiente` plan can be confirmed. */
 export function confirmPlan<T extends { estado: string }>(
   plan: T,
 ): Omit<T, "estado"> & { estado: "confirmado" } {
-  if (plan.estado !== "borrador") {
+  if (plan.estado !== "pendiente") {
     throw new InvalidTransitionError(plan.estado as PlanState, "confirmado");
   }
   return { ...plan, estado: "confirmado" };
 }
 
-/** Returns a new plan in `cancelado`; only a `borrador` or `confirmado` plan can be cancelled. */
+/** Returns a new plan in `cancelado`; only a `pendiente` or `confirmado` plan can be cancelled. */
 export function cancelPlan<T extends { estado: string }>(
   plan: T,
 ): Omit<T, "estado"> & { estado: "cancelado" } {
-  if (plan.estado !== "confirmado" && plan.estado !== "borrador") {
+  if (plan.estado !== "confirmado" && plan.estado !== "pendiente") {
     throw new InvalidTransitionError(plan.estado as PlanState, "cancelado");
   }
   return { ...plan, estado: "cancelado" };

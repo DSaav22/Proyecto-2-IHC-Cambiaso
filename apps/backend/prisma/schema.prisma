@@ -25,7 +25,7 @@ model Plan {
   titulo      String       @default("")
   description String
   dueDate     DateTime     @db.Date
-  estado      String       @default("borrador")
+  estado      String       @default("pendiente")
   shareCode   String       @unique
   userId      String
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)

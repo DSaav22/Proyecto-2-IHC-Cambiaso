@@ -45,7 +45,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
   const tone = toneStyles[dueStatus.tone];
   const isConfirmed = plan.estado === "confirmado";
   const isCancelled = plan.estado === "cancelado";
-  const isDraft = plan.estado === "borrador";
+  const isPending = plan.estado === "pendiente";
   const isOwner = plan.isOwner ?? true;
 
   const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
@@ -102,7 +102,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
             ) : isCancelled ? (
               <Ban aria-hidden="true" />
             ) : null}
-            {isConfirmed ? "Confirmado" : isCancelled ? "Cancelado" : "Borrador"}
+            {isConfirmed ? "Confirmado" : isCancelled ? "Cancelado" : "Pendiente"}
           </Badge>
           {isOwner ? (
             <Badge variant="default" className="text-xs">
@@ -216,7 +216,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
       </p>
 
       {isOwner ? (
-        isDraft ? (
+        isPending ? (
           <div className="flex flex-wrap gap-2 border-t pt-3">
             <Button type="button" size="sm" onClick={() => changeDialog("confirm")}>
               Confirmar plan
@@ -253,7 +253,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
           if (!pending) changeDialog(open ? "confirm" : null);
         }}
         title="¿Confirmar este plan?"
-        description={`«${plan.titulo || plan.description}» pasará a Confirmado y ya no podrá volver a borrador.`}
+        description={`«${plan.titulo || plan.description}» pasará a Confirmado y ya no podrá volver a pendiente.`}
         confirmLabel="Confirmar"
         pendingLabel="Confirmando…"
         pending={pending}

@@ -19,6 +19,7 @@ vi.mock("../lib/prisma.js", () => ({
 
 const plansStore: PlansStore = {
   list: async () => [],
+  summary: async () => ({ total: 0, overdue: 0, nextDueDate: null }),
   create: async () => {
     throw new Error("unused");
   },

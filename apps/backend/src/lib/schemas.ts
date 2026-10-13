@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PLAN_STATES } from "./planState.js";
 
 const email = z
   .string()
@@ -29,7 +30,7 @@ export const recoverConfirmSchema = z.object({
 
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-function isRealCalendarDate(value: string): boolean {
+export function isRealCalendarDate(value: string): boolean {
   const match = DATE_PATTERN.exec(value);
   if (!match) return false;
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
@@ -58,6 +59,27 @@ export const planSchema = z.object({
 });
 
 export type PlanInput = z.infer<typeof planSchema>;
+
+export const PLAN_DATE_FILTERS = ["today", "next7", "next30", "overdue"] as const;
+export type PlanDateFilter = (typeof PLAN_DATE_FILTERS)[number];
+
+/** Query string of `GET /api/plans`. Unknown keys are stripped; repeated params fail. */
+export const planListQuerySchema = z.object({
+  q: z
+    .string("Búsqueda inválida")
+    .trim()
+    .max(100, "La búsqueda debe tener máximo 100 caracteres")
+    .optional()
+    .transform((value) => value || undefined),
+  estado: z.enum(PLAN_STATES, "Estado inválido").optional(),
+  fecha: z.enum(PLAN_DATE_FILTERS, "Filtro de fecha inválido").optional(),
+  today: z
+    .string("Fecha inválida")
+    .refine(isRealCalendarDate, "Ingresa una fecha válida")
+    .optional(),
+});
+
+export type PlanListQuery = z.infer<typeof planListQuerySchema>;
 
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const result: Record<string, string> = {};

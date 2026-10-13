@@ -39,6 +39,9 @@ function createMemoryStore(): PlansStore {
   const rows: Array<StoredPlan & { userId: string; members: string[] }> = [];
   let counter = 0;
   return {
+    async summary() {
+      return { total: 0, overdue: 0, nextDueDate: null };
+    },
     async list(userId) {
       return rows
         .filter((row) => row.userId === userId || row.members.includes(userId))
@@ -251,10 +254,10 @@ describe("plans router", () => {
     ]);
   });
 
-  it("creates every plan as 'borrador'", async () => {
+  it("creates every plan as 'pendiente'", async () => {
     const res = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
     expect(res.status).toBe(201);
-    expect(res.body.plan.estado).toBe("borrador");
+    expect(res.body.plan.estado).toBe("pendiente");
   });
 
   it("ignores a client-sent estado on creation", async () => {
@@ -263,7 +266,7 @@ describe("plans router", () => {
       .set("Cookie", cookieFor("u1"))
       .send({ ...body, estado: "confirmado" });
     expect(res.status).toBe(201);
-    expect(res.body.plan.estado).toBe("borrador");
+    expect(res.body.plan.estado).toBe("pendiente");
   });
 
   describe("POST /api/plans/:id/confirm", () => {
@@ -358,7 +361,7 @@ describe("plans router", () => {
         titulo: updateData.titulo,
         description: updateData.description,
         dueDate: updateData.dueDate,
-        estado: "borrador",
+        estado: "pendiente",
       });
 
       const listRes = await request(app).get("/api/plans").set("Cookie", cookieFor("u1"));
@@ -690,7 +693,7 @@ describe("plans router", () => {
       expect(cancelRes.body.message).toBe("Solo el creador puede cancelar este plan");
 
       const listRes = await request(app).get("/api/plans").set("Cookie", cookieFor("u1"));
-      expect(listRes.body.plans[0].estado).toBe("borrador");
+      expect(listRes.body.plans[0].estado).toBe("pendiente");
     });
 
     it("rejects guest attempts to delete plan with 403 Forbidden", async () => {
@@ -733,3 +736,107 @@ describe("plans router", () => {
 });
 
 
+
+describe("GET /api/plans query and summary", () => {
+  const listCalls: Array<{ userId: string; filter: unknown; todayUtc: unknown }> = [];
+  const summaryCalls: Array<{ userId: string; todayUtc: Date }> = [];
+  let app: ReturnType<typeof createApp>;
+
+  beforeEach(() => {
+    users.clear();
+    users.set("u1", { id: "u1", email: "a@x.com", name: "Ana", passwordHash: "x" });
+    listCalls.length = 0;
+    summaryCalls.length = 0;
+    const base = createMemoryStore();
+    const store: PlansStore = {
+      ...base,
+      async list(userId, filter, todayUtc) {
+        listCalls.push({ userId, filter, todayUtc });
+        return base.list(userId);
+      },
+      async summary(userId, todayUtc) {
+        summaryCalls.push({ userId, todayUtc });
+        return { total: 3, overdue: 1, nextDueDate: new Date("2026-06-18T00:00:00.000Z") };
+      },
+    };
+    app = createApp({ plansStore: store });
+  });
+
+  const get = (query: string) =>
+    request(app).get(`/api/plans${query}`).set("Cookie", cookieFor("u1"));
+
+  it("forwards the parsed filter and todayUtc to list and summary", async () => {
+    const res = await get("?q=%20cena%20&estado=pendiente&fecha=next7&today=2026-06-15");
+    expect(res.status).toBe(200);
+    expect(listCalls).toEqual([
+      {
+        userId: "u1",
+        filter: { q: "cena", estado: "pendiente", fecha: "next7" },
+        todayUtc: new Date("2026-06-15T00:00:00.000Z"),
+      },
+    ]);
+    expect(summaryCalls).toEqual([{ userId: "u1", todayUtc: new Date("2026-06-15T00:00:00.000Z") }]);
+  });
+
+  it("returns plans and a serialized summary with nextDueDate as YYYY-MM-DD", async () => {
+    const res = await get("");
+    expect(res.status).toBe(200);
+    expect(res.body.plans).toEqual([]);
+    expect(res.body.summary).toEqual({ total: 3, overdue: 1, nextDueDate: "2026-06-18" });
+  });
+
+  it("serializes a missing next due date as null", async () => {
+    const base = createMemoryStore();
+    const nullApp = createApp({
+      plansStore: { ...base, summary: async () => ({ total: 0, overdue: 0, nextDueDate: null }) },
+    });
+    const res = await request(nullApp).get("/api/plans").set("Cookie", cookieFor("u1"));
+    expect(res.body.summary).toEqual({ total: 0, overdue: 0, nextDueDate: null });
+  });
+
+  it("uses the server UTC date when today is missing", async () => {
+    const res = await get("?fecha=today");
+    expect(res.status).toBe(200);
+    const expected = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`);
+    expect(listCalls[0].todayUtc).toEqual(expected);
+    expect(summaryCalls[0].todayUtc).toEqual(expected);
+  });
+
+  it("passes an empty filter when no params are sent", async () => {
+    await get("");
+    expect(listCalls[0].filter).toEqual({});
+  });
+
+  it("rejects invalid params with 400, a message and field errors, without hitting the store", async () => {
+    const res = await get("?estado=borrador&fecha=tomorrow&today=2026-02-30");
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Parámetros de búsqueda inválidos");
+    expect(Object.keys(res.body.errors).sort()).toEqual(["estado", "fecha", "today"]);
+    expect(listCalls).toHaveLength(0);
+    expect(summaryCalls).toHaveLength(0);
+  });
+
+  it("rejects repeated q and over-long q with 400", async () => {
+    expect((await get("?q=a&q=b")).status).toBe(400);
+    const tooLong = await get(`?q=${"a".repeat(101)}`);
+    expect(tooLong.status).toBe(400);
+    expect(tooLong.body.errors.q).toBe("La búsqueda debe tener máximo 100 caracteres");
+  });
+
+  it("answers PUT on a cancelled plan with 409", async () => {
+    const memory = createMemoryStore();
+    const putApp = createApp({ plansStore: memory });
+    const created = await request(putApp)
+      .post("/api/plans")
+      .set("Cookie", cookieFor("u1"))
+      .send({ titulo: "Cena de Navidad", description: "Cena", dueDate: "2026-12-24" });
+    const id = created.body.plan.id;
+    await request(putApp).post(`/api/plans/${id}/cancel`).set("Cookie", cookieFor("u1"));
+    const res = await request(putApp)
+      .put(`/api/plans/${id}`)
+      .set("Cookie", cookieFor("u1"))
+      .send({ titulo: "Otro titulo", description: "Cena", dueDate: "2026-12-25" });
+    expect(res.status).toBe(409);
+    expect(res.body.message).toBe("No se puede editar un plan cancelado");
+  });
+});

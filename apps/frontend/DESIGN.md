@@ -35,7 +35,7 @@ Solo existen los tokens de la tabla. Los tokens `coral`, `popover`/`popover-fore
 
 | Estado | Presentación |
 | --- | --- |
-| `borrador` | Insignia neutra (`muted`), acción primaria «Confirmar plan» (`primary`) |
+| `pendiente` | Insignia neutra (`muted`), acción primaria «Confirmar plan» (`primary`) |
 | `confirmado` | Insignia `success` con ícono de check, sin botón de acción |
 | Vencimiento (`overdue`/`today`/`soon`/`later`) | Insignia `destructive` / `accent` / `accent` / `primary` según `getDueStatus()`. Es independiente del estado del plan |
 

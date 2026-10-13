@@ -19,7 +19,7 @@ interface PlanFiltersBarProps {
 
 const statusLabels: Record<StatusFilter, string> = {
   all: "Todos los estados",
-  borrador: "Borrador",
+  pendiente: "Pendiente",
   confirmado: "Confirmado",
   cancelado: "Cancelado",
 };
@@ -88,7 +88,7 @@ export function PlanFiltersBar({
               className="min-h-11 rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/40"
             >
               <option value="all">Todos</option>
-              <option value="borrador">Borrador</option>
+              <option value="pendiente">Pendiente</option>
               <option value="confirmado">Confirmado</option>
               <option value="cancelado">Cancelado</option>
             </select>
