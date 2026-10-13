@@ -8,6 +8,7 @@ import {
   Copy,
   EllipsisVertical,
   Eye,
+  Info,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -86,12 +87,6 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
       />
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          {!isCancelled ? (
-            <Badge variant={tone.badge}>
-              <Clock aria-hidden="true" />
-              {dueStatus.label}
-            </Badge>
-          ) : null}
           <Badge
             data-testid="plan-status-badge"
             data-status={plan.estado}
@@ -105,11 +100,11 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
             {PLAN_STATUS_LABELS[plan.estado]}
           </Badge>
           {isOwner ? (
-            <Badge variant="default" className="text-xs">
+            <Badge variant="muted" className="text-xs">
               Creador
             </Badge>
           ) : (
-            <Badge variant="muted" data-testid="guest-badge" className="text-xs">
+            <Badge variant="outline" data-testid="guest-badge" className="text-xs">
               Invitado
             </Badge>
           )}
@@ -178,9 +173,9 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
       </p>
 
       {isOwner && plan.shareCode ? (
-        <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>
-            Código: <strong className="font-mono text-foreground select-all">{plan.shareCode}</strong>
+            Código: <strong className="font-mono font-medium text-foreground select-all">{plan.shareCode}</strong>
           </span>
           <button
             type="button"
@@ -192,7 +187,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
               setTimeout(() => setCopied(false), 2000);
             }}
             aria-label="Copiar código"
-            className="ml-auto inline-flex items-center gap-1 font-semibold text-primary hover:underline focus-visible:outline-none"
+            className="inline-flex items-center gap-1 font-semibold text-primary hover:underline focus-visible:outline-none"
           >
             {copied ? (
               <Check aria-hidden="true" className="size-3.5 text-success" />
@@ -208,44 +203,60 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
         </p>
       ) : null}
 
-      <p className="mt-auto flex items-center gap-2 border-t pt-3 text-sm text-muted-foreground">
-        <CalendarDays aria-hidden="true" className={cn("size-4", isCancelled ? "text-muted-foreground" : "text-primary")} />
-        <time dateTime={plan.dueDate} className={cn(isCancelled && "text-muted-foreground")}>
-          {formatDueDate(plan.dueDate)}
-        </time>
-      </p>
-
-      {isOwner ? (
-        isPending ? (
-          <div className="flex flex-wrap gap-2 border-t pt-3">
-            <Button type="button" size="sm" onClick={() => changeDialog("confirm")}>
-              Confirmar plan
-            </Button>
-            <Button type="button" size="sm" onClick={() => changeDialog("cancel")}>
-              Cancelar plan
-            </Button>
-          </div>
-        ) : isConfirmed ? (
-          <div className="flex flex-wrap gap-2 border-t pt-3">
-            <Button type="button" size="sm" onClick={() => changeDialog("cancel")}>
-              Cancelar plan
-            </Button>
-          </div>
-        ) : (
-          <p role="note" className="border-t pt-3 text-xs text-muted-foreground">
-            Este plan está cancelado: no se puede editar ni confirmar. Puedes eliminarlo desde «Más
-            acciones».
+      <div className="mt-auto flex flex-col gap-3 border-t pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+          <p className="flex items-center gap-2">
+            <CalendarDays aria-hidden="true" className={cn("size-4", isCancelled ? "text-muted-foreground" : "text-primary")} />
+            <time dateTime={plan.dueDate} className={cn(isCancelled && "text-muted-foreground")}>
+              {formatDueDate(plan.dueDate)}
+            </time>
           </p>
-        )
-      ) : (
-        <div
-          role="note"
-          className="flex items-center gap-1.5 border-t pt-3 text-xs text-muted-foreground"
-        >
-          <Eye aria-hidden="true" className="size-3.5 shrink-0" />
-          <span>Solo lectura: solo el creador puede editar, confirmar o cancelar este plan.</span>
+          {!isCancelled ? (
+            <Badge variant={tone.badge} className="text-xs">
+              <Clock aria-hidden="true" />
+              {dueStatus.label}
+            </Badge>
+          ) : null}
         </div>
-      )}
+
+        {isOwner ? (
+          isPending ? (
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" onClick={() => changeDialog("confirm")}>
+                Confirmar plan
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => changeDialog("cancel")}>
+                Cancelar plan
+              </Button>
+            </div>
+          ) : isConfirmed ? (
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={() => changeDialog("cancel")}>
+                Cancelar plan
+              </Button>
+            </div>
+          ) : (
+            <div
+              role="note"
+              className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/40 p-2.5 text-xs text-muted-foreground"
+            >
+              <Info aria-hidden="true" className="size-4 shrink-0 mt-0.5 text-muted-foreground" />
+              <span>
+                Este plan está cancelado: no se puede editar ni confirmar. Puedes eliminarlo desde «Más
+                acciones».
+              </span>
+            </div>
+          )
+        ) : (
+          <div
+            role="note"
+            className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/40 p-2.5 text-xs text-muted-foreground"
+          >
+            <Eye aria-hidden="true" className="size-4 shrink-0 mt-0.5 text-muted-foreground" />
+            <span>Solo lectura: solo el creador puede editar, confirmar o cancelar este plan.</span>
+          </div>
+        )}
+      </div>
 
       <ConfirmDialog
         open={openDialog === "confirm"}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CalendarClock, ListChecks, Plus, TriangleAlert, Users } from "lucide-react";
+import { CalendarClock, ListChecks, Plus, RotateCw, TriangleAlert, Users } from "lucide-react";
 import type { Plan, PlanInput } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -140,6 +140,18 @@ export default function MyPlansPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            disabled={refreshing || loading}
+            aria-label="Actualizar planes"
+            title="Actualizar planes"
+            onClick={() => void reload()}
+          >
+            <RotateCw aria-hidden="true" className={refreshing ? "animate-spin" : undefined} />
+            <span className="hidden sm:inline">Actualizar</span>
+          </Button>
           <Button
             type="button"
             variant="outline"
