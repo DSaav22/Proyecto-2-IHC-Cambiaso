@@ -1,5 +1,5 @@
-import type { Plan, PlanListParams, PlanStatus } from "../api/client";
-import { daysUntil, localToday } from "./plans";
+import type { PlanListParams, PlanStatus } from "../api/client";
+import { localToday } from "./plans";
 
 export type StatusFilter = "all" | PlanStatus;
 export type DateFilter = "all" | "today" | "next7" | "next30" | "overdue";
@@ -39,11 +39,14 @@ export function parsePlanFilters(params: URLSearchParams): PlanFilterCriteria {
   };
 }
 
-/** Writes only non-default criteria, using the canonical keys q, estado and fecha. */
+/**
+ * Writes only non-default criteria, using the canonical keys q, estado and fecha.
+ * The query keeps its spaces so the search input is not altered while typing;
+ * `toPlanListParams` trims it before it reaches the API.
+ */
 export function serializePlanFilters(criteria: PlanFilterCriteria): URLSearchParams {
   const params = new URLSearchParams();
-  const query = criteria.query.trim();
-  if (query) params.set("q", query);
+  if (criteria.query.trim()) params.set("q", criteria.query);
   if (criteria.status !== "all") params.set("estado", criteria.status);
   if (criteria.dateRange !== "all") params.set("fecha", criteria.dateRange);
   return params;
@@ -68,46 +71,4 @@ export function hasActiveFilters(criteria: PlanFilterCriteria): boolean {
     criteria.status !== "all" ||
     criteria.dateRange !== "all"
   );
-}
-
-/** @deprecated Filtering is server-side now; removed once MyPlansPage stops using it. */
-export function filterPlans(
-  plans: Plan[],
-  criteria: PlanFilterCriteria,
-  now: Date = new Date(),
-): Plan[] {
-  const normalizedQuery = criteria.query.trim().toLowerCase();
-
-  return plans.filter((plan) => {
-    // 1. Text search by title
-    if (normalizedQuery && !plan.titulo.toLowerCase().includes(normalizedQuery)) {
-      return false;
-    }
-
-    // 2. Status filter
-    if (criteria.status !== "all" && plan.estado !== criteria.status) {
-      return false;
-    }
-
-    // 3. Due date filter
-    if (criteria.dateRange !== "all") {
-      const days = daysUntil(plan.dueDate, now);
-      switch (criteria.dateRange) {
-        case "today":
-          if (days !== 0) return false;
-          break;
-        case "next7":
-          if (days < 0 || days > 7) return false;
-          break;
-        case "next30":
-          if (days < 0 || days > 30) return false;
-          break;
-        case "overdue":
-          if (days >= 0) return false;
-          break;
-      }
-    }
-
-    return true;
-  });
 }

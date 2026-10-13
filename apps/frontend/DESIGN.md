@@ -37,6 +37,7 @@ Solo existen los tokens de la tabla. Los tokens `coral`, `popover`/`popover-fore
 | --- | --- |
 | `pendiente` | Insignia neutra (`muted`), acción primaria «Confirmar plan» (`primary`) |
 | `confirmado` | Insignia `success` con ícono de check, sin botón de acción |
+| `cancelado` | Insignia neutra (`muted`) con ícono `Ban` y el texto «Cancelado» (el estado nunca se comunica solo con color). Sin acciones de editar, confirmar ni cancelar; solo se puede eliminar desde «Más acciones». No muestra la insignia de vencimiento |
 | Vencimiento (`overdue`/`today`/`soon`/`later`) | Insignia `destructive` / `accent` / `accent` / `primary` según `getDueStatus()`. Es independiente del estado del plan |
 
 ## 3. Tipografía

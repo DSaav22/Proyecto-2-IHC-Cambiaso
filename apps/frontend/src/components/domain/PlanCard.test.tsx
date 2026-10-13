@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Plan } from "../../api/client";
+import { PLAN_STATUS_LABELS } from "../../lib/plans";
 import { PlanCard } from "./PlanCard";
 
 const basePlan: Plan = {
@@ -44,6 +45,24 @@ describe("PlanCard - state", () => {
     expect(badge).toHaveAttribute("data-status", "cancelado");
     expect(screen.queryByRole("button", { name: "Confirmar plan" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cancelar plan" })).not.toBeInTheDocument();
+  });
+
+  it("shows the cancelled badge with text and an icon, not only color", () => {
+    render(<PlanCard plan={cancelled} />);
+    const badge = screen.getByTestId("plan-status-badge");
+    expect(badge).toHaveTextContent("Cancelado");
+    expect(badge.querySelector("svg")).not.toBeNull();
+    expect(badge.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("takes every badge text from the shared status labels", () => {
+    for (const estado of ["pendiente", "confirmado", "cancelado"] as const) {
+      const { unmount } = render(<PlanCard plan={{ ...basePlan, estado }} />);
+      expect(screen.getByTestId("plan-status-badge")).toHaveTextContent(
+        PLAN_STATUS_LABELS[estado],
+      );
+      unmount();
+    }
   });
 
   it("does not render a state select", () => {

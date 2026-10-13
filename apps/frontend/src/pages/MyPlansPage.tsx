@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { CalendarClock, FilterX, ListChecks, Plus, TriangleAlert, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { CalendarClock, ListChecks, Plus, TriangleAlert, Users } from "lucide-react";
 import type { Plan, PlanInput } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -14,32 +15,51 @@ import {
 } from "../components/domain";
 
 import { usePlans } from "../hooks/usePlans";
-import { filterPlans, hasActiveFilters, INITIAL_PLAN_FILTERS, type PlanFilterCriteria } from "../lib/planFilters";
-import { daysUntil, getDueStatus } from "../lib/plans";
+import {
+  INITIAL_PLAN_FILTERS,
+  parsePlanFilters,
+  serializePlanFilters,
+  type PlanFilterCriteria,
+} from "../lib/planFilters";
+import { getDueStatus } from "../lib/plans";
 
 export default function MyPlansPage() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawParams = searchParams.toString();
+  const criteria = useMemo(() => parsePlanFilters(new URLSearchParams(rawParams)), [rawParams]);
+  const canonicalParams = serializePlanFilters(criteria).toString();
   const {
     plans,
+    summary,
     loading,
+    refreshing,
     loadError,
+    reload,
     addPlan,
     joinPlan,
     updatePlan,
     confirmPlan,
     cancelPlan,
     deletePlan,
-  } = usePlans();
+  } = usePlans(criteria);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<PlanFilterCriteria>(INITIAL_PLAN_FILTERS);
 
-  const filteredPlans = useMemo(() => {
-    return filterPlans(plans, filters);
-  }, [plans, filters]);
+  // Rewrite a corrupted or non-canonical URL once so it always mirrors the criteria in use.
+  useEffect(() => {
+    if (canonicalParams !== rawParams) {
+      setSearchParams(new URLSearchParams(canonicalParams), { replace: true });
+    }
+  }, [canonicalParams, rawParams, setSearchParams]);
+
+  // Typing replaces the history entry; discrete changes (selects, chips, reset) push one.
+  function setCriteria(next: PlanFilterCriteria) {
+    setSearchParams(serializePlanFilters(next), { replace: next.query !== criteria.query });
+  }
 
   async function handleSubmit(input: PlanInput) {
     setActionError(null);
@@ -110,9 +130,6 @@ export default function MyPlansPage() {
     return result;
   }
 
-  const nextPlan = plans.find((plan) => daysUntil(plan.dueDate) >= 0);
-  const overdue = plans.filter((plan) => daysUntil(plan.dueDate) < 0).length;
-
   return (
     <div className="grid gap-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -147,6 +164,13 @@ export default function MyPlansPage() {
         <SuccessNotice onClose={() => setNotice(null)}>{notice}</SuccessNotice>
       ) : null}
       <ErrorAlert message={loadError || actionError} />
+      {loadError ? (
+        <div>
+          <Button type="button" variant="outline" onClick={() => void reload()}>
+            Reintentar
+          </Button>
+        </div>
+      ) : null}
 
       {loading ? (
         <p role="status" className="text-muted-foreground">
@@ -154,68 +178,49 @@ export default function MyPlansPage() {
         </p>
       ) : (
         <>
-          {plans.length > 0 ? (
+          {summary.total > 0 ? (
             <>
               <div className="grid gap-4 sm:grid-cols-3">
-                <StatCard icon={ListChecks} label="Planes" value={String(plans.length)} />
+                <StatCard icon={ListChecks} label="Planes" value={String(summary.total)} />
                 <StatCard
                   icon={CalendarClock}
                   label="Próximo plan"
                   tone="accent"
-                  value={nextPlan ? getDueStatus(nextPlan.dueDate).label : "Sin pendientes"}
+                  value={
+                    summary.nextDueDate ? getDueStatus(summary.nextDueDate).label : "Sin pendientes"
+                  }
                 />
                 <StatCard
                   icon={TriangleAlert}
                   label="Vencidos"
                   tone="danger"
-                  value={String(overdue)}
+                  value={String(summary.overdue)}
                 />
               </div>
 
               <PlanFiltersBar
-                criteria={filters}
-                onChange={setFilters}
-                onReset={() => setFilters(INITIAL_PLAN_FILTERS)}
-                totalCount={plans.length}
-                filteredCount={filteredPlans.length}
+                criteria={criteria}
+                onChange={setCriteria}
+                onReset={() => setCriteria(INITIAL_PLAN_FILTERS)}
+                totalCount={summary.total}
+                resultCount={plans.length}
               />
             </>
           ) : null}
 
-          {plans.length > 0 && filteredPlans.length === 0 ? (
-            <div
-              role="status"
-              className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card/60 p-10 text-center"
-            >
-              <div className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-                <FilterX aria-hidden="true" className="size-6" />
-              </div>
-              <div className="max-w-md space-y-1">
-                <p className="text-base font-semibold text-foreground">
-                  No existen planes con estas características
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Prueba a ajustar o quitar los filtros aplicados para volver a ver tus planes.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setFilters(INITIAL_PLAN_FILTERS)}
-              >
-                Restablecer filtros
-              </Button>
-            </div>
-          ) : (
-            <PlanList
-              plans={filteredPlans}
-              onEdit={handleEdit}
-              onConfirm={handleConfirm}
-              onCancel={handleCancel}
-              onDelete={handleDelete}
-            />
-          )}
+          <section aria-label="Tus planes" aria-busy={refreshing}>
+            {loadError && summary.total === 0 && plans.length === 0 ? null : (
+              <PlanList
+                plans={plans}
+                emptyState={summary.total > 0 ? "no-match" : "no-plans"}
+                onClearFilters={() => setCriteria(INITIAL_PLAN_FILTERS)}
+                onEdit={handleEdit}
+                onConfirm={handleConfirm}
+                onCancel={handleCancel}
+                onDelete={handleDelete}
+              />
+            )}
+          </section>
         </>
       )}
 

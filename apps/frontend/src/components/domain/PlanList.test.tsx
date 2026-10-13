@@ -65,4 +65,30 @@ describe("PlanList", () => {
     );
     expect(onDelete).toHaveBeenCalledWith(item.id);
   });
+
+  it("shows the invite-to-create state with its action when the user has no plans", async () => {
+    const onCreate = vi.fn();
+    render(<PlanList plans={[]} onCreate={onCreate} />);
+    expect(screen.queryByText(/no hay planes que coincidan/i)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Crear mi primer plan" }));
+    expect(onCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the no-match state with a clear-filters action instead of the invite", async () => {
+    const onClearFilters = vi.fn();
+    render(<PlanList plans={[]} emptyState="no-match" onCreate={vi.fn()} onClearFilters={onClearFilters} />);
+
+    expect(screen.getByText("No hay planes que coincidan con los filtros")).toBeInTheDocument();
+    expect(screen.queryByText(/todavía no tienes planes/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Crear mi primer plan" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
+    expect(onClearFilters).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the cards, not an empty state, when plans exist even with the no-match variant", () => {
+    render(<PlanList plans={[plan("A", "2026-01-01")]} emptyState="no-match" />);
+    expect(screen.getByRole("article")).toBeInTheDocument();
+    expect(screen.queryByText(/no hay planes que coincidan/i)).not.toBeInTheDocument();
+  });
 });
