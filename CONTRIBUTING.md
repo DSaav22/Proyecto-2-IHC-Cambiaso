@@ -138,11 +138,22 @@ El desarrollo en Planazo sigue la metodología **Spec-Driven Development (SDD)**
 
 ## 8. Gestión de Issues y Pull Requests
 
-Para mantener el orden del equipo sin burocracia innecesaria:
+Para mantener el orden del equipo sin burocracia innecesaria y alinearse con la metodología docente:
 
-### Issues
+### Requisitos Docentes y Descomposición en Sub-issues
 
-* Toda tarea o requerimiento debe registrarse en una issue breve con:
+Cuando el docente asigne un issue con un requerimiento (por ejemplo, #7 o #8):
+1. **El issue padre NO se cierra:** Representa la solicitud oficial del docente y permanece abierto hasta su revisión y aprobación formal en clase.
+2. **Descomposición obligatoria (mínimo 3 sub-issues):** Todo requerimiento docente debe dividirse en **al menos 3 sub-issues pequeños y atómicos** para evitar tareas sobredimensionadas. La partición debe reflejar las capas de la arquitectura:
+   * **Sub-issue 1 (Regla / Backend / Persistencia):** Lógica de dominio, estados, validación y persistencia en base de datos.
+   * **Sub-issue 2 (API / Consulta / Filtros):** Endpoints HTTP, validación de parámetros, construcción de queries y respuesta del servidor.
+   * **Sub-issue 3 (Interfaz / UX / Accesibilidad):** Componentes UI, estado en frontend, sincronización con URL, accesibilidad y estados vacíos.
+3. **Relación commits ↔ sub-issues:** Cada commit debe estar directamente relacionado con su sub-issue (`Refs #<sub-issue>` o `#<sub-issue>` en el mensaje del commit).
+4. **Cierre progresivo:** Los sub-issues se cierran conforme se completan y mergean sus cambios.
+
+### Issues Generales
+
+* Toda tarea o requerimiento fuera de los requisitos docentes debe registrarse en una issue breve con:
   * **Objetivo:** Qué se busca resolver o implementar.
   * **Criterios de Aceptación:** Qué comportamiento define que la tarea está terminada.
   * **Pruebas esperadas:** Qué casos de prueba unitaria deben cubrirse (mínimo 4 si involucra reglas de negocio o transiciones de estado, según [AGENTS.md](AGENTS.md)).
@@ -150,7 +161,10 @@ Para mantener el orden del equipo sin burocracia innecesaria:
 ### Pull Requests (PRs)
 
 * Crear una rama descriptiva (`feat/<nombre>`, `fix/<nombre>`).
-* Si la PR resuelve una issue, mencionarlo en la descripción con `Closes #<número>` para que no quede sin referencia y la issue se cierre al hacer merge (opcional si no hay issue asociada).
+* Estructurar los PRs alineados a los sub-issues (o PRs por fases bien delimitadas).
+* **Referencias y cierre en PRs:**
+  * Usar `Closes #<número-sub-issue>` para que el sub-issue completado se cierre automáticamente al mergear.
+  * Usar `Refs #<número-issue-padre>` para referenciar el issue general del docente (**NUNCA usar `Closes` sobre el issue del docente**).
 * La descripción de la PR no debe contener referencias ni atribuciones a ninguna IA.
 * Respetar las responsabilidades de [ARCHITECTURE.md](ARCHITECTURE.md):
   * Backend: lógica y reglas de estado en `services/`, validación HTTP en `routes/`.

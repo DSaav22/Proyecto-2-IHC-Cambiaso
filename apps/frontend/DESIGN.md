@@ -40,6 +40,34 @@ Solo existen los tokens de la tabla. Los tokens `coral`, `popover`/`popover-fore
 | `cancelado` | Insignia neutra (`muted`) con ícono `Ban` y el texto «Cancelado» (el estado nunca se comunica solo con color). Sin acciones de editar, confirmar ni cancelar; solo se puede eliminar desde «Más acciones». No muestra la insignia de vencimiento |
 | Vencimiento (`overdue`/`today`/`soon`/`later`) | Insignia `destructive` / `accent` / `accent` / `primary` según `getDueStatus()`. Es independiente del estado del plan |
 
+### Semántica de roles de usuario (Membresía)
+
+Para evitar saturar la tarjeta con el verde semántico del estado `confirmado` o de vencimientos lejanos, los roles se diferencian estructuralmente:
+
+| Rol | Presentación | Justificación UX |
+| --- | --- | --- |
+| `Creador` | Insignia neutra (`muted`), texto «Creador» | Al ser el caso habitual en "Mis planes", se mantiene sobrio para no generar ruido visual repetitivo. |
+| `Invitado` | Insignia con contorno (`outline`), texto «Invitado» | Destaca la excepción como una etiqueta estructural limpia (`border border-border bg-card`), sin colisionar con el color de los estados. |
+
+### Variantes de componentes base (`ui/`)
+
+#### Insignias (`Badge`)
+
+- `default`: `bg-primary/10 text-primary` (resaltado de marca o vencimiento lejano).
+- `success`: `bg-success/12 text-success` (exclusivo para estado `confirmado`).
+- `warning`: `bg-accent/35 text-accent-foreground` (vencimiento hoy/pronto).
+- `danger`: `bg-destructive/10 text-destructive` (vencido).
+- `muted`: `bg-muted text-muted-foreground` (estado `pendiente`, `cancelado` y rol `Creador`).
+- `outline`: `border border-border bg-card text-foreground` (rol `Invitado`, etiquetas no-semánticas).
+
+#### Botones (`Button`)
+
+- `default` (Primario): `bg-primary text-primary-foreground` sólido con sombra discreta. Un solo botón primario por tarjeta/pantalla.
+- `secondary`: `bg-secondary text-secondary-foreground`, realce suave.
+- `outline`: `border border-input bg-card text-foreground`, acciones secundarias en tarjetas (como «Cancelar plan») para evitar competir con el botón primario.
+- `ghost`: `text-foreground hover:bg-secondary/70`, acciones en barras y menús.
+- `destructive`: `bg-destructive text-white`, reservado para la confirmación final dentro de diálogos destructivos (eliminar o cancelar definitivamente).
+
 ## 3. Tipografía
 
 - Cuerpo y UI: **Plus Jakarta Sans** (`font-sans`).
@@ -55,9 +83,19 @@ Solo existen los tokens de la tabla. Los tokens `coral`, `popover`/`popover-fore
 ## 5. Patrones de componente
 
 - **Botón primario:** `bg-primary text-primary-foreground`, sólido, foco con `ring`. Un solo botón primario por tarjeta/diálogo.
-- **Acciones destructivas:** nunca como botón primario visible en tarjeta; van en menú de acciones (⋮) y piden confirmación en diálogo que nombra el elemento.
+- **Acciones destructivas y de ciclo de vida:**
+  - En tarjetas, acciones irreversibles o de retroceso («Cancelar plan») usan `variant="outline"`.
+  - Operaciones permanentes («Eliminar») se ubican en el menú de acciones (⋮) y nunca como botón directo en la tarjeta.
+  - Toda acción destructiva o de transición de estado exige confirmación mediante `ConfirmDialog`.
+- **`ConfirmDialog`:** Patrón unificado para confirmar acciones de impacto. Debe nombrar explícitamente el recurso (p. ej. `«Cena de equipo»`), explicar el cambio, mostrar errores inline dentro del modal sin cerrarse si la API falla, y usar botón `destructive` solo al confirmar la acción crítica.
+- **`PlanFiltersBar` (Barra de búsqueda y filtros):**
+  - Inputs con debounce de 300 ms en texto y cambio inmediato en selects.
+  - Sincronización bidireccional con query params de la URL (`?q&estado&fecha`).
+  - Chips de filtros activos con botón de remoción táctil (mínimo 44 px / `min-h-11`) y gestión de foco que devuelve el cursor al control al remover un chip.
+  - Región `aria-live` que anuncia los resultados ("Mostrando X de Y planes").
+- **`StatCard` (Métricas de cabecera):** Tarjetas con valor numérico destacado en `font-display` y etiqueta de apoyo en `text-xs text-muted-foreground`. Su valor proviene del `summary` calculado por el servidor (no se altera al filtrar la lista).
 - **Navbar:** logo + nombre de marca es un único enlace; los ítems de navegación se separan visualmente y no duplican destino.
-- **Estados vacíos, carga y error:** siempre contemplados; mensajes en `Alert`/`Notices`, no en `alert()` del navegador.
+- **Estados vacíos, carga y error:** siempre contemplados; mensajes en `Alert`/`Notices`, no en `alert()` del navegador. Distinguir estado sin planes ("todavía no tienes planes") de estado sin coincidencias ("no hay planes que coincidan").
 - **Formularios:** etiqueta visible, error por campo, sin placeholder como única etiqueta.
 
 ## 6. Checklist antes de abrir una PR de frontend
