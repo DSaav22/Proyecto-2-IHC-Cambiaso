@@ -176,7 +176,7 @@ Dependencies: PR B | Forecast: 400-line risk: High, `size:exception` requested, 
 - [x] 6.2 Update `apps/frontend/src/components/domain/PlanFiltersBar.tsx`: props `{ criteria, onChange, onReset, resultCount, totalCount }`, visible labels without conflicting `aria-label`, options from `PLAN_STATUS_LABELS`/`DATE_FILTER_LABELS`, refs for focus, 44 px chips, mobile `grid grid-cols-1 sm:grid-cols-2`, count `basis-full sm:ml-auto`.
 - [x] 6.3 RED then implement in `apps/frontend/src/components/domain/PlanList.test.tsx`/`PlanList.tsx` and `apps/frontend/src/pages/MyPlansPage.tsx`: `summary.total === 0` -> "Todavía no tienes planes" (filter bar hidden); `total > 0 && plans.length === 0` -> no-match message + "Limpiar filtros" (PLN-10; #8.7). Keep >= 4 tests per file.
 - [x] 6.4 In `apps/frontend/src/components/domain/PlanCard.tsx` use `PLAN_STATUS_LABELS` for badge text and add/keep a test that the cancelled badge "Cancelado" has text + icon (MODIFIED card requirement; #8.5). The "Pendiente" label itself is already delivered by the rename (R.4); no special mapping remains.
-- [ ] 6.5 Manual a11y check (keyboard-only, 375 px viewport); run `pnpm --filter frontend exec vitest run src/components`.
+- [x] 6.5 Manual a11y check (keyboard-only, 375 px viewport); run `pnpm --filter frontend exec vitest run src/components`.
 
 ## Group 7: Seeds, spec sync, docs, final verification
 
@@ -185,20 +185,20 @@ Dependencies: PR B | Forecast: 400-line risk: High, `size:exception` requested, 
 - [x] 7.3 Add `cancelado` row to `apps/frontend/DESIGN.md` (state badge/colors).
 - [x] 7.4 Reconcile overlapping changes BEFORE syncing this one. Order chosen: (1) `plan-lifecycle`, (2) `add-plan-title`, (3) `add-plan-filters-and-search` (client-side filter requirements get MODIFIED by this change), (4) this change. Reason: our deltas were written against current main specs and PLN-02 depends on `titulo`; archiving the others first keeps `/opsx-sync` of ours a clean MODIFIED/ADDED merge. Executed here (last group of PR C) so earlier PRs stay code-focused; confirm with user (D3). Touch only `openspec/` files for this. DONE: `add-plan-title` synced and archived; `plan-lifecycle` and `add-plan-filters-and-search` archived on 2026-10-12 WITHOUT syncing (superseded, see `ARCHIVED-WITHOUT-SYNC.md` in each archived folder).
 - [x] 7.5 `/opsx-sync` of `openspec/changes/plan-cancel-and-search-hardening/specs/*` into `openspec/specs/` (plans, plan-state-machine, test-user-seeding). The sync must also carry the `borrador` -> `pendiente` rename (SM-08) into main `openspec/specs/plan-state-machine/spec.md` and `openspec/specs/plans/spec.md` through MODIFIED deltas (every remaining `borrador` there is rewritten).
-- [ ] 7.6 After verify passes: `/opsx-archive` for this change (no code edits; only checkboxes in this file are modified during apply).
+- [x] 7.6 After verify passes: `/opsx-archive` for this change (no code edits; only checkboxes in this file are modified during apply).
 - [x] 7.7 Run complete suites: `pnpm --filter backend exec vitest run` and `pnpm --filter frontend exec vitest run`; run typecheck/build if available via `pnpm --filter <workspace>`.
-- [ ] 7.8 Manual end-to-end checklist (UI -> API -> DB, teacher review), login as usuario1:
-  - [ ] a. `/mis-planes` lists seeded plans in 3 states; stats match (cancelled counts in "Planes" only).
-  - [ ] b. Type in search: network shows one `GET /api/plans?q=...&today=...` after ~300 ms; result matches DB (`SELECT titulo FROM "Plan"`).
-  - [ ] c. Filter Pendiente/Confirmado/Cancelado (URL carries `estado=pendiente`; `?estado=borrador` is ignored by the UI sanitizer and 400 on the API); cancelled appears only under "Cancelado" (and with no filters).
-  - [ ] d. Date filters Hoy / Próximos 7 días / Próximos 30 días / Vencidos exclude cancelled.
-  - [ ] e. Combined search + estado + fecha; chips removable; "Limpiar filtros".
-  - [ ] f. Reload page: filters and results persist (URL `?q&estado&fecha`); corrupted URL does not 400.
-  - [ ] g. No match shows "No hay planes que coincidan con los filtros"; count announced.
-  - [ ] h. Cancel with dialog: dismiss = no request; accept = "Cancelado", reload keeps it; API failure keeps dialog open with error.
-  - [ ] i. Cancelled card: note, no confirm/edit/cancel, no "Venció hace"; delete works. Guest card (usuario1 on usuario2's plan): read-only note; cancel via API -> 403.
-  - [ ] j. Confirm cancelled via API -> 409 "Un plan cancelado no puede confirmarse".
-  - [ ] k. 375 px viewport and keyboard-only pass.
+- [x] 7.8 Manual end-to-end checklist (UI -> API -> DB, teacher review), login as usuario1:
+  - [x] a. `/mis-planes` lists seeded plans in 3 states; stats match (cancelled counts in "Planes" only).
+  - [x] b. Type in search: network shows one `GET /api/plans?q=...&today=...` after ~300 ms; result matches DB (`SELECT titulo FROM "Plan"`).
+  - [x] c. Filter Pendiente/Confirmado/Cancelado (URL carries `estado=pendiente`; `?estado=borrador` is ignored by the UI sanitizer and 400 on the API); cancelled appears only under "Cancelado" (and with no filters).
+  - [x] d. Date filters Hoy / Próximos 7 días / Próximos 30 días / Vencidos exclude cancelled.
+  - [x] e. Combined search + estado + fecha; chips removable; "Limpiar filtros".
+  - [x] f. Reload page: filters and results persist (URL `?q&estado&fecha`); corrupted URL does not 400.
+  - [x] g. No match shows "No hay planes que coincidan con los filtros"; count announced.
+  - [x] h. Cancel with dialog: dismiss = no request; accept = "Cancelado", reload keeps it; API failure keeps dialog open with error.
+  - [x] i. Cancelled card: note, no confirm/edit/cancel, no "Venció hace"; delete works. Guest card (usuario1 on usuario2's plan): read-only note; cancel via API -> 403.
+  - [x] j. Confirm cancelled via API -> 409 "Un plan cancelado no puede confirmarse".
+  - [x] k. 375 px viewport and keyboard-only pass.
 
 ## Commit plan (PR C, 11 commits; `Refs #8` unless noted)
 
@@ -222,9 +222,9 @@ The former C9 ("Pendiente" label) disappeared: the rename in PR B (B3) delivers 
 
 ## Process tasks (execute only with the user's approval)
 
-- [ ] P.1 Ask the user, then create 3 GitHub sub-issues, one per PR (PR A: "Cancel flow: confirm-cancelled 409, card notes, dialog error", parent `Refs #7`; PR B: "Plans search data layer: query API, summary, client and hook", parent `Refs #8`; PR C: "Plans search UI, seeds and spec sync", parent `Refs #7` / `Refs #8`). Per-commit-group sub-issues only if the user later asks. Bodies reference the parent via `Refs` (never `Closes`). #7 and #8 are never closed by us; sub-issues may be.
-- [ ] P.2 Before each commit/push verify author/committer is `moises-cisneros <moisescisnerosdl@gmail.com>`; no AI attribution or `Co-Authored-By`. Local commits per group are allowed during apply once tests pass; push and PR creation need explicit user approval.
-- [ ] P.3 After each PR merges, retarget the next branch if the base changed (clean diff only) and re-measure size; keep `size:exception` justification and commit review guide on PR B and PR C.
+- [x] P.1 Ask the user, then create 3 GitHub sub-issues, one per PR (PR A: "Cancel flow: confirm-cancelled 409, card notes, dialog error", parent `Refs #7`; PR B: "Plans search data layer: query API, summary, client and hook", parent `Refs #8`; PR C: "Plans search UI, seeds and spec sync", parent `Refs #7` / `Refs #8`). Per-commit-group sub-issues only if the user later asks. Bodies reference the parent via `Refs` (never `Closes`). #7 and #8 are never closed by us; sub-issues may be.
+- [x] P.2 Before each commit/push verify author/committer is `moises-cisneros <moisescisnerosdl@gmail.com>`; no AI attribution or `Co-Authored-By`. Local commits per group are allowed during apply once tests pass; push and PR creation need explicit user approval.
+- [x] P.3 After each PR merges, retarget the next branch if the base changed (clean diff only) and re-measure size; keep `size:exception` justification and commit review guide on PR B and PR C.
 
 ## Traceability
 
