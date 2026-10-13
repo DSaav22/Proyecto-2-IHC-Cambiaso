@@ -7,6 +7,10 @@ export type AddPlanResult =
   | { ok: true }
   | { ok: false; message: string; fieldErrors: Record<string, string> };
 
+export type JoinPlanResult =
+  | { ok: true }
+  | { ok: false; message: string; fieldErrors: Record<string, string> };
+
 export type UpdatePlanResult =
   | { ok: true }
   | { ok: false; message: string; fieldErrors: Record<string, string> };
@@ -58,6 +62,19 @@ export function usePlans() {
         return { ok: false, message: error.message, fieldErrors: error.fieldErrors };
       }
       return { ok: false, message: "No se pudo crear el plan.", fieldErrors: {} };
+    }
+  }, []);
+
+  const joinPlan = useCallback(async (code: string): Promise<JoinPlanResult> => {
+    try {
+      const { plan } = await api.joinPlan(code);
+      setPlans((current) => [...current, plan].sort(comparePlans));
+      return { ok: true };
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return { ok: false, message: error.message, fieldErrors: error.fieldErrors };
+      }
+      return { ok: false, message: "No se pudo unir al plan.", fieldErrors: {} };
     }
   }, []);
 
@@ -119,5 +136,5 @@ export function usePlans() {
     [],
   );
 
-  return { plans, loading, loadError, addPlan, updatePlan, confirmPlan, cancelPlan, deletePlan };
+  return { plans, loading, loadError, addPlan, joinPlan, updatePlan, confirmPlan, cancelPlan, deletePlan };
 }

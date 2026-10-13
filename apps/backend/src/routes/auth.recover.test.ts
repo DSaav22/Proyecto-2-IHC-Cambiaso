@@ -22,6 +22,9 @@ const plansStore: PlansStore = {
   create: async () => {
     throw new Error("unused");
   },
+  joinByCode: async () => {
+    throw new Error("unused");
+  },
   update: async () => null,
   confirm: async () => null,
   cancel: async () => null,

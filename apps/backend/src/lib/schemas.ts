@@ -42,6 +42,11 @@ function isRealCalendarDate(value: string): boolean {
 export { PLAN_STATES as planStatusValues, type PlanState as PlanStatus } from "./planState.js";
 
 export const planSchema = z.object({
+  titulo: z
+    .string("El título es obligatorio")
+    .trim()
+    .min(3, "El título debe tener al menos 3 caracteres")
+    .max(100, "El título debe tener máximo 100 caracteres"),
   description: z
     .string("La descripción es obligatoria")
     .trim()

@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { fieldErrors, planSchema, planStatusValues } from "./schemas.js";
 
-const valid = { description: "Cena de grupo", dueDate: "2026-12-24" };
+const valid = {
+  titulo: "Cena de Navidad",
+  description: "Cena de grupo",
+  dueDate: "2026-12-24",
+};
 
 describe("planSchema", () => {
   it("accepts valid input and trims whitespace", () => {
     const result = planSchema.safeParse({
+      titulo: "  Cena de Navidad  ",
       description: "  Cena de grupo  ",
       dueDate: "2026-12-24",
     });
@@ -13,6 +18,32 @@ describe("planSchema", () => {
     if (result.success) {
       expect(result.data).toEqual(valid);
     }
+  });
+
+  it("rejects empty and whitespace-only titulo", () => {
+    const result = planSchema.safeParse({ ...valid, titulo: "   " });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(fieldErrors(result.error)).toHaveProperty("titulo");
+    }
+  });
+
+  it("rejects titulo shorter than 3 characters", () => {
+    const result = planSchema.safeParse({ ...valid, titulo: "AB" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(fieldErrors(result.error).titulo).toBe("El título debe tener al menos 3 caracteres");
+    }
+    expect(planSchema.safeParse({ ...valid, titulo: "ABC" }).success).toBe(true);
+  });
+
+  it("rejects over-long titulo (>100)", () => {
+    const tooLong = planSchema.safeParse({ ...valid, titulo: "t".repeat(101) });
+    expect(tooLong.success).toBe(false);
+    if (!tooLong.success) {
+      expect(fieldErrors(tooLong.error).titulo).toBe("El título debe tener máximo 100 caracteres");
+    }
+    expect(planSchema.safeParse({ ...valid, titulo: "t".repeat(100) }).success).toBe(true);
   });
 
   it("rejects empty and whitespace-only description", () => {
@@ -46,7 +77,7 @@ describe("planSchema", () => {
     const result = planSchema.safeParse({});
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(Object.keys(fieldErrors(result.error)).sort()).toEqual(["description", "dueDate"]);
+      expect(Object.keys(fieldErrors(result.error)).sort()).toEqual(["description", "dueDate", "titulo"]);
     }
   });
 

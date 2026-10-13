@@ -11,6 +11,8 @@ interface ConfirmDialogProps {
   /** Label of the accept button while the request is pending. */
   pendingLabel?: string;
   pending?: boolean;
+  /** Inline failure message shown inside the dialog; the parent clears it. */
+  error?: string | null;
   destructive?: boolean;
   onConfirm: () => void;
 }
@@ -24,6 +26,7 @@ export function ConfirmDialog({
   confirmLabel,
   pendingLabel,
   pending = false,
+  error = null,
   destructive = false,
   onConfirm,
 }: ConfirmDialogProps) {
@@ -40,6 +43,11 @@ export function ConfirmDialog({
               {description}
             </AlertDialog.Description>
           </div>
+          {error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <AlertDialog.Cancel asChild>
               <Button type="button" variant="outline" disabled={pending}>

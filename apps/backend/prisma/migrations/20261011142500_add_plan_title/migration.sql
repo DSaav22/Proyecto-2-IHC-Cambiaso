@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Plan" ADD COLUMN "titulo" TEXT NOT NULL DEFAULT '';

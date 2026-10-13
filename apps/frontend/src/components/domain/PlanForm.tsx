@@ -7,12 +7,21 @@ import { Field } from "./Field";
 import { TextArea } from "./TextArea";
 import { ErrorAlert } from "./Notices";
 
+const TITULO_MIN = 3;
+const TITULO_MAX = 100;
 const DESCRIPTION_MAX = 500;
 
 type Errors = Partial<Record<keyof PlanInput, string>>;
 
 function validate(values: PlanInput): Errors {
   const errors: Errors = {};
+  if (!values.titulo) {
+    errors.titulo = "Ingresa un título.";
+  } else if (values.titulo.length < TITULO_MIN) {
+    errors.titulo = `El título debe tener al menos ${TITULO_MIN} caracteres.`;
+  } else if (values.titulo.length > TITULO_MAX) {
+    errors.titulo = `El título debe tener máximo ${TITULO_MAX} caracteres.`;
+  }
   if (!values.description) errors.description = "Ingresa una descripción.";
   else if (values.description.length > DESCRIPTION_MAX) {
     errors.description = `La descripción debe tener máximo ${DESCRIPTION_MAX} caracteres.`;
@@ -36,6 +45,7 @@ export function PlanForm({
   submitLabel = "Crear plan",
   submittingLabel = "Creando…",
 }: PlanFormProps) {
+  const [titulo, setTitulo] = useState(initialData?.titulo ?? "");
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [dueDate, setDueDate] = useState(initialData?.dueDate ?? "");
   const [errors, setErrors] = useState<Errors>({});
@@ -43,6 +53,7 @@ export function PlanForm({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    setTitulo(initialData?.titulo ?? "");
     setDescription(initialData?.description ?? "");
     setDueDate(initialData?.dueDate ?? "");
     setErrors({});
@@ -51,7 +62,7 @@ export function PlanForm({
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const values: PlanInput = { description: description.trim(), dueDate };
+    const values: PlanInput = { titulo: titulo.trim(), description: description.trim(), dueDate };
     const nextErrors = validate(values);
     setErrors(nextErrors);
     setFormError(null);
@@ -61,9 +72,9 @@ export function PlanForm({
     try {
       const result = await onSubmit(values);
       if (!result.ok) {
-        const { description: descriptionError, dueDate: dueDateError } = result.fieldErrors;
-        setErrors({ description: descriptionError, dueDate: dueDateError });
-        if (!descriptionError && !dueDateError) setFormError(result.message);
+        const { titulo: tituloError, description: descriptionError, dueDate: dueDateError } = result.fieldErrors;
+        setErrors({ titulo: tituloError, description: descriptionError, dueDate: dueDateError });
+        if (!tituloError && !descriptionError && !dueDateError) setFormError(result.message);
       }
     } finally {
       setSubmitting(false);
@@ -73,6 +84,15 @@ export function PlanForm({
   return (
     <form onSubmit={handleSubmit} noValidate className="grid gap-4">
       <ErrorAlert message={formError} />
+      <Field
+        id="plan-titulo"
+        label="Título"
+        placeholder="Ej. Cena de cumpleaños"
+        value={titulo}
+        onChange={(e) => setTitulo(e.target.value)}
+        error={errors.titulo}
+        maxLength={TITULO_MAX}
+      />
       <TextArea
         id="plan-description"
         label="Descripción"

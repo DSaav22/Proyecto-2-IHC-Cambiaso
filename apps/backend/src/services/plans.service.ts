@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma.js";
+import { generateShareCode } from "../lib/shareCode.js";
 import {
   INITIAL_PLAN_STATE,
   cancelPlan,
@@ -10,133 +11,296 @@ import {
 } from "../lib/planState.js";
 import type { PlanInput } from "../lib/schemas.js";
 
+export class PlanNotFoundError extends Error {
+  constructor(message = "Plan no encontrado con este código") {
+    super(message);
+    this.name = "PlanNotFoundError";
+  }
+}
+
+export class CreatorCannotJoinError extends Error {
+  constructor(message = "Ya eres el creador de este plan") {
+    super(message);
+    this.name = "CreatorCannotJoinError";
+  }
+}
+
+export class AlreadyJoinedError extends Error {
+  constructor(message = "Ya te has unido a este plan") {
+    super(message);
+    this.name = "AlreadyJoinedError";
+  }
+}
+
+export class ForbiddenPlanActionError extends Error {
+  constructor(message = "Solo el creador puede realizar esta acción en el plan") {
+    super(message);
+    this.name = "ForbiddenPlanActionError";
+  }
+}
+
 export interface StoredPlan {
   id: string;
+  titulo: string;
   description: string;
   dueDate: Date;
   estado: string;
   createdAt: Date;
+  shareCode: string;
+  isOwner?: boolean;
+  ownerName?: string;
 }
 
 export interface PlansStore {
   list(userId: string): Promise<StoredPlan[]>;
-  /** The store generates the plan id. */
+  /** The store generates the plan id and shareCode. */
   create(userId: string, data: PlanInput): Promise<StoredPlan>;
-  /** Updates description and dueDate for an owned plan. Resolves null if not found. Throws EditBlockedError if cancelled. */
+  /** Joins a plan using a share code. */
+  joinByCode(userId: string, code: string): Promise<StoredPlan>;
+  /**
+   * Updates titulo, description and dueDate for an owned plan. Resolves null if not found.
+   * Throws ForbiddenPlanActionError if caller is a guest member; throws EditBlockedError when the plan is `cancelado`.
+   */
   update(userId: string, planId: string, data: PlanInput): Promise<StoredPlan | null>;
   /**
-   * Moves an owned draft to `confirmado`. Resolves `null` when the plan does not
-   * exist or is not owned; rejects with `InvalidTransitionError` when it is already confirmed.
+   * Moves an owned `borrador` plan to `confirmado`. Resolves `null` when not found;
+   * throws ForbiddenPlanActionError if caller is a guest member; rejects with `InvalidTransitionError` when `confirmado` or `cancelado`.
    */
   confirm(userId: string, planId: string): Promise<StoredPlan | null>;
   /**
-   * Moves an owned confirmed plan to `cancelado`. Resolves `null` when the plan does not
-   * exist or is not owned; rejects with `InvalidTransitionError` when it is not confirmed.
+   * Moves an owned `borrador` or `confirmado` plan to `cancelado`. Resolves `null` when not found;
+   * throws ForbiddenPlanActionError if caller is a guest member; rejects with `InvalidTransitionError` when already `cancelado`.
    */
   cancel(userId: string, planId: string): Promise<StoredPlan | null>;
   /**
-   * Deletes an owned plan. Throws `DeleteBlockedError` if the plan is in `confirmado`.
-   * Resolves `false` if the plan does not exist or is not owned.
+   * Deletes an owned plan. Throws `DeleteBlockedError` if confirmed; throws ForbiddenPlanActionError if caller is a guest member.
+   * Resolves `false` if the plan does not exist.
    */
   delete(userId: string, planId: string): Promise<boolean>;
 }
 
 export function createPrismaPlansStore(): PlansStore {
   return {
-    list: (userId: string) =>
-      prisma.plan.findMany({
-        where: { userId },
-        orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
-        select: { id: true, description: true, dueDate: true, estado: true, createdAt: true },
-      }),
-    create: (userId: string, data: PlanInput) =>
-      prisma.plan.create({
-        data: {
-          userId,
-          description: data.description,
-          dueDate: new Date(`${data.dueDate}T00:00:00.000Z`),
-          estado: INITIAL_PLAN_STATE,
+    list: async (userId: string) => {
+      const plans = await prisma.plan.findMany({
+        where: {
+          OR: [{ userId }, { members: { some: { userId } } }],
         },
-        select: { id: true, description: true, dueDate: true, estado: true, createdAt: true },
-      }),
+        orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
+        include: {
+          user: { select: { name: true } },
+        },
+      });
+      return plans.map((p) => ({
+        id: p.id,
+        titulo: p.titulo,
+        description: p.description,
+        dueDate: p.dueDate,
+        estado: p.estado,
+        createdAt: p.createdAt,
+        shareCode: p.shareCode,
+        isOwner: p.userId === userId,
+        ownerName: p.user.name,
+      }));
+    },
+    create: async (userId: string, data: PlanInput) => {
+      let attempts = 0;
+      while (attempts < 5) {
+        try {
+          const shareCode = generateShareCode();
+          const plan = await prisma.plan.create({
+            data: {
+              userId,
+              titulo: data.titulo,
+              description: data.description,
+              dueDate: new Date(`${data.dueDate}T00:00:00.000Z`),
+              estado: INITIAL_PLAN_STATE,
+              shareCode,
+            },
+            include: {
+              user: { select: { name: true } },
+            },
+          });
+          return {
+            id: plan.id,
+            titulo: plan.titulo,
+            description: plan.description,
+            dueDate: plan.dueDate,
+            estado: plan.estado,
+            createdAt: plan.createdAt,
+            shareCode: plan.shareCode,
+            isOwner: true,
+            ownerName: plan.user.name,
+          };
+        } catch (err: any) {
+          if (err?.code === "P2002" && err?.meta?.target?.includes("shareCode")) {
+            attempts++;
+            continue;
+          }
+          throw err;
+        }
+      }
+      throw new Error("No se pudo generar un código único para compartir");
+    },
+    joinByCode: async (userId: string, code: string) => {
+      const normalizedCode = code.trim().toUpperCase();
+      const plan = await prisma.plan.findUnique({
+        where: { shareCode: normalizedCode },
+        include: {
+          user: { select: { name: true } },
+          members: { where: { userId } },
+        },
+      });
+      if (!plan) {
+        throw new PlanNotFoundError();
+      }
+      if (plan.userId === userId) {
+        throw new CreatorCannotJoinError();
+      }
+      if (plan.members.length > 0) {
+        throw new AlreadyJoinedError();
+      }
+      await prisma.planMember.create({
+        data: {
+          planId: plan.id,
+          userId,
+        },
+      });
+      return {
+        id: plan.id,
+        titulo: plan.titulo,
+        description: plan.description,
+        dueDate: plan.dueDate,
+        estado: plan.estado,
+        createdAt: plan.createdAt,
+        shareCode: plan.shareCode,
+        isOwner: false,
+        ownerName: plan.user.name,
+      };
+    },
     update: async (userId: string, planId: string, data: PlanInput) => {
-      const existing = await prisma.plan.findFirst({
-        where: { id: planId, userId },
-        select: { id: true, estado: true },
+      const existing = await prisma.plan.findUnique({
+        where: { id: planId },
+        include: { user: { select: { name: true } } },
       });
       if (!existing) return null;
+      if (existing.userId !== userId) {
+        const isMember = await prisma.planMember.findUnique({
+          where: { planId_userId: { planId, userId } },
+        });
+        if (isMember) {
+          throw new ForbiddenPlanActionError("Solo el creador puede editar este plan");
+        }
+        return null;
+      }
       if (!canEdit(existing)) {
         throw new EditBlockedError(existing.estado as any);
       }
-      return prisma.plan.update({
+      const updated = await prisma.plan.update({
         where: { id: planId },
         data: {
+          titulo: data.titulo,
           description: data.description,
           dueDate: new Date(`${data.dueDate}T00:00:00.000Z`),
         },
-        select: { id: true, description: true, dueDate: true, estado: true, createdAt: true },
       });
+      return {
+        id: updated.id,
+        titulo: updated.titulo,
+        description: updated.description,
+        dueDate: updated.dueDate,
+        estado: updated.estado,
+        createdAt: updated.createdAt,
+        shareCode: updated.shareCode,
+        isOwner: true,
+        ownerName: existing.user.name,
+      };
     },
     confirm: async (userId: string, planId: string) => {
-      const select = {
-        id: true,
-        description: true,
-        dueDate: true,
-        estado: true,
-        createdAt: true,
-      } as const;
-      const existing = await prisma.plan.findFirst({ where: { id: planId, userId }, select });
+      const existing = await prisma.plan.findUnique({
+        where: { id: planId },
+        include: { user: { select: { name: true } } },
+      });
       if (!existing) return null;
+      if (existing.userId !== userId) {
+        const isMember = await prisma.planMember.findUnique({
+          where: { planId_userId: { planId, userId } },
+        });
+        if (isMember) {
+          throw new ForbiddenPlanActionError("Solo el creador puede confirmar este plan");
+        }
+        return null;
+      }
       const next = confirmPlan(existing);
-      // Guarded write: a concurrent confirm cannot succeed twice.
-      const result = await prisma.plan.updateMany({
-        where: { id: planId, userId, estado: existing.estado },
+      await prisma.plan.update({
+        where: { id: planId },
         data: { estado: next.estado },
       });
-      if (result.count === 0) {
-        const current = await prisma.plan.findFirst({ where: { id: planId, userId }, select });
-        if (!current) return null;
-        return confirmPlan(current);
-      }
-      return next;
+      return {
+        id: existing.id,
+        titulo: existing.titulo,
+        description: existing.description,
+        dueDate: existing.dueDate,
+        estado: next.estado,
+        createdAt: existing.createdAt,
+        shareCode: existing.shareCode,
+        isOwner: true,
+        ownerName: existing.user.name,
+      };
     },
     cancel: async (userId: string, planId: string) => {
-      const select = {
-        id: true,
-        description: true,
-        dueDate: true,
-        estado: true,
-        createdAt: true,
-      } as const;
-      const existing = await prisma.plan.findFirst({ where: { id: planId, userId }, select });
+      const existing = await prisma.plan.findUnique({
+        where: { id: planId },
+        include: { user: { select: { name: true } } },
+      });
       if (!existing) return null;
+      if (existing.userId !== userId) {
+        const isMember = await prisma.planMember.findUnique({
+          where: { planId_userId: { planId, userId } },
+        });
+        if (isMember) {
+          throw new ForbiddenPlanActionError("Solo el creador puede cancelar este plan");
+        }
+        return null;
+      }
       const next = cancelPlan(existing);
-      // Guarded write: a concurrent cancel cannot succeed twice.
-      const result = await prisma.plan.updateMany({
-        where: { id: planId, userId, estado: existing.estado },
+      await prisma.plan.update({
+        where: { id: planId },
         data: { estado: next.estado },
       });
-      if (result.count === 0) {
-        const current = await prisma.plan.findFirst({ where: { id: planId, userId }, select });
-        if (!current) return null;
-        return cancelPlan(current);
-      }
-      return next;
+      return {
+        id: existing.id,
+        titulo: existing.titulo,
+        description: existing.description,
+        dueDate: existing.dueDate,
+        estado: next.estado,
+        createdAt: existing.createdAt,
+        shareCode: existing.shareCode,
+        isOwner: true,
+        ownerName: existing.user.name,
+      };
     },
     delete: async (userId: string, planId: string) => {
-      const existing = await prisma.plan.findFirst({
-        where: { id: planId, userId },
-        select: { estado: true },
+      const existing = await prisma.plan.findUnique({
+        where: { id: planId },
       });
       if (!existing) return false;
+      if (existing.userId !== userId) {
+        const isMember = await prisma.planMember.findUnique({
+          where: { planId_userId: { planId, userId } },
+        });
+        if (isMember) {
+          throw new ForbiddenPlanActionError("Solo el creador puede eliminar este plan");
+        }
+        return false;
+      }
       if (!canDelete(existing)) {
         throw new DeleteBlockedError("confirmado");
       }
-      const result = await prisma.plan.deleteMany({
-        where: { id: planId, userId },
+      await prisma.plan.delete({
+        where: { id: planId },
       });
-      return result.count > 0;
+      return true;
     },
   };
 }
-
