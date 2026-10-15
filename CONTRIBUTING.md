@@ -143,6 +143,7 @@ Para mantener el orden del equipo sin burocracia innecesaria y alinearse con la 
 ### Requisitos Docentes y Descomposición en Sub-issues
 
 Cuando el docente asigne un issue con un requerimiento (por ejemplo, #7 o #8):
+
 1. **El issue padre NO se cierra:** Representa la solicitud oficial del docente y permanece abierto hasta su revisión y aprobación formal en clase.
 2. **Descomposición obligatoria (mínimo 3 sub-issues):** Todo requerimiento docente debe dividirse en **al menos 3 sub-issues pequeños y atómicos** para evitar tareas sobredimensionadas. La partición debe reflejar las capas de la arquitectura:
    * **Sub-issue 1 (Regla / Backend / Persistencia):** Lógica de dominio, estados, validación y persistencia en base de datos.
@@ -150,6 +151,13 @@ Cuando el docente asigne un issue con un requerimiento (por ejemplo, #7 o #8):
    * **Sub-issue 3 (Interfaz / UX / Accesibilidad):** Componentes UI, estado en frontend, sincronización con URL, accesibilidad y estados vacíos.
 3. **Relación commits ↔ sub-issues:** Cada commit debe estar directamente relacionado con su sub-issue (`Refs #<sub-issue>` o `#<sub-issue>` en el mensaje del commit).
 4. **Cierre progresivo:** Los sub-issues se cierran conforme se completan y mergean sus cambios.
+
+### Evaluación Heurística (IHC)
+
+Para las evaluaciones de usabilidad según las 10 Heurísticas de Nielsen (H1–H10):
+
+* Consultar el protocolo operativo completo en la skill `heuristic-evaluation` y el informe oficial en [docs/evaluacion-heuristica.md](docs/evaluacion-heuristica.md).
+* **Reglas clave:** Único issue principal tracker (`Evaluación heurística H1–H10 · <funcionalidad>`) con lista verificable, sub-issues atómicos únicamente para hallazgos con severidad 1 a 4, y commits de cierre individuales (`fix: ... (Closes #<sub-issue>, Refs #<padre>)`).
 
 ### Issues Generales
 
