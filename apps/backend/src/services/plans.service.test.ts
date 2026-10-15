@@ -9,6 +9,7 @@ import {
   createPrismaPlansStore,
   escapeLikePattern,
   toUtcDate,
+  boliviaToday,
 } from "./plans.service.js";
 
 const today = toUtcDate("2026-06-15");
@@ -19,6 +20,26 @@ const clauses = (where: ReturnType<typeof buildPlanWhere>) => where.AND as unkno
 describe("toUtcDate", () => {
   it("converts YYYY-MM-DD to UTC midnight", () => {
     expect(toUtcDate("2026-06-15").toISOString()).toBe("2026-06-15T00:00:00.000Z");
+  });
+});
+
+describe("boliviaToday", () => {
+  it("keeps the previous Bolivia day when UTC has already rolled over", () => {
+    // 02:00 UTC on Jun 16 is 22:00 on Jun 15 in La Paz (UTC-4)
+    expect(boliviaToday(new Date("2026-06-16T02:00:00.000Z"))).toBe("2026-06-15");
+  });
+
+  it("returns the same day at midday", () => {
+    expect(boliviaToday(new Date("2026-06-15T16:00:00.000Z"))).toBe("2026-06-15");
+  });
+
+  it("rolls over at 04:00 UTC (midnight in Bolivia)", () => {
+    expect(boliviaToday(new Date("2026-06-16T03:59:59.000Z"))).toBe("2026-06-15");
+    expect(boliviaToday(new Date("2026-06-16T04:00:00.000Z"))).toBe("2026-06-16");
+  });
+
+  it("does not shift with the season (Bolivia has no DST)", () => {
+    expect(boliviaToday(new Date("2026-01-01T03:00:00.000Z"))).toBe("2025-12-31");
   });
 });
 

@@ -8,6 +8,7 @@ import {
   type PlansStore,
   createPrismaPlansStore,
   toUtcDate,
+  boliviaToday,
   AlreadyJoinedError,
   CreatorCannotJoinError,
   ForbiddenPlanActionError,
@@ -70,7 +71,7 @@ export function createPlansRouter(store: PlansStore): Router {
         return;
       }
       const { today, ...filter } = parsed.data;
-      const todayUtc = toUtcDate(today ?? new Date().toISOString().slice(0, 10));
+      const todayUtc = toUtcDate(today ?? boliviaToday());
       const [list, summary] = await Promise.all([
         store.list(user.id, filter, todayUtc),
         store.summary(user.id, todayUtc),

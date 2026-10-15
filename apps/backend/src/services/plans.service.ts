@@ -72,6 +72,15 @@ export function toUtcDate(ymd: string): Date {
   return new Date(`${ymd}T00:00:00.000Z`);
 }
 
+const BOLIVIA_TIME_ZONE = "America/La_Paz";
+// `en-CA` formats dates as YYYY-MM-DD.
+const boliviaDateFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: BOLIVIA_TIME_ZONE });
+
+/** Current calendar date in Bolivia (UTC-4, no DST) as `YYYY-MM-DD`. */
+export function boliviaToday(now: Date = new Date()): string {
+  return boliviaDateFormatter.format(now);
+}
+
 /**
  * Prisma passes `contains` to PostgreSQL `LIKE`/`ILIKE` without escaping, so `%` and `_` act as
  * wildcards. Escape them (and the escape character) so a search term is always literal.
@@ -80,7 +89,7 @@ export function escapeLikePattern(term: string): string {
   return term.replace(/[\\%_]/g, (char) => `\\${char}`);
 }
 
-const addDays =(date: Date, days: number) => new Date(date.getTime() + days * MS_PER_DAY);
+const addDays = (date: Date, days: number) => new Date(date.getTime() + days * MS_PER_DAY);
 
 /**
  * Builds the Prisma `where` for the plan list. The owner-or-member scope is always the first
@@ -144,7 +153,7 @@ export function computePlanSummary(
 }
 
 export interface PlansStore {
-  /** No `filter` lists every owned or joined plan. `todayUtc` defaults to the server UTC date. */
+  /** No `filter` lists every owned or joined plan. `todayUtc` defaults to the current Bolivia date. */
   list(userId: string, filter?: PlanListFilter, todayUtc?: Date): Promise<StoredPlan[]>;
   /** Unfiltered summary of the caller's plans (cancelled count in total only). */
   summary(userId: string, todayUtc: Date): Promise<PlanSummary>;
@@ -178,7 +187,7 @@ export function createPrismaPlansStore(): PlansStore {
   return {
     list: async (userId: string, filter: PlanListFilter = {}, todayUtc?: Date) => {
       const plans = await prisma.plan.findMany({
-        where: buildPlanWhere(userId, filter, todayUtc ?? toUtcDate(new Date().toISOString().slice(0, 10))),
+        where: buildPlanWhere(userId, filter, todayUtc ?? toUtcDate(boliviaToday())),
         orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
         include: {
           user: { select: { name: true } },

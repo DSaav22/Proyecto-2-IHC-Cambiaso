@@ -794,12 +794,28 @@ describe("GET /api/plans query and summary", () => {
     expect(res.body.summary).toEqual({ total: 0, overdue: 0, nextDueDate: null });
   });
 
-  it("uses the server UTC date when today is missing", async () => {
-    const res = await get("?fecha=today");
-    expect(res.status).toBe(200);
-    const expected = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`);
-    expect(listCalls[0].todayUtc).toEqual(expected);
-    expect(summaryCalls[0].todayUtc).toEqual(expected);
+  it("uses the Bolivia date, not the UTC date, when today is missing", async () => {
+    // 02:00 UTC on Jun 16 is still 22:00 on Jun 15 in Bolivia (UTC-4)
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-06-16T02:00:00.000Z") });
+    try {
+      const res = await get("?fecha=today");
+      expect(res.status).toBe(200);
+      const expected = new Date("2026-06-15T00:00:00.000Z");
+      expect(listCalls[0].todayUtc).toEqual(expected);
+      expect(summaryCalls[0].todayUtc).toEqual(expected);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("uses the client-sent today as is, ignoring the server clock", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-06-16T02:00:00.000Z") });
+    try {
+      await get("?fecha=today&today=2026-03-01");
+      expect(listCalls[0].todayUtc).toEqual(new Date("2026-03-01T00:00:00.000Z"));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("passes an empty filter when no params are sent", async () => {
