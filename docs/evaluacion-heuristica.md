@@ -13,7 +13,7 @@ Este documento registra la evaluación de usabilidad centrada en la funcionalida
 
 | Observación | Heurística | Severidad (0-4) | Mejora | Comprobación |
 | :--- | :--- | :--- | :--- | :--- |
-| **Al cancelar no aparece confirmación cerca de la acción:** Tras scrollear en la lista para encontrar el plan y confirmarlo en el modal, el aviso de éxito se renderiza al tope de la página (`MyPlansPage.tsx`), fuera del viewport. | **H1: Visibilidad del estado del sistema** ❌ *(Falla · Sub-issue #17)* | **3 — Mayor** | Mostrar notificación flotante contextual (toast accesible sin librerías externas) anclada al viewport que confirme el estado «Cancelado». | Otra persona filtra por pendientes, scrollea, cancela un plan y explica qué ocurrió sin recibir ayuda externa. |
+| **Al cancelar no aparece confirmación cerca de la acción:** Tras scrollear en la lista para encontrar el plan y confirmarlo en el modal, el aviso de éxito se renderizaba fuera del viewport. Corregido con toast contextual flotante anclado en pantalla. | **H1: Visibilidad del estado del sistema** 🟢 *(Corregida · Sub-issue #17)* | **0 — Corregida (antes 3)** | Notificación flotante accesible (`fixed bottom-5 right-5 z-50 shadow-lg`) anclada en viewport que confirma el estado «Cancelado» en cualquier posición de scroll. | Verificado con tests unitarios en `MyPlansPage.test.tsx` y captura de pantalla `H1-despues.png` con la lista scrolleada. |
 | **Traducción adecuada a lenguaje cotidiano:** Las fechas de los planes a encontrar se expresan en lenguaje relativo coloquial (*"Vence en 3 días"*, *"Vence hoy"*), y las acciones usan términos comunes (*"Cancelar plan"*, *"Pasará a Cancelado"*). | **H2: Concordancia con el mundo real** ✅ *(Cumple en código)* | **0 — Sin problema** | Mantener vocabulario claro de reuniones y plazos sin requerir interpretación de marcas de tiempo ISO ni códigos de backend. | Un usuario lee la tarjeta encontrada y comprende de inmediato cuándo vence y en qué estado está sin consultar calendarios externos. |
 | **Callejón sin salida para el invitado:** Si un usuario invitado busca y encuentra un plan al que se unió pero al que ya no puede asistir, la tarjeta solo muestra un cartel de solo lectura sin opción de salida. | **H3: Control y libertad del usuario** ❌ *(Falla · Sub-issue #18)* | **3 — Mayor** | Habilitar la opción «Abandonar plan» en el menú (⋮) con diálogo de confirmación para que el invitado pueda retirarse de la reunión. | Un usuario con rol invitado busca su plan, abre el menú de la tarjeta y puede retirarse de forma autónoma. |
 | **Uniformidad visual y funcional en botones y modales:** El botón «Cancelar plan» usa siempre la variante secundaria (`outline`) según DESIGN.md para no competir con el primario, y el menú (⋮) se ubica arriba a la derecha. | **H4: Consistencia y estándares** ✅ *(Cumple en código)* | **0 — Sin problema** | Respetar las variantes del sistema de diseño (`tokens.css`, `Button.tsx`, `ConfirmDialog.tsx`) de forma idéntica en todas las tarjetas de la lista. | El usuario escanea la grilla de planes encontrados e identifica de inmediato qué botón cancela y cuál confirma sin dudar. |
@@ -40,18 +40,23 @@ Este documento registra la evaluación de usabilidad centrada en la funcionalida
 
 ### H1: Visibilidad del estado del sistema
 
-* **Estado:** ❌ **Falla (A resolver en Sub-issue #17)**
-* **Severidad:** **3 — Mayor**
+* **Estado:** 🟢 **Corregida (Resuelto en Sub-issue #17)**
+* **Severidad:** **0 — Corregida (original: 3 — Mayor)**
 * **Pantalla y flujo:** Catálogo de planes en `/mis-planes`. Paso: el usuario busca un plan en la lista, hace scroll hacia abajo, pulsa «Cancelar plan» y confirma en el diálogo modal.
-* **Problema en código actual (Antes):** En [MyPlansPage.tsx:L175-L177](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/pages/MyPlansPage.tsx#L175-L177), el componente `SuccessNotice` está insertado estáticamente arriba en el layout. Al confirmar la cancelación con scroll, el modal se cierra pero el mensaje queda oculto arriba fuera del viewport.
-* **Solución propuesta (Después):** Modificar el contenedor de `SuccessNotice` en `MyPlansPage.tsx` para que se posicione de forma flotante en pantalla (`fixed bottom-5 right-5 z-50 shadow-md`) mediante clases nativas de Tailwind, sin librerías externas.
-* **Referencia al código:** [MyPlansPage.tsx:L175-L177](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/pages/MyPlansPage.tsx#L175-L177) y [Notices.tsx](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/components/domain/Notices.tsx).
+* **Problema en código previo (Antes):** En [MyPlansPage.tsx](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/pages/MyPlansPage.tsx), el componente `SuccessNotice` estaba insertado estáticamente arriba en el layout. Al confirmar la cancelación con scroll, el modal se cerraba pero el mensaje quedaba oculto arriba fuera del viewport.
+* **Solución implementada (Después):** Se encapsuló `SuccessNotice` en [MyPlansPage.tsx:L175-L179](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/pages/MyPlansPage.tsx#L175-L179) dentro de un contenedor flotante anclado al viewport (`fixed bottom-5 right-5 z-50 max-w-[calc(100vw-2.5rem)] sm:max-w-md shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200`) y se aseguró el fondo opaco `bg-card` en [Notices.tsx:L40](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/components/domain/Notices.tsx#L40), garantizando visibilidad inmediata e inequívoca tras la cancelación sin importar la posición de scroll.
+* **Referencia al código:** [MyPlansPage.tsx:L175-L179](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/pages/MyPlansPage.tsx#L175-L179) y [Notices.tsx:L40](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/components/domain/Notices.tsx#L40).
 * **Evidencias gráficas:**
-  * *Antes (Aviso al tope de la página fuera del viewport con scroll):*  
-    ![H1 Antes Paso 1](evidencias/H1-P1.png)  
-    ![H1 Antes Paso 2](evidencias/H1-P2.png)
-  * *Después (Notificación toast en viewport tras el fix):*  
-    `docs/evidencias/H1-despues.png` *(se captura al aplicar el fix del sub-issue #17)*
+  * *Antes (Secuencia de falla: falta de feedback contextual con scroll):*  
+    * **Paso 1 (Modal de cancelación tras scroll):**  
+      ![H1 Paso 1 - Modal de cancelación tras scroll](evidencias/H1-P1.png)  
+    * **Paso 2 (Ausencia de feedback en viewport tras confirmar):**  
+      ![H1 Paso 2 - Vista sin anuncio visible tras confirmar](evidencias/H1-P2.png)  
+    * **Paso 3 (Scroll forzado hasta el tope para ver el mensaje):**  
+      ![H1 Paso 3 - Scroll forzado hasta arriba para ver el aviso](evidencias/H1-P3.png)
+  * *Después (Notificación toast flotante en viewport tras el fix):*  
+    * **Confirmación flotante visible en viewport con scroll activo:**  
+      ![H1 Después - Notificación toast flotante en viewport](evidencias/H1-despues.png)
 
 ---
 

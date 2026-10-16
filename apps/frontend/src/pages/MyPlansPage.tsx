@@ -173,7 +173,9 @@ export default function MyPlansPage() {
       </header>
 
       {notice ? (
-        <SuccessNotice onClose={() => setNotice(null)}>{notice}</SuccessNotice>
+        <div className="fixed bottom-5 right-5 z-50 max-w-[calc(100vw-2.5rem)] sm:max-w-md shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <SuccessNotice onClose={() => setNotice(null)}>{notice}</SuccessNotice>
+        </div>
       ) : null}
       <ErrorAlert message={loadError || actionError} />
       {loadError ? (

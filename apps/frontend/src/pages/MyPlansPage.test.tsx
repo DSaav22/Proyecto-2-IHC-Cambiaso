@@ -30,6 +30,7 @@ const noSummary = { total: 0, overdue: 0, nextDueDate: null };
 const oneSummary = { total: 1, overdue: 0, nextDueDate: null };
 const listPlans = vi.mocked(api.listPlans);
 const createPlan = vi.mocked(api.createPlan);
+const cancelPlan = vi.mocked(api.cancelPlan);
 
 const saved: Plan = {
   id: "3f2a9c1e-7b4d-4e8a-9c21-5d6e7f8a9b0c",
@@ -491,4 +492,27 @@ describe("MyPlansPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
     await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
   });
+
+  it("renders floating viewport-anchored success toast after cancelling a plan", async () => {
+    listPlans.mockResolvedValue({ plans: [saved], summary: oneSummary });
+    cancelPlan.mockResolvedValue({ plan: { ...saved, estado: "cancelado" } });
+    renderPage();
+
+    await screen.findByRole("article");
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
+
+    const dialog = screen.getByRole("alertdialog");
+    expect(dialog).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancelar plan" }));
+
+    await waitFor(() => expect(cancelPlan).toHaveBeenCalledWith(saved.id));
+
+    const noticeText = await screen.findByText("Plan cancelado correctamente.");
+    expect(noticeText).toBeInTheDocument();
+
+    const toastContainer = noticeText.closest("div.fixed");
+    expect(toastContainer).not.toBeNull();
+    expect(toastContainer).toHaveClass("fixed", "bottom-5", "right-5", "z-50");
+  });
 });
+
