@@ -23,15 +23,23 @@ Este archivo define las directivas y restricciones obligatorias para cualquier a
 
 ## 2. Metodología Spec-Driven (Gentle-AI & OpenSpec)
 
-Todo desarrollo o cambio de arquitectura debe iniciarse y orquestarse mediante **OpenSpec** con **Gentle-AI**:
+Todo desarrollo o cambio de arquitectura debe iniciarse y orquestarse con **OpenSpec**, ya sea directamente con su CLI o a través de **Gentle-AI**. Ambos caminos son válidos y producen los mismos artefactos en `openspec/changes/<cambio>/` (`proposal.md`, `specs/`, `design.md`, `tasks.md`); usa el que tengas instalado.
 
-1. **Explorar:** `/opsx-explore` para clarificar requerimientos y analizar el estado actual.
-2. **Proponer:** `/opsx-propose` crea la propuesta (`proposal`), las especificaciones (`specs`), el diseño (`design`) y las tareas (`tasks`) en `openspec/changes/<cambio>/`.
-3. **Implementar:** `/opsx-apply` ejecuta las tareas una a una y las marca como completadas en `tasks.md`.
-4. **Sincronizar / Archivar:** `/opsx-sync` y `/opsx-archive` actualizan las especificaciones principales y archivan el cambio.
+| Etapa | OpenSpec (comandos `/opsx`) | Gentle-AI (comandos `/gentle-sdd`) |
+| :--- | :--- | :--- |
+| 1. Explorar | `/opsx-explore` | `/gentle-sdd-explore` |
+| 2. Proponer | `/opsx-propose` (crea proposal, specs, design y tasks de una vez) | `/gentle-sdd-new` y luego `/gentle-sdd-ff` (o `/gentle-sdd-continue` fase por fase) |
+| 3. Implementar | `/opsx-apply` | `/gentle-sdd-apply` y `/gentle-sdd-verify` |
+| 4. Sincronizar / Archivar | `/opsx-sync` y `/opsx-archive` | `/gentle-sdd-archive` |
+
+La sintaxis exacta (`/opsx-…` o `/opsx:…`) depende del agente; los skills de cada herramienta viven en `.claude/`, `.agent/`, `.cursor/` y `.opencode/`.
 
 Reglas:
 
+- Gentle-AI es opcional: sin Gentle-AI se usa OpenSpec directo, y sin ninguna de las dos herramientas no se puede iniciar un cambio.
+- Cuando uses Gentle-AI, elige el almacén de artefactos **OpenSpec** o **Ambos** (hybrid con Engram). Con solo Engram los artefactos no quedan versionados en el repo y el cambio no es válido para este proyecto.
+- Las convenciones propias de tu configuración (ritmo interactivo/automático, estrategia de PR, perfil de modelos) son personales y no se commitean; lo que cuenta es el contrato de artefactos de arriba.
+- Un cambio es válido si `openspec validate <cambio>` pasa, sin importar con qué herramienta se generó.
 - No generar código sin tareas y especificaciones previamente aprobadas.
 - No editar a mano `proposal.md`, `design.md` ni `specs/` durante `apply`; solo se marcan las casillas de `tasks.md`.
 - Los artefactos del flujo (`openspec/`, `.claude/`, `.agent/`, `.cursor/`, `.opencode/`, `.codegraph/`) no se tocan salvo que el cambio lo requiera.

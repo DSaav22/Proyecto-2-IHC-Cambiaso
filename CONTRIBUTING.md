@@ -112,11 +112,13 @@ Desde el host, este comando necesita `DATABASE_URL` apuntando a `localhost:5432`
 El desarrollo en Planazo sigue la metodología **Spec-Driven Development (SDD)**:
 
 1. **No codificar sin especificación:** Ninguna funcionalidad o cambio de arquitectura se escribe directamente sin antes definir su propuesta y tareas.
-2. **Ciclo de OpenSpec:**
-   * **Explorar:** Clarificar requerimientos y analizar el estado actual (`/opsx-explore`).
-   * **Proponer:** Crear la propuesta formal con deltas de especificación y lista de tareas (`/opsx-propose`).
-   * **Implementar:** Ejecutar las tareas paso a paso (`/opsx-apply`).
-   * **Sincronizar / Archivar:** Actualizar las especificaciones principales y archivar el cambio completado (`/opsx-archive` o `/opsx-sync`).
+2. **Ciclo de OpenSpec (con OpenSpec directo o con Gentle-AI):** ambos caminos son válidos y generan los mismos artefactos en `openspec/changes/<cambio>/`.
+   * **Explorar:** Clarificar requerimientos y analizar el estado actual (`/opsx-explore` o `/gentle-sdd-explore`).
+   * **Proponer:** Crear la propuesta formal con deltas de especificación, diseño y lista de tareas (`/opsx-propose`, o `/gentle-sdd-new` seguido de `/gentle-sdd-ff`).
+   * **Implementar:** Ejecutar las tareas paso a paso (`/opsx-apply` o `/gentle-sdd-apply`, y `/gentle-sdd-verify` para validar).
+   * **Sincronizar / Archivar:** Actualizar las especificaciones principales y archivar el cambio completado (`/opsx-sync` y `/opsx-archive`, o `/gentle-sdd-archive`).
+   * **Almacén de artefactos:** con Gentle-AI elige **OpenSpec** o **Ambos** (hybrid con Engram); solo Engram no deja archivos en el repo y no es válido. Tus preferencias personales (ritmo, estrategia de PR) no se commitean.
+   * **Validación común:** un cambio es válido si `openspec validate <cambio>` pasa, sin importar la herramienta usada.
 3. **Respeto a documentos existentes:** El archivo [docs/project-card.md](docs/project-card.md) contiene la ficha institucional del proyecto y **no debe modificarse**.
 
 ---

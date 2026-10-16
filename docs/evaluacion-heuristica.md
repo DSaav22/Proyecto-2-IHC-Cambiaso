@@ -68,7 +68,7 @@ Este documento registra la evaluación de usabilidad centrada en la funcionalida
 * **Comprobación en código actual:** En [plans.ts:L31-L47](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/lib/plans.ts#L31-L47), la función `formatDueDate` formatea las fechas a *"Vence en 3 días"*, *"Vence hoy"*, etc. En [PlanCard.tsx:L229](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/components/domain/PlanCard.tsx#L229), el botón indica claramente *"Cancelar plan"* y el modal en [PlanCard.tsx:L280](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/components/domain/PlanCard.tsx#L280) explica que *"pasará a Cancelado"*, sin tecnicismos de base de datos.
 * **Referencia al código:** [plans.ts:L31-L47](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/lib/plans.ts#L31-L47) y [PlanCard.tsx:L207-L213](file:///d:/Proyectos/Proyectos-Moises/Proyecto-2-IHC/apps/frontend/src/components/domain/PlanCard.tsx#L207-L213).
 * **Evidencia gráfica:**  
-  ![H2 Lenguaje natural y fechas amigables](evidencias/H2.jpeg)
+  ![H2 Lenguaje natural y fechas amigables](evidencias/H2.png)
 
 ---
 
