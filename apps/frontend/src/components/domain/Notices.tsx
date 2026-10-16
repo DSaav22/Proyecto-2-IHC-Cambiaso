@@ -37,7 +37,7 @@ export function SuccessNotice({
   if (!visible) return null;
 
   return (
-    <Alert role="status" variant="success" className="pr-10">
+    <Alert role="status" variant="success" className="pr-10 bg-card shadow-lg">
       <CircleCheck aria-hidden="true" />
       <div className="min-w-0">{children}</div>
       <button
