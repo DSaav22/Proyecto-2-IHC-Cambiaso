@@ -347,9 +347,75 @@ describe("PlanCard - actions menu", () => {
       expect(screen.getByText("Carlos Gómez")).toBeInTheDocument();
     });
 
-    it("does not render actions menu for a guest", () => {
+    it("renders actions menu for a guest with only 'Abandonar plan' and without 'Eliminar'", async () => {
       render(<PlanCard plan={{ ...basePlan, isOwner: false }} />);
-      expect(screen.queryByRole("button", { name: "Más acciones" })).not.toBeInTheDocument();
+      await openMenu();
+      expect(await screen.findByRole("menuitem", { name: "Abandonar plan" })).toBeInTheDocument();
+      expect(screen.queryByRole("menuitem", { name: "Eliminar" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("menuitem", { name: "Editar" })).not.toBeInTheDocument();
+    });
+
+    it("does not include 'Abandonar plan' in the creator's menu", async () => {
+      render(<PlanCard plan={basePlan} />);
+      await openMenu();
+      expect(screen.queryByRole("menuitem", { name: "Abandonar plan" })).not.toBeInTheDocument();
+    });
+
+    it("asks for confirmation naming the plan before leaving and calls onLeave on accept", async () => {
+      const onLeave = vi.fn().mockResolvedValue({ ok: true });
+      render(<PlanCard plan={{ ...basePlan, isOwner: false }} onLeave={onLeave} />);
+      await openMenu();
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Abandonar plan" }));
+
+      const dialog = await screen.findByRole("alertdialog");
+      expect(dialog).toHaveTextContent("Cena de equipo");
+      expect(onLeave).not.toHaveBeenCalled();
+
+      await userEvent.click(within(dialog).getByRole("button", { name: "Abandonar" }));
+      expect(onLeave).toHaveBeenCalledTimes(1);
+      expect(onLeave).toHaveBeenCalledWith(basePlan.id);
+    });
+
+    it("does not call onLeave when discarding the leave dialog", async () => {
+      const onLeave = vi.fn();
+      render(<PlanCard plan={{ ...basePlan, isOwner: false }} onLeave={onLeave} />);
+      await openMenu();
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Abandonar plan" }));
+      await userEvent.click(await screen.findByRole("button", { name: "Cancelar" }));
+      expect(onLeave).not.toHaveBeenCalled();
+    });
+
+    it("displays error within open dialog if onLeave fails", async () => {
+      const onLeave = vi.fn().mockResolvedValue({ ok: false, message: "No pudiste abandonar el plan" });
+      render(<PlanCard plan={{ ...basePlan, isOwner: false }} onLeave={onLeave} />);
+      await openMenu();
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Abandonar plan" }));
+      const dialog = await screen.findByRole("alertdialog");
+      await userEvent.click(within(dialog).getByRole("button", { name: "Abandonar" }));
+
+      expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+      expect(screen.getByText("No pudiste abandonar el plan")).toBeInTheDocument();
+    });
+
+    it("disables 'Abandonar' button while request is pending", async () => {
+      let resolveLeave!: (value: { ok: true }) => void;
+      const onLeave = vi.fn().mockImplementation(
+        () =>
+          new Promise<{ ok: true }>((resolve) => {
+            resolveLeave = resolve;
+          }),
+      );
+      render(<PlanCard plan={{ ...basePlan, isOwner: false }} onLeave={onLeave} />);
+      await openMenu();
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Abandonar plan" }));
+      const dialog = await screen.findByRole("alertdialog");
+      const confirmButton = within(dialog).getByRole("button", { name: "Abandonar" });
+
+      await userEvent.click(confirmButton);
+      expect(within(dialog).getByRole("button", { name: "Abandonando…" })).toBeDisabled();
+
+      resolveLeave({ ok: true });
+      await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     });
 
     it("does not render confirm button for guest and shows read-only indicator", () => {

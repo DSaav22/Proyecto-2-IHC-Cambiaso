@@ -66,6 +66,18 @@ describe("PlanList", () => {
     expect(onDelete).toHaveBeenCalledWith(item.id);
   });
 
+  it("forwards the leave action of a guest card with its plan id", async () => {
+    const onLeave = vi.fn().mockResolvedValue({ ok: true });
+    const item: Plan = { ...plan("A", "2026-01-01"), isOwner: false };
+    render(<PlanList plans={[item]} onLeave={onLeave} />);
+    await userEvent.click(screen.getByRole("button", { name: "Más acciones" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Abandonar plan" }));
+    await userEvent.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Abandonar" }),
+    );
+    expect(onLeave).toHaveBeenCalledWith(item.id);
+  });
+
   it("shows the invite-to-create state with its action when the user has no plans", async () => {
     const onCreate = vi.fn();
     render(<PlanList plans={[]} onCreate={onCreate} />);

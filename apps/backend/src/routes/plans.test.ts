@@ -150,6 +150,17 @@ function createMemoryStore(): PlansStore {
       rows.splice(index, 1);
       return true;
     },
+    async leave(userId, planId) {
+      const row = rows.find((r) => r.id === planId);
+      if (!row) return false;
+      if (row.userId === userId) {
+        throw new ForbiddenPlanActionError("El creador no puede abandonar su propio plan");
+      }
+      const index = row.members.indexOf(userId);
+      if (index === -1) return false;
+      row.members.splice(index, 1);
+      return true;
+    },
   };
 }
 
@@ -503,6 +514,76 @@ describe("plans router", () => {
 
     it("requires authentication returning 401 without cookie", async () => {
       const res = await request(app).post("/api/plans/any-id/cancel");
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("POST /api/plans/:id/leave", () => {
+    const createAndJoin = async () => {
+      const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
+      await request(app)
+        .post("/api/plans/join")
+        .set("Cookie", cookieFor("u2"))
+        .send({ code: created.body.plan.shareCode });
+      return created.body.plan.id as string;
+    };
+
+    it("lets a guest leave, returns 200 and drops the plan from their list only", async () => {
+      const planId = await createAndJoin();
+
+      const res = await request(app)
+        .post(`/api/plans/${planId}/leave`)
+        .set("Cookie", cookieFor("u2"));
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ message: "Has abandonado el plan." });
+
+      const guestList = await request(app).get("/api/plans").set("Cookie", cookieFor("u2"));
+      expect(guestList.body.plans).toHaveLength(0);
+      const ownerList = await request(app).get("/api/plans").set("Cookie", cookieFor("u1"));
+      expect(ownerList.body.plans).toHaveLength(1);
+    });
+
+    it("lets a guest leave a cancelled plan", async () => {
+      const planId = await createAndJoin();
+      await request(app).post(`/api/plans/${planId}/cancel`).set("Cookie", cookieFor("u1"));
+
+      const res = await request(app)
+        .post(`/api/plans/${planId}/leave`)
+        .set("Cookie", cookieFor("u2"));
+      expect(res.status).toBe(200);
+    });
+
+    it("rejects the creator with 403 and keeps the plan", async () => {
+      const planId = await createAndJoin();
+
+      const res = await request(app)
+        .post(`/api/plans/${planId}/leave`)
+        .set("Cookie", cookieFor("u1"));
+      expect(res.status).toBe(403);
+      expect(res.body.message).toBe("El creador no puede abandonar su propio plan");
+
+      const ownerList = await request(app).get("/api/plans").set("Cookie", cookieFor("u1"));
+      expect(ownerList.body.plans).toHaveLength(1);
+    });
+
+    it("answers 404 for a non-member and for a missing plan", async () => {
+      const created = await request(app).post("/api/plans").set("Cookie", cookieFor("u1")).send(body);
+
+      const nonMember = await request(app)
+        .post(`/api/plans/${created.body.plan.id}/leave`)
+        .set("Cookie", cookieFor("u2"));
+      expect(nonMember.status).toBe(404);
+      expect(nonMember.body.message).toBe("Plan no encontrado");
+
+      const missing = await request(app)
+        .post("/api/plans/00000000-0000-0000-0000-000000000000/leave")
+        .set("Cookie", cookieFor("u2"));
+      expect(missing.status).toBe(404);
+      expect(missing.body.message).toBe("Plan no encontrado");
+    });
+
+    it("requires authentication returning 401 without cookie", async () => {
+      const res = await request(app).post("/api/plans/any-id/leave");
       expect(res.status).toBe(401);
     });
   });

@@ -29,6 +29,10 @@ export type DeletePlanResult =
   | { ok: true }
   | { ok: false; message: string };
 
+export type LeavePlanResult =
+  | { ok: true }
+  | { ok: false; message: string };
+
 const EMPTY_SUMMARY: PlanSummary = { total: 0, overdue: 0, nextDueDate: null };
 
 function isAbortError(error: unknown): boolean {
@@ -183,6 +187,23 @@ export function usePlans(criteria: PlanFilterCriteria = INITIAL_PLAN_FILTERS) {
     [reload],
   );
 
+  const leavePlan = useCallback(
+    async (id: string): Promise<LeavePlanResult> => {
+      try {
+        await api.leavePlan(id);
+        setPlans((current) => current.filter((p) => p.id !== id));
+        void reload();
+        return { ok: true };
+      } catch (error) {
+        if (error instanceof ApiError) {
+          return { ok: false, message: error.message };
+        }
+        return { ok: false, message: "No se pudo abandonar el plan." };
+      }
+    },
+    [reload],
+  );
+
   return {
     plans,
     summary,
@@ -196,5 +217,6 @@ export function usePlans(criteria: PlanFilterCriteria = INITIAL_PLAN_FILTERS) {
     confirmPlan,
     cancelPlan,
     deletePlan,
+    leavePlan,
   };
 }
