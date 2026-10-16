@@ -18,6 +18,7 @@ vi.mock("../api/client", async (importOriginal) => {
       confirmPlan: vi.fn(),
       cancelPlan: vi.fn(),
       deletePlan: vi.fn(),
+      leavePlan: vi.fn(),
     },
   };
 });
@@ -47,6 +48,7 @@ const updatePlanMock = vi.mocked(api.updatePlan);
 const confirmPlanMock = vi.mocked(api.confirmPlan);
 const cancelPlanMock = vi.mocked(api.cancelPlan);
 const deletePlanMock = vi.mocked(api.deletePlan);
+const leavePlanMock = vi.mocked(api.leavePlan);
 
 describe("usePlans", () => {
   beforeEach(() => {
@@ -457,6 +459,78 @@ describe("usePlans", () => {
 
     expect(outcome).toEqual({ ok: false, message: "Error en el servidor" });
     expect(result.current.plans).toHaveLength(1);
+  });
+
+  it("removes the plan from state, calls the API with its id and reloads on leaving", async () => {
+    const plan1 = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
+    const plan2 = plan("B", "2026-06-01", "2026-01-02T00:00:00.000Z");
+    listPlans.mockResolvedValueOnce({ plans: [plan1, plan2], summary: emptySummary });
+    leavePlanMock.mockResolvedValue({ message: "Has abandonado el plan." });
+
+    listPlans.mockReturnValue(new Promise(() => {})); // background refetch stays pending
+    const { result } = renderHook(() => usePlans());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const callsBefore = listPlans.mock.calls.length;
+
+    let outcome: Awaited<ReturnType<typeof result.current.leavePlan>> | undefined;
+    await act(async () => {
+      outcome = await result.current.leavePlan(plan1.id);
+    });
+
+    expect(outcome).toEqual({ ok: true });
+    expect(leavePlanMock).toHaveBeenCalledWith(plan1.id);
+    expect(result.current.plans.map((p) => p.id)).toEqual([plan2.id]);
+    expect(listPlans.mock.calls.length).toBeGreaterThan(callsBefore);
+  });
+
+  it("retains the plan and returns the API message when leaving fails", async () => {
+    const plan1 = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
+    listPlans.mockResolvedValue({ plans: [plan1], summary: emptySummary });
+    leavePlanMock.mockRejectedValue(new ApiError(404, "Plan no encontrado"));
+
+    const { result } = renderHook(() => usePlans());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let outcome: Awaited<ReturnType<typeof result.current.leavePlan>> | undefined;
+    await act(async () => {
+      outcome = await result.current.leavePlan(plan1.id);
+    });
+
+    expect(outcome).toEqual({ ok: false, message: "Plan no encontrado" });
+    expect(result.current.plans).toHaveLength(1);
+  });
+
+  it("returns a generic message on a network error when leaving", async () => {
+    const plan1 = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
+    listPlans.mockResolvedValue({ plans: [plan1], summary: emptySummary });
+    leavePlanMock.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    const { result } = renderHook(() => usePlans());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let outcome: Awaited<ReturnType<typeof result.current.leavePlan>> | undefined;
+    await act(async () => {
+      outcome = await result.current.leavePlan(plan1.id);
+    });
+
+    expect(outcome).toEqual({ ok: false, message: "No se pudo abandonar el plan." });
+    expect(result.current.plans).toHaveLength(1);
+  });
+
+  it("leaves the list untouched when leaving an id that is not listed", async () => {
+    const plan1 = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
+    listPlans.mockResolvedValueOnce({ plans: [plan1], summary: emptySummary });
+    leavePlanMock.mockResolvedValue({ message: "Has abandonado el plan." });
+
+    listPlans.mockReturnValue(new Promise(() => {})); // background refetch stays pending
+    const { result } = renderHook(() => usePlans());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.leavePlan("unknown-id");
+    });
+
+    expect(result.current.plans.map((p) => p.id)).toEqual([plan1.id]);
   });
 
   it("inserts a joined plan in due-date order on success", async () => {

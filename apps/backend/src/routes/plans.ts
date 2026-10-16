@@ -219,6 +219,28 @@ export function createPlansRouter(store: PlansStore): Router {
     }),
   );
 
+  router.post(
+    "/:id/leave",
+    wrap(async (req, res) => {
+      const user = res.locals.user as User;
+      const planId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      try {
+        const left = await store.leave(user.id, planId);
+        if (!left) {
+          res.status(404).json({ message: "Plan no encontrado" });
+          return;
+        }
+        res.status(200).json({ message: "Has abandonado el plan." });
+      } catch (error) {
+        if (error instanceof ForbiddenPlanActionError) {
+          res.status(403).json({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }),
+  );
+
   router.delete(
     "/:id",
     wrap(async (req, res) => {

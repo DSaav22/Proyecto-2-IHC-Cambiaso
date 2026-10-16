@@ -9,6 +9,7 @@ import {
   EllipsisVertical,
   Eye,
   Info,
+  LogOut,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -37,11 +38,12 @@ interface PlanCardProps {
   onConfirm?: (id: string) => Promise<PlanActionResult>;
   onCancel?: (id: string) => Promise<PlanActionResult>;
   onDelete?: (id: string) => Promise<PlanActionResult>;
+  onLeave?: (id: string) => Promise<PlanActionResult>;
 }
 
-type OpenDialog = "confirm" | "cancel" | "delete" | null;
+type OpenDialog = "confirm" | "cancel" | "delete" | "leave" | null;
 
-export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCardProps) {
+export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave }: PlanCardProps) {
   const dueStatus = getDueStatus(plan.dueDate);
   const tone = toneStyles[dueStatus.tone];
   const isConfirmed = plan.estado === "confirmado";
@@ -109,61 +111,71 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
             </Badge>
           )}
         </div>
-        {isOwner ? (
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                aria-label="Más acciones"
-                className="-mr-2 -mt-2 size-11 p-0 text-muted-foreground"
-              >
-                <EllipsisVertical aria-hidden="true" />
-              </Button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Content
-                align="end"
-                sideOffset={4}
-                className="z-50 min-w-40 rounded-lg border bg-card p-1 shadow-md data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
-              >
-                {!isCancelled ? (
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              aria-label="Más acciones"
+              className="-mr-2 -mt-2 size-11 p-0 text-muted-foreground"
+            >
+              <EllipsisVertical aria-hidden="true" />
+            </Button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              align="end"
+              sideOffset={4}
+              className="z-50 min-w-40 rounded-lg border bg-card p-1 shadow-md data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
+            >
+              {isOwner ? (
+                <>
+                  {!isCancelled ? (
+                    <DropdownMenu.Item
+                      onSelect={() => onEdit?.(plan)}
+                      className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-semibold text-foreground outline-none data-highlighted:bg-accent/10"
+                    >
+                      <Pencil aria-hidden="true" className="size-4" />
+                      Editar
+                    </DropdownMenu.Item>
+                  ) : null}
                   <DropdownMenu.Item
-                    onSelect={() => onEdit?.(plan)}
-                    className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-semibold text-foreground outline-none data-highlighted:bg-accent/10"
+                    disabled={isConfirmed}
+                    onSelect={() => {
+                      if (!isConfirmed) changeDialog("delete");
+                    }}
+                    title={isConfirmed ? "Debes cancelar el plan antes de eliminarlo" : undefined}
+                    className={cn(
+                      "flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold outline-none",
+                      isConfirmed
+                        ? "cursor-not-allowed text-muted-foreground opacity-50"
+                        : "cursor-pointer text-destructive data-highlighted:bg-destructive/10",
+                    )}
                   >
-                    <Pencil aria-hidden="true" className="size-4" />
-                    Editar
+                    <Trash2 aria-hidden="true" className="size-4" />
+                    Eliminar
                   </DropdownMenu.Item>
-                ) : null}
+                  {isConfirmed ? (
+                    <div
+                      role="note"
+                      className="border-t mt-1 px-3 py-1.5 text-xs text-muted-foreground"
+                    >
+                      Debes cancelar el plan antes de eliminarlo
+                    </div>
+                  ) : null}
+                </>
+              ) : (
                 <DropdownMenu.Item
-                  disabled={isConfirmed}
-                  onSelect={() => {
-                    if (!isConfirmed) changeDialog("delete");
-                  }}
-                  title={isConfirmed ? "Debes cancelar el plan antes de eliminarlo" : undefined}
-                  className={cn(
-                    "flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold outline-none",
-                    isConfirmed
-                      ? "cursor-not-allowed text-muted-foreground opacity-50"
-                      : "cursor-pointer text-destructive data-highlighted:bg-destructive/10",
-                  )}
+                  onSelect={() => changeDialog("leave")}
+                  className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-semibold text-destructive outline-none data-highlighted:bg-destructive/10"
                 >
-                  <Trash2 aria-hidden="true" className="size-4" />
-                  Eliminar
+                  <LogOut aria-hidden="true" className="size-4" />
+                  Abandonar plan
                 </DropdownMenu.Item>
-                {isConfirmed ? (
-                  <div
-                    role="note"
-                    className="border-t mt-1 px-3 py-1.5 text-xs text-muted-foreground"
-                  >
-                    Debes cancelar el plan antes de eliminarlo
-                  </div>
-                ) : null}
-              </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
-        ) : null}
+              )}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
       </div>
       <h3 className={cn("wrap-break-word text-lg font-bold leading-snug", isCancelled && "text-muted-foreground")}>
         {plan.titulo}
@@ -298,6 +310,20 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete }: PlanCa
         error={actionError}
         destructive
         onConfirm={() => void run(onDelete)}
+      />
+      <ConfirmDialog
+        open={openDialog === "leave"}
+        onOpenChange={(open) => {
+          if (!pending) changeDialog(open ? "leave" : null);
+        }}
+        title="¿Abandonar este plan?"
+        description={`«${plan.titulo || plan.description}» desaparecerá de tu lista. Podrás volver a unirte con el código de compartir.`}
+        confirmLabel="Abandonar"
+        pendingLabel="Abandonando…"
+        pending={pending}
+        error={actionError}
+        destructive
+        onConfirm={() => void run(onLeave)}
       />
     </article>
   );

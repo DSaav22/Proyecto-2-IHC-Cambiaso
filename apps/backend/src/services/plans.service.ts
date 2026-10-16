@@ -181,6 +181,11 @@ export interface PlansStore {
    * Resolves `false` if the plan does not exist.
    */
   delete(userId: string, planId: string): Promise<boolean>;
+  /**
+   * Removes the caller's PlanMember row. Resolves `false` when the plan does not exist
+   * or the caller is not a member; throws ForbiddenPlanActionError for the creator.
+   */
+  leave(userId: string, planId: string): Promise<boolean>;
 }
 
 export function createPrismaPlansStore(): PlansStore {
@@ -410,6 +415,18 @@ export function createPrismaPlansStore(): PlansStore {
         where: { id: planId },
       });
       return true;
+    },
+    leave: async (userId: string, planId: string) => {
+      const plan = await prisma.plan.findUnique({
+        where: { id: planId },
+        select: { userId: true },
+      });
+      if (!plan) return false;
+      if (plan.userId === userId) {
+        throw new ForbiddenPlanActionError("El creador no puede abandonar su propio plan");
+      }
+      const { count } = await prisma.planMember.deleteMany({ where: { planId, userId } });
+      return count > 0;
     },
   };
 }

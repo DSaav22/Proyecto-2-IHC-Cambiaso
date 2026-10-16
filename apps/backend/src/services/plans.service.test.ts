@@ -1,12 +1,17 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findMany = vi.hoisted(() => vi.fn());
-vi.mock("../lib/prisma.js", () => ({ prisma: { plan: { findMany } } }));
+const findUnique = vi.hoisted(() => vi.fn());
+const deleteMany = vi.hoisted(() => vi.fn());
+vi.mock("../lib/prisma.js", () => ({
+  prisma: { plan: { findMany, findUnique }, planMember: { deleteMany } },
+}));
 
 import {
   buildPlanWhere,
   computePlanSummary,
   createPrismaPlansStore,
+  ForbiddenPlanActionError,
   escapeLikePattern,
   toUtcDate,
   boliviaToday,
@@ -221,5 +226,40 @@ describe("createPrismaPlansStore list and summary", () => {
       overdue: 0,
       nextDueDate: null,
     });
+  });
+});
+
+describe("createPrismaPlansStore leave", () => {
+  beforeEach(() => {
+    findUnique.mockReset();
+    deleteMany.mockReset();
+  });
+
+  it("resolves false without deleting when the plan does not exist", async () => {
+    findUnique.mockResolvedValueOnce(null);
+    expect(await createPrismaPlansStore().leave("u2", "p1")).toBe(false);
+    expect(findUnique).toHaveBeenCalledWith({ where: { id: "p1" }, select: { userId: true } });
+    expect(deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("throws ForbiddenPlanActionError for the creator and never deletes", async () => {
+    findUnique.mockResolvedValueOnce({ userId: "u1" });
+    await expect(createPrismaPlansStore().leave("u1", "p1")).rejects.toThrow(
+      ForbiddenPlanActionError,
+    );
+    expect(deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("resolves false when the caller is not a member (count 0)", async () => {
+    findUnique.mockResolvedValueOnce({ userId: "u1" });
+    deleteMany.mockResolvedValueOnce({ count: 0 });
+    expect(await createPrismaPlansStore().leave("u2", "p1")).toBe(false);
+  });
+
+  it("removes only the caller's membership and resolves true (count 1)", async () => {
+    findUnique.mockResolvedValueOnce({ userId: "u1" });
+    deleteMany.mockResolvedValueOnce({ count: 1 });
+    expect(await createPrismaPlansStore().leave("u2", "p1")).toBe(true);
+    expect(deleteMany).toHaveBeenCalledWith({ where: { planId: "p1", userId: "u2" } });
   });
 });

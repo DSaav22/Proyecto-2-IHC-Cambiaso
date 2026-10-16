@@ -120,4 +120,5 @@ export const api = {
   confirmPlan: (id: string) => post<{ plan: Plan }>(`/plans/${id}/confirm`),
   cancelPlan: (id: string) => post<{ plan: Plan }>(`/plans/${id}/cancel`),
   deletePlan: (id: string) => del<{ message: string }>(`/plans/${id}`),
+  leavePlan: (id: string) => post<{ message: string }>(`/plans/${id}/leave`),
 };

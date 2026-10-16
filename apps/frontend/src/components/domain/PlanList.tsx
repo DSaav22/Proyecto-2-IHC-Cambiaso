@@ -13,6 +13,7 @@ interface PlanListProps {
   onConfirm?: (id: string) => Promise<PlanActionResult>;
   onCancel?: (id: string) => Promise<PlanActionResult>;
   onDelete?: (id: string) => Promise<PlanActionResult>;
+  onLeave?: (id: string) => Promise<PlanActionResult>;
 }
 
 export function PlanList({
@@ -24,6 +25,7 @@ export function PlanList({
   onConfirm,
   onCancel,
   onDelete,
+  onLeave,
 }: PlanListProps) {
   if (plans.length === 0 && emptyState === "no-match") {
     return (
@@ -78,6 +80,7 @@ export function PlanList({
             onConfirm={onConfirm}
             onCancel={onCancel}
             onDelete={onDelete}
+            onLeave={onLeave}
           />
         </li>
       ))}

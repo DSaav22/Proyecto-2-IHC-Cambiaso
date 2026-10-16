@@ -42,6 +42,7 @@ export default function MyPlansPage() {
     confirmPlan,
     cancelPlan,
     deletePlan,
+    leavePlan,
   } = usePlans(criteria);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
@@ -126,6 +127,15 @@ export default function MyPlansPage() {
     setActionError(null);
     const result = await deletePlan(id);
     if (result.ok) setNotice("Plan eliminado correctamente.");
+    else setActionError(result.message);
+    return result;
+  }
+
+  async function handleLeave(id: string) {
+    setNotice(null);
+    setActionError(null);
+    const result = await leavePlan(id);
+    if (result.ok) setNotice("Has abandonado el plan.");
     else setActionError(result.message);
     return result;
   }
@@ -232,6 +242,7 @@ export default function MyPlansPage() {
                 onConfirm={handleConfirm}
                 onCancel={handleCancel}
                 onDelete={handleDelete}
+                onLeave={handleLeave}
               />
             )}
           </section>

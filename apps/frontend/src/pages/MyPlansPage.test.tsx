@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import type { Plan } from "../api/client";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { getDueStatus } from "../lib/plans";
@@ -22,6 +22,7 @@ vi.mock("../api/client", async (importOriginal) => {
       confirmPlan: vi.fn(),
       cancelPlan: vi.fn(),
       deletePlan: vi.fn(),
+      leavePlan: vi.fn(),
     },
   };
 });
@@ -31,6 +32,7 @@ const oneSummary = { total: 1, overdue: 0, nextDueDate: null };
 const listPlans = vi.mocked(api.listPlans);
 const createPlan = vi.mocked(api.createPlan);
 const cancelPlan = vi.mocked(api.cancelPlan);
+const leavePlan = vi.mocked(api.leavePlan);
 
 const saved: Plan = {
   id: "3f2a9c1e-7b4d-4e8a-9c21-5d6e7f8a9b0c",
@@ -513,6 +515,49 @@ describe("MyPlansPage", () => {
     const toastContainer = noticeText.closest("div.fixed");
     expect(toastContainer).not.toBeNull();
     expect(toastContainer).toHaveClass("fixed", "bottom-5", "right-5", "z-50");
+  });
+
+  it("allows a guest to leave a plan from the actions menu, removing it and showing success notice", async () => {
+    const guestPlan: Plan = { ...saved, isOwner: false };
+    listPlans
+      .mockResolvedValueOnce({ plans: [guestPlan], summary: oneSummary })
+      .mockResolvedValue({ plans: [], summary: noSummary });
+    leavePlan.mockResolvedValue({ message: "Has abandonado el plan." });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByRole("article")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: "Más acciones" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Abandonar plan" }));
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(dialog).toHaveTextContent("Cena de grupo");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Abandonar" }));
+
+    expect(leavePlan).toHaveBeenCalledWith(guestPlan.id);
+    expect(await screen.findByText("Has abandonado el plan.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("article")).not.toBeInTheDocument());
+  });
+
+  it("keeps leave dialog open with error message when leaving fails", async () => {
+    const guestPlan: Plan = { ...saved, isOwner: false };
+    listPlans.mockResolvedValue({
+      plans: [guestPlan],
+      summary: oneSummary,
+    });
+    leavePlan.mockRejectedValue(new ApiError(400, "Error al abandonar el plan"));
+
+    renderPage();
+    await waitFor(() => expect(screen.getByRole("article")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: "Más acciones" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Abandonar plan" }));
+
+    const dialog = await screen.findByRole("alertdialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Abandonar" }));
+
+    const dialogAlert = await within(screen.getByRole("alertdialog")).findByRole("alert");
+    expect(dialogAlert).toHaveTextContent("Error al abandonar el plan");
   });
 });
 

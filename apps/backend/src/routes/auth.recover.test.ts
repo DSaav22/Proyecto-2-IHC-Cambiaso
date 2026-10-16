@@ -30,6 +30,7 @@ const plansStore: PlansStore = {
   confirm: async () => null,
   cancel: async () => null,
   delete: async () => false,
+  leave: async () => false,
 };
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
