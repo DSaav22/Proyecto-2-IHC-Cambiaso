@@ -325,9 +325,9 @@ describe("PlanCard - actions menu", () => {
   });
 
   describe("ownership & guest read-only view", () => {
-    it("renders 'Creador' badge, share code, and copy button when isOwner is true", () => {
+    it("does not render redundant 'Creador' badge for owner, but renders share code and copy button", () => {
       render(<PlanCard plan={{ ...basePlan, isOwner: true, shareCode: "PLZ-ABC123" }} />);
-      expect(screen.getByText("Creador")).toBeInTheDocument();
+      expect(screen.queryByText("Creador")).not.toBeInTheDocument();
       expect(screen.getByText("PLZ-ABC123")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Copiar código" })).toBeInTheDocument();
     });

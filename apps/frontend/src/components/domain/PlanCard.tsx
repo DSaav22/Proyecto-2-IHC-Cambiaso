@@ -101,15 +101,11 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave 
             ) : null}
             {PLAN_STATUS_LABELS[plan.estado]}
           </Badge>
-          {isOwner ? (
-            <Badge variant="muted" className="text-xs">
-              Creador
-            </Badge>
-          ) : (
+          {!isOwner ? (
             <Badge variant="outline" data-testid="guest-badge" className="text-xs">
               Invitado
             </Badge>
-          )}
+          ) : null}
         </div>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
