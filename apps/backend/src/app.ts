@@ -4,12 +4,14 @@ import cors from "cors";
 import { config } from "./lib/config.js";
 import { authRouter } from "./routes/auth.js";
 import { createPlansRouter } from "./routes/plans.js";
+import { createPrismaActivityStore, type ActivityStore } from "./services/activity.service.js";
 import { createPrismaPlansStore, type PlansStore } from "./services/plans.service.js";
 
 import { requireAuth } from "./middleware/requireAuth.js";
 
 export interface AppOptions {
   plansStore?: PlansStore;
+  activityStore?: ActivityStore;
 }
 
 export function createApp(options: AppOptions = {}) {
@@ -26,7 +28,10 @@ export function createApp(options: AppOptions = {}) {
   app.use(
     "/api/plans",
     requireAuth,
-    createPlansRouter(options.plansStore ?? createPrismaPlansStore()),
+    createPlansRouter(
+      options.plansStore ?? createPrismaPlansStore(),
+      options.activityStore ?? createPrismaActivityStore(),
+    ),
   );
 
   app.use((_req, res) => {
