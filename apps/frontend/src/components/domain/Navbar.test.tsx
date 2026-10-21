@@ -52,4 +52,11 @@ describe("Navbar", () => {
     renderNavbar();
     expect(screen.getByRole("button", { name: "Cerrar sesión" }).className).toContain("min-h-11");
   });
+
+  it("links to /historial with a target at least 44px high (Fitts)", () => {
+    renderNavbar();
+    const link = screen.getByRole("link", { name: "Historial" });
+    expect(link).toHaveAttribute("href", "/historial");
+    expect(link.className).toContain("min-h-11");
+  });
 });

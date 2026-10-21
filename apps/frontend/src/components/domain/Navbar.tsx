@@ -1,4 +1,4 @@
-import { LogOut } from "lucide-react";
+import { History, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Logo } from "./Logo";
@@ -24,6 +24,13 @@ export function Navbar({ name, onLogout, pending = false }: NavbarProps) {
             className="rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             <Logo />
+          </Link>
+          <Link
+            to="/historial"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:px-4"
+          >
+            <History aria-hidden="true" className="size-4" />
+            <span className="sr-only sm:not-sr-only">Historial</span>
           </Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
