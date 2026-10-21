@@ -49,14 +49,14 @@ Este documento registra la evaluación de usabilidad centrada en el flujo críti
 * **Evidencias gráficas:**
   * *Antes (Secuencia de falla: falta de feedback contextual con desplazamiento):*  
     * **Paso 1 (Modal de cancelación tras scroll):**  
-      ![H1 Paso 1 - Modal de cancelación tras scroll](evidencias/H1-P1.png)  
+      ![H1 Paso 1 - Modal de cancelación tras scroll](evidencias/clase-15/H1-P1.png)  
     * **Paso 2 (Ausencia de feedback en viewport tras confirmar):**  
-      ![H1 Paso 2 - Vista sin anuncio visible tras confirmar](evidencias/H1-P2.png)  
+      ![H1 Paso 2 - Vista sin anuncio visible tras confirmar](evidencias/clase-15/H1-P2.png)  
     * **Paso 3 (Desplazamiento forzado hasta el tope para ver el mensaje):**  
-      ![H1 Paso 3 - Desplazamiento forzado hasta el tope para ver el aviso](evidencias/H1-P3.png)
+      ![H1 Paso 3 - Desplazamiento forzado hasta el tope para ver el aviso](evidencias/clase-15/H1-P3.png)
   * *Después (Notificación toast flotante en viewport tras la corrección):*  
     * **Confirmación flotante visible en viewport con scroll activo:**  
-      ![H1 Después - Notificación toast flotante en viewport](evidencias/H1-despues.png)
+      ![H1 Después - Notificación toast flotante en viewport](evidencias/clase-15/H1-despues.png)
 
 ---
 
@@ -68,7 +68,7 @@ Este documento registra la evaluación de usabilidad centrada en el flujo críti
 * **Comprobación en código actual:** En [plans.ts:L9-L54](../apps/frontend/src/lib/plans.ts#L9-L54), `formatDueDate` formatea las fechas en lenguaje natural en español sin desfases horarios, mientras que `getDueStatus` genera etiquetas relativas amigables (*"Es hoy"*, *"Mañana"*, *"En 3 días"*, *"Venció ayer"*). En [PlanCard.tsx:L236](../apps/frontend/src/components/domain/PlanCard.tsx#L236), el botón indica de manera inequívoca *"Cancelar plan"*, y el modal en [PlanCard.tsx:L288](../apps/frontend/src/components/domain/PlanCard.tsx#L288) explica que *"pasará a Cancelado"*, prescindiendo de tecnicismos de bases de datos o identificadores internos.
 * **Referencia al código:** [plans.ts:L9-L54](../apps/frontend/src/lib/plans.ts#L9-L54) y [PlanCard.tsx:L214-L245](../apps/frontend/src/components/domain/PlanCard.tsx#L214-L245).
 * **Evidencias gráficas:**  
-  ![H2 Lenguaje natural y fechas amigables](evidencias/H2.jpeg)
+  ![H2 Lenguaje natural y fechas amigables](evidencias/clase-15/H2.jpeg)
 
 ---
 
@@ -82,9 +82,9 @@ Este documento registra la evaluación de usabilidad centrada en el flujo críti
 * **Referencia al código:** [PlanCard.tsx:L168-L175](../apps/frontend/src/components/domain/PlanCard.tsx#L168-L175), [PlanCard.tsx:L314-L327](../apps/frontend/src/components/domain/PlanCard.tsx#L314-L327), [plans.ts:L222-L242](../apps/backend/src/routes/plans.ts#L222-L242) y [plans.service.ts:L419-L430](../apps/backend/src/services/plans.service.ts#L419-L430).
 * **Evidencias gráficas:**
   * *Antes (Tarjeta de invitado sin opción para retirarse):*  
-    ![H3 Antes - Tarjeta de invitado sin opción para retirarse](evidencias/H3-antes.png)
+    ![H3 Antes - Tarjeta de invitado sin opción para retirarse](evidencias/heuristicas/H3-antes.png)
   * *Después (Menú contextual con opción «Abandonar plan» y confirmación):*  
-    ![H3 Después - Menú contextual con opción «Abandonar plan»](evidencias/H3-despues.png)
+    ![H3 Después - Menú contextual con opción «Abandonar plan»](evidencias/heuristicas/H3-despues.png)
 
 ---
 
@@ -96,7 +96,7 @@ Este documento registra la evaluación de usabilidad centrada en el flujo críti
 * **Comprobación en código actual:** El diseño se apega estrictamente a [DESIGN.md:L67](../apps/frontend/DESIGN.md#L67). En la tarjeta, «Cancelar plan» emplea la variante secundaria `variant="outline"` ([PlanCard.tsx:L236](../apps/frontend/src/components/domain/PlanCard.tsx#L236)) para no competir visualmente con el botón primario `default`. El color rojo destructivo (`destructive`) se reserva de forma exclusiva para el botón de confirmación irreversible dentro del diálogo modal ([ConfirmDialog.tsx:L50-L60](../apps/frontend/src/components/domain/ConfirmDialog.tsx#L50-L60)). Asimismo, el menú de acciones (⋮) mantiene una ubicación consistente arriba a la derecha en todas las tarjetas.
 * **Referencia al código:** [DESIGN.md:L67-L70](../apps/frontend/DESIGN.md#L67-L70), [tokens.css](../apps/frontend/src/tokens.css) y [PlanCard.tsx:L228-L245](../apps/frontend/src/components/domain/PlanCard.tsx#L228-L245).
 * **Evidencias gráficas:**  
-  ![H4 Consistencia visual y funcional en botones y modales](evidencias/H4.jpeg)
+  ![H4 Consistencia visual y funcional en botones y modales](evidencias/clase-15/H4.jpeg)
 
 ---
 
@@ -108,7 +108,7 @@ Este documento registra la evaluación de usabilidad centrada en el flujo críti
 * **Comprobación en código actual:** En [PlanCard.tsx:L282-L295](../apps/frontend/src/components/domain/PlanCard.tsx#L282-L295), la cancelación exige confirmación explícita mediante un modal `ConfirmDialog` que cita el nombre específico del plan entre comillas. En [PlanCard.tsx:L246-L257](../apps/frontend/src/components/domain/PlanCard.tsx#L246-L257), cuando un plan ya ha sido cancelado, el botón desaparece y se despliega una nota informativa estática, imposibilitando cancelarlo dos veces por error o incurrir en estados inconsistentes.
 * **Referencia al código:** [PlanCard.tsx:L246-L257](../apps/frontend/src/components/domain/PlanCard.tsx#L246-L257) y [PlanCard.tsx:L282-L295](../apps/frontend/src/components/domain/PlanCard.tsx#L282-L295).
 * **Evidencias gráficas:**  
-  ![H5 Prevención de errores mediante modal de confirmación](evidencias/H5.jpeg)
+  ![H5 Prevención de errores mediante modal de confirmación](evidencias/heuristicas/H5.jpeg)
 
 ---
 
@@ -120,7 +120,7 @@ Este documento registra la evaluación de usabilidad centrada en el flujo críti
 * **Comprobación en código actual:** En [PlanFiltersBar.tsx:L40-L60](../apps/frontend/src/components/domain/PlanFiltersBar.tsx#L40-L60), los filtros activos se visualizan como etiquetas visibles (*chips*) con botón de remoción rápida (X). En [PlanCard.tsx:L288](../apps/frontend/src/components/domain/PlanCard.tsx#L288), el diálogo modal repite explícitamente el nombre del plan a cancelar (*"«Cena del viernes» pasará a Cancelado"*), evitando que el usuario deba retener mentalmente cuál tarjeta seleccionó.
 * **Referencia al código:** [PlanFiltersBar.tsx:L40-L60](../apps/frontend/src/components/domain/PlanFiltersBar.tsx#L40-L60) y [PlanCard.tsx:L282-L295](../apps/frontend/src/components/domain/PlanCard.tsx#L282-L295).
 * **Evidencias gráficas:**  
-  ![H6 Reconocimiento antes que recuerdo con filtros activos y confirmación del plan](evidencias/H6.png)
+  ![H6 Reconocimiento antes que recuerdo con filtros activos y confirmación del plan](evidencias/heuristicas/H6.png)
 
 ---
 
@@ -132,7 +132,7 @@ Este documento registra la evaluación de usabilidad centrada en el flujo críti
 * **Comprobación en código actual:** En [MyPlansPage.tsx:L52-L62](../apps/frontend/src/pages/MyPlansPage.tsx#L52-L62), los criterios de búsqueda y los filtros seleccionados se sincronizan bidireccionalmente con `searchParams` en la URL. Esto permite a los usuarios frecuentes guardar búsquedas habituales en los marcadores de su navegador, navegar utilizando el historial (atrás/adelante) o compartir enlaces que cargan la vista ya filtrada.
 * **Referencia al código:** [PlanFiltersBar.tsx:L60-L120](../apps/frontend/src/components/domain/PlanFiltersBar.tsx#L60-L120) y [MyPlansPage.tsx:L52-L62](../apps/frontend/src/pages/MyPlansPage.tsx#L52-L62).
 * **Evidencias gráficas:**  
-  ![H7 Eficiencia de uso con búsqueda combinada y parámetros en URL](evidencias/H7.png)
+  ![H7 Eficiencia de uso con búsqueda combinada y parámetros en URL](evidencias/heuristicas/H7.png)
 
 ---
 
@@ -146,9 +146,9 @@ Este documento registra la evaluación de usabilidad centrada en el flujo críti
 * **Referencia al código:** [PlanCard.tsx:L104-L108](../apps/frontend/src/components/domain/PlanCard.tsx#L104-L108) y [PlanCard.test.tsx:L328-L334](../apps/frontend/src/components/domain/PlanCard.test.tsx#L328-L334).
 * **Evidencias gráficas:**
   * *Antes (Insignia repetitiva «Creador» en cada tarjeta propia):*  
-    ![H8 Antes - Insignia repetitiva Creador en tarjetas](evidencias/H8-Antes.png)
+    ![H8 Antes - Insignia repetitiva Creador en tarjetas](evidencias/heuristicas/H8-Antes.png)
   * *Después (Cabecera despejada para un escaneo visual ágil):*  
-    ![H8 Después - Cabecera despejada en planes propios](evidencias/H8-Despues.png)
+    ![H8 Después - Cabecera despejada en planes propios](evidencias/heuristicas/H8-Despues.png)
 
 ---
 
@@ -160,7 +160,7 @@ Este documento registra la evaluación de usabilidad centrada en el flujo críti
 * **Comprobación en código actual:** En [PlanList.tsx:L28-L49](../apps/frontend/src/components/domain/PlanList.tsx#L28-L49), cuando ningún plan cumple con los criterios de búsqueda o filtro, se presenta un estado vacío explícito (`"no-match"`) con un mensaje claro en español (*"No hay planes que coincidan con los filtros"*) acompañado de un botón directo `Limpiar filtros` (`onClearFilters`) para restablecer el catálogo completo en un solo clic y sin recargar la página.
 * **Referencia al código:** [PlanList.tsx:L28-L49](../apps/frontend/src/components/domain/PlanList.tsx#L28-L49).
 * **Evidencias gráficas:**  
-  ![H9 Recuperación inmediata ante búsquedas sin resultados con botón Limpiar filtros](evidencias/H9.png)
+  ![H9 Recuperación inmediata ante búsquedas sin resultados con botón Limpiar filtros](evidencias/heuristicas/H9.png)
 
 ---
 
@@ -173,9 +173,9 @@ Este documento registra la evaluación de usabilidad centrada en el flujo críti
 * **Referencia al código:** [PlanCard.tsx:L247-L257](../apps/frontend/src/components/domain/PlanCard.tsx#L247-L257) y [PlanCard.tsx:L282-L295](../apps/frontend/src/components/domain/PlanCard.tsx#L282-L295).
 * **Evidencias gráficas:**  
   * **Explicación de consecuencias en el diálogo de cancelación:**  
-    ![H10 Modal explicativo previo a cancelar](evidencias/H10-P1.png)  
+    ![H10 Modal explicativo previo a cancelar](evidencias/heuristicas/H10-P1.png)  
   * **Aviso contextual orientativo en la tarjeta de un plan ya cancelado:**  
-    ![H10 Nota orientativa en tarjeta cancelada](evidencias/H10-P2.png)
+    ![H10 Nota orientativa en tarjeta cancelada](evidencias/heuristicas/H10-P2.png)
 
 ---
 

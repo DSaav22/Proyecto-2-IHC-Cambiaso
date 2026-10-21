@@ -29,27 +29,27 @@ A continuación se presentan las capturas que respaldan el diagnóstico de usabi
 ### Evidencias H1: Visibilidad del estado del sistema (Secuencia de falla)
 
 * **Paso 1:** Con desplazamiento activo en la lista, el usuario abre el modal de cancelación en un plan ubicado abajo.  
-  ![H1 Paso 1 - Modal de cancelación tras scroll](evidencias/H1-P1.png)
+  ![H1 Paso 1 - Modal de cancelación tras scroll](evidencias/clase-15/H1-P1.png)
 
 * **Paso 2:** Al confirmar, el modal se cierra pero el viewport no muestra ningún aviso ni mensaje de éxito.  
-  ![H1 Paso 2 - Vista sin confirmación visible en viewport](evidencias/H1-P2.png)
+  ![H1 Paso 2 - Vista sin confirmación visible en viewport](evidencias/clase-15/H1-P2.png)
 
 * **Paso 3:** El usuario debe desplazarse manualmente hasta el tope de la página para encontrar el aviso verde.  
-  ![H1 Paso 3 - Scroll forzado hasta el tope para ver el aviso](evidencias/H1-P3.png)
+  ![H1 Paso 3 - Scroll forzado hasta el tope para ver el aviso](evidencias/clase-15/H1-P3.png)
 
 ---
 
 ### Evidencia H2: Concordancia entre el sistema y el mundo real
 
 * **Tarjeta de plan con fecha amigable:** Muestra la fecha relativa (*"En 3 días"*, *"Es hoy"*) y la insignia de estado en lenguaje coloquial comprensible.  
-  ![H2 Lenguaje natural y fechas amigables](evidencias/H2.jpeg)
+  ![H2 Lenguaje natural y fechas amigables](evidencias/clase-15/H2.jpeg)
 
 ---
 
 ### Evidencia H4: Consistencia y estándares
 
 * **Consistencia visual y jerarquía de botones:** Muestra en la tarjeta el botón primario «Confirmar plan» (sólido) junto al secundario «Cancelar plan» (`outline`), con el menú de tres puntos (⋮) fijo arriba a la derecha.  
-  ![H4 Consistencia visual y funcional en botones](evidencias/H4.jpeg)
+  ![H4 Consistencia visual y funcional en botones](evidencias/clase-15/H4.jpeg)
 
 ---
 
@@ -71,4 +71,4 @@ Siguiendo la consigna de la clase de seleccionar al menos un hallazgo para corre
 3. **Persistencia temporal accesible:** Configurar un cierre automático a los pocos segundos permitiendo también el cierre manual mediante botón de descarte.
 
 * **Resultado propuesto con la notificación contextual en viewport:**  
-  ![H1 Solución propuesta con notificación flotante](evidencias/H1-despues.png)
+  ![H1 Solución propuesta con notificación flotante](evidencias/clase-15/H1-despues.png)
