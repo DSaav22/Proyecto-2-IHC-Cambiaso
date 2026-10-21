@@ -4,7 +4,9 @@ import process from 'node:process';
 
 function run(cmd, options = {}) {
   try {
-    return execSync(cmd, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], ...options }).trim();
+    // With stdio: 'inherit' execSync returns null, so guard before trimming.
+    const output = execSync(cmd, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], ...options });
+    return output == null ? '' : output.trim();
   } catch (error) {
     if (options.allowFailure) {
       return null;
