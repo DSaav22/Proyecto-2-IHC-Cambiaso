@@ -91,7 +91,7 @@ apps/frontend/src/
 
 Para mantener la base de código ordenada y evitar duplicar árboles de carpetas, los tests unitarios siguen estas pautas:
 
-- **Ubicación (Co-ubicación / Colocation):** Cada archivo de test reside en la misma carpeta que el módulo evaluado, bajo el formato `[nombre].test.ts` o `[nombre].test.tsx` (ej: `routes/plans.test.ts` o `components/molecules/PlanCard.test.tsx`).
+- **Ubicación (Co-ubicación / Colocation):** Cada archivo de test reside en la misma carpeta que el módulo evaluado, bajo el formato `[nombre].test.ts` o `[nombre].test.tsx` (ej: `routes/plans.test.ts` o `components/domain/PlanCard.test.tsx`).
 - **Alcance selectivo (Sin sobre-testear):** No se crea un test para cada archivo trivial. Se priorizan exclusivamente archivos puntuales con lógica crítica:
   - *Backend:* Lógica de endpoints en `routes/` o reglas en `services/`.
   - *Frontend:* Formularios, transformaciones de datos o flujos de interacción en `components/` o `hooks/`.

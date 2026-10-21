@@ -153,6 +153,7 @@ Cuando el docente asigne un issue con un requerimiento (por ejemplo, #7 o #8):
    * **Sub-issue 3 (Interfaz / UX / Accesibilidad):** Componentes UI, estado en frontend, sincronización con URL, accesibilidad y estados vacíos.
 3. **Relación commits ↔ sub-issues:** Cada commit debe estar directamente relacionado con su sub-issue (`Refs #<sub-issue>` o `#<sub-issue>` en el mensaje del commit).
 4. **Cierre progresivo:** Los sub-issues se cierran conforme se completan y mergean sus cambios.
+5. **Vinculación jerárquica nativa en GitHub:** Al crear cada sub-issue, además de mencionarlo en el cuerpo del issue padre, debe vincularse obligatoriamente al árbol nativo de sub-issues de GitHub (vía interfaz web o mediante `gh api -X POST /repos/:owner/:repo/issues/:padre/sub_issues -F sub_issue_id=:id_global`) para que el progreso se refleje en el widget visual de la issue principal.
 
 ### Evaluación Heurística (IHC)
 
@@ -167,7 +168,7 @@ Para el diseño y evaluación ergonómica de flujos e interfaces:
 
 * Consultar el protocolo completo en la skill `interaction-decisions` y el informe oficial en [docs/decisiones-interaccion.md](docs/decisiones-interaccion.md).
 * **Estructura obligatoria:** Contrastar siempre la alternativa base o ingenua (**Antes**) frente a la solución implementada (**Después**), justificando con las fórmulas teóricas de Fitts ($T = a + b \log_2(2D/W)$), Hick ($T = b \log_2(n+1)$) y la capacidad de memoria de trabajo de Miller/Sweller ($7 \pm 2$).
-* **Evidencias gráficas:** Guardadas en `docs/evidencias/historial/` respetando la nomenclatura `Fitts-antes.png`, `Fitts-despues.png`, `Hick-antes.png`, `Hick-despues.png`, `Carga-Cognitiva-antes.png`, `Carga-Cognitiva-despues.png`.
+* **Evidencias gráficas:** Guardadas en `docs/evidencias/historial/` respetando la nomenclatura `Fitts-antes.jpeg`, `Fitts-despues.jpeg`, `Hick-antes.jpeg`, `Hick-despues.jpeg`, `Carga-Cognitiva-antes-P1.jpeg`..`P4.jpeg`, `Carga-Cognitiva-despues.jpeg`, `Estado-Vacio-despues.jpeg`.
 
 ### Issues Generales
 

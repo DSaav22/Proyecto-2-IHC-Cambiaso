@@ -94,7 +94,9 @@ Para evitar saturar la tarjeta con el verde semántico del estado `confirmado` o
   - Chips de filtros activos con botón de remoción táctil (mínimo 44 px / `min-h-11`) y gestión de foco que devuelve el cursor al control al remover un chip.
   - Región `aria-live` que anuncia los resultados ("Mostrando X de Y planes").
 - **`StatCard` (Métricas de cabecera):** Tarjetas con valor numérico destacado en `font-display` y etiqueta de apoyo en `text-xs text-muted-foreground`. Su valor proviene del `summary` calculado por el servidor (no se altera al filtrar la lista).
-- **Navbar:** logo + nombre de marca es un único enlace; los ítems de navegación se separan visualmente y no duplican destino.
+- **`ActivityCard` (Historial de actividad):** Tarjeta autónoma que consolida en un solo bloque visual las 4 dimensiones del evento (ícono y título semántico, tiempo relativo/exacto, badge de estado y enlace destacado al plan). Implementa deep-linking hacia `/mis-planes#plan-${id}` con auto-scroll y resalte mediante `:target` y foco visual, minimizando la carga cognitiva.
+- **Chips temáticos de historial (`ActivityHistoryPage`):** Conjunto acotado de 4 chips semánticos (`Todos`, `Estados`, `Creaciones`, `Participación`) conforme a la Ley de Hick ($n=4$), con área táctil accesible de al menos 44 px (`min-h-11`, Ley de Fitts) y estado vacío empático que orienta al usuario mediante un CTA primario.
+- **Navbar:** logo + nombre de marca es un único enlace; los ítems de navegación se separan visualmente y no duplican destino. Los accesos principales garantizan un área de contacto mínima de 44×44 px (`min-h-11`).
 - **Estados vacíos, carga y error:** siempre contemplados; mensajes en `Alert`/`Notices`, no en `alert()` del navegador. Distinguir estado sin planes ("todavía no tienes planes") de estado sin coincidencias ("no hay planes que coincidan").
 - **Formularios:** etiqueta visible, error por campo, sin placeholder como única etiqueta.
 
