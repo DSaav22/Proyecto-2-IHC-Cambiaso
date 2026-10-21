@@ -48,6 +48,27 @@ export interface PlanInput {
   dueDate: string;
 }
 
+export type ActivityAction = "created" | "confirmed" | "cancelled" | "edited" | "joined" | "left";
+
+export type ActivityFilter = "todos" | "estados" | "creaciones" | "participacion";
+
+export interface ActivityEvent {
+  id: string;
+  action: ActivityAction;
+  planId: string | null;
+  planTitle: string;
+  previousState: PlanStatus | null;
+  newState: PlanStatus | null;
+  /** Current state of the plan; null when the plan no longer exists. */
+  planEstado: PlanStatus | null;
+  actorName: string;
+  createdAt: string;
+}
+
+export interface ActivityResponse {
+  activities: ActivityEvent[];
+}
+
 export class ApiError extends Error {
   status: number;
   fieldErrors: Record<string, string>;
@@ -114,6 +135,8 @@ export const api = {
     const qs = query.toString();
     return request<PlansResponse>(qs ? `/plans?${qs}` : "/plans", { signal });
   },
+  getActivity: (filter: ActivityFilter = "todos", signal?: AbortSignal) =>
+    request<ActivityResponse>(`/plans/activity?tipo=${encodeURIComponent(filter)}`, { signal }),
   createPlan: (input: PlanInput) => post<{ plan: Plan }>("/plans", input),
   joinPlan: (code: string) => post<{ plan: Plan }>("/plans/join", { code }),
   updatePlan: (id: string, input: PlanInput) => put<{ plan: Plan }>(`/plans/${id}`, input),

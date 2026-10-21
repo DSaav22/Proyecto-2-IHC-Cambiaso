@@ -1,3 +1,4 @@
+export * from "./ActivityCard";
 export * from "./AppShell";
 export * from "./AuthDialog";
 export * from "./Avatar";
