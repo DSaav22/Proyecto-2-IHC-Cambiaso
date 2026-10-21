@@ -18,6 +18,7 @@ model User {
   updatedAt           DateTime  @updatedAt
   plans               Plan[]
   joinedPlans         PlanMember[]
+  activities          PlanActivity[]
 }
 
 model Plan {
@@ -31,6 +32,7 @@ model Plan {
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime     @default(now())
   members     PlanMember[]
+  activities  PlanActivity[]
 
   @@index([userId, dueDate])
 }
@@ -45,4 +47,21 @@ model PlanMember {
 
   @@unique([planId, userId])
   @@index([userId])
+}
+
+model PlanActivity {
+  id            String   @id @default(uuid())
+  planId        String?
+  userId        String
+  planTitle     String
+  action        String
+  previousState String?
+  newState      String?
+  details       Json?
+  createdAt     DateTime @default(now())
+  plan          Plan?    @relation(fields: [planId], references: [id], onDelete: SetNull)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([planId])
 }

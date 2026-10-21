@@ -89,3 +89,17 @@ export function fieldErrors(error: z.ZodError): Record<string, string> {
   }
   return result;
 }
+
+// --- Plan activity history ---
+export const ACTIVITY_ACTIONS = ["created", "confirmed", "cancelled", "edited", "joined", "left"] as const;
+export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
+
+export interface RecordActivityInput {
+  planId: string | null;
+  userId: string;
+  planTitle: string;
+  action: ActivityAction;
+  previousState?: string | null;
+  newState?: string | null;
+  details?: Record<string, unknown> | null;
+}

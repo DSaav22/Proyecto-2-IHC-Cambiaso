@@ -11,6 +11,7 @@ import {
   EditBlockedError,
   type PlanState,
 } from "../lib/planState.js";
+import { recordActivity } from "./activity.service.js";
 import type { PlanDateFilter, PlanInput } from "../lib/schemas.js";
 
 export class PlanNotFoundError extends Error {
@@ -235,6 +236,13 @@ export function createPrismaPlansStore(): PlansStore {
               user: { select: { name: true } },
             },
           });
+          await recordActivity(prisma, {
+            planId: plan.id,
+            userId,
+            planTitle: plan.titulo,
+            action: "created",
+            newState: plan.estado,
+          });
           return {
             id: plan.id,
             titulo: plan.titulo,
@@ -280,6 +288,13 @@ export function createPrismaPlansStore(): PlansStore {
           userId,
         },
       });
+      await recordActivity(prisma, {
+        planId: plan.id,
+        userId,
+        planTitle: plan.titulo,
+        action: "joined",
+        newState: plan.estado,
+      });
       return {
         id: plan.id,
         titulo: plan.titulo,
@@ -318,6 +333,13 @@ export function createPrismaPlansStore(): PlansStore {
           dueDate: new Date(`${data.dueDate}T00:00:00.000Z`),
         },
       });
+      await recordActivity(prisma, {
+        planId: updated.id,
+        userId,
+        planTitle: updated.titulo,
+        action: "edited",
+        newState: updated.estado,
+      });
       return {
         id: updated.id,
         titulo: updated.titulo,
@@ -350,6 +372,14 @@ export function createPrismaPlansStore(): PlansStore {
         where: { id: planId },
         data: { estado: next.estado },
       });
+      await recordActivity(prisma, {
+        planId: existing.id,
+        userId,
+        planTitle: existing.titulo,
+        action: "confirmed",
+        previousState: existing.estado,
+        newState: next.estado,
+      });
       return {
         id: existing.id,
         titulo: existing.titulo,
@@ -381,6 +411,14 @@ export function createPrismaPlansStore(): PlansStore {
       await prisma.plan.update({
         where: { id: planId },
         data: { estado: next.estado },
+      });
+      await recordActivity(prisma, {
+        planId: existing.id,
+        userId,
+        planTitle: existing.titulo,
+        action: "cancelled",
+        previousState: existing.estado,
+        newState: next.estado,
       });
       return {
         id: existing.id,
@@ -419,14 +457,21 @@ export function createPrismaPlansStore(): PlansStore {
     leave: async (userId: string, planId: string) => {
       const plan = await prisma.plan.findUnique({
         where: { id: planId },
-        select: { userId: true },
+        select: { userId: true, titulo: true },
       });
       if (!plan) return false;
       if (plan.userId === userId) {
         throw new ForbiddenPlanActionError("El creador no puede abandonar su propio plan");
       }
       const { count } = await prisma.planMember.deleteMany({ where: { planId, userId } });
-      return count > 0;
+      if (count === 0) return false;
+      await recordActivity(prisma, {
+        planId,
+        userId,
+        planTitle: plan.titulo,
+        action: "left",
+      });
+      return true;
     },
   };
 }

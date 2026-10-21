@@ -3,9 +3,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const findMany = vi.hoisted(() => vi.fn());
 const findUnique = vi.hoisted(() => vi.fn());
 const deleteMany = vi.hoisted(() => vi.fn());
+const planCreate = vi.hoisted(() => vi.fn());
+const planUpdate = vi.hoisted(() => vi.fn());
+const memberCreate = vi.hoisted(() => vi.fn());
+const memberFindUnique = vi.hoisted(() => vi.fn());
+const record = vi.hoisted(() => vi.fn());
 vi.mock("../lib/prisma.js", () => ({
-  prisma: { plan: { findMany, findUnique }, planMember: { deleteMany } },
+  prisma: {
+    plan: { findMany, findUnique, create: planCreate, update: planUpdate },
+    planMember: { deleteMany, create: memberCreate, findUnique: memberFindUnique },
+  },
 }));
+vi.mock("./activity.service.js", () => ({ recordActivity: record }));
 
 import {
   buildPlanWhere,
@@ -238,7 +247,10 @@ describe("createPrismaPlansStore leave", () => {
   it("resolves false without deleting when the plan does not exist", async () => {
     findUnique.mockResolvedValueOnce(null);
     expect(await createPrismaPlansStore().leave("u2", "p1")).toBe(false);
-    expect(findUnique).toHaveBeenCalledWith({ where: { id: "p1" }, select: { userId: true } });
+    expect(findUnique).toHaveBeenCalledWith({
+      where: { id: "p1" },
+      select: { userId: true, titulo: true },
+    });
     expect(deleteMany).not.toHaveBeenCalled();
   });
 
@@ -257,9 +269,89 @@ describe("createPrismaPlansStore leave", () => {
   });
 
   it("removes only the caller's membership and resolves true (count 1)", async () => {
-    findUnique.mockResolvedValueOnce({ userId: "u1" });
+    findUnique.mockResolvedValueOnce({ userId: "u1", titulo: "Cena" });
     deleteMany.mockResolvedValueOnce({ count: 1 });
     expect(await createPrismaPlansStore().leave("u2", "p1")).toBe(true);
     expect(deleteMany).toHaveBeenCalledWith({ where: { planId: "p1", userId: "u2" } });
+  });
+
+  it("records a left activity only when a membership was removed", async () => {
+    record.mockClear();
+    findUnique.mockResolvedValueOnce({ userId: "u1", titulo: "Cena" });
+    deleteMany.mockResolvedValueOnce({ count: 0 });
+    await createPrismaPlansStore().leave("u2", "p1");
+    expect(record).not.toHaveBeenCalled();
+    findUnique.mockResolvedValueOnce({ userId: "u1", titulo: "Cena" });
+    deleteMany.mockResolvedValueOnce({ count: 1 });
+    await createPrismaPlansStore().leave("u2", "p1");
+    expect(record).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ planId: "p1", userId: "u2", planTitle: "Cena", action: "left" }),
+    );
+  });
+});
+
+describe("createPrismaPlansStore activity logging", () => {
+  const base = {
+    id: "p1",
+    userId: "u1",
+    titulo: "Cena",
+    description: "d",
+    dueDate: day("2026-06-20"),
+    estado: "pendiente",
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    shareCode: "PLZ-AAAAAA",
+    user: { name: "Ana" },
+  };
+
+  beforeEach(() => {
+    record.mockClear();
+    findUnique.mockReset();
+    planCreate.mockReset();
+    planUpdate.mockReset();
+  });
+
+  it("records created with newState pendiente", async () => {
+    planCreate.mockResolvedValueOnce(base);
+    await createPrismaPlansStore().create("u1", { titulo: "Cena", description: "d", dueDate: "2026-06-20" });
+    expect(record).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ planId: "p1", userId: "u1", action: "created", newState: "pendiente" }),
+    );
+  });
+
+  it("records confirmed with the state transition", async () => {
+    findUnique.mockResolvedValueOnce(base);
+    await createPrismaPlansStore().confirm("u1", "p1");
+    expect(record).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: "confirmed", previousState: "pendiente", newState: "confirmado" }),
+    );
+  });
+
+  it("records cancelled with the previous state", async () => {
+    findUnique.mockResolvedValueOnce({ ...base, estado: "confirmado" });
+    await createPrismaPlansStore().cancel("u1", "p1");
+    expect(record).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: "cancelled", previousState: "confirmado", newState: "cancelado" }),
+    );
+  });
+
+  it("records edited on update and joined on joinByCode", async () => {
+    findUnique.mockResolvedValueOnce(base);
+    planUpdate.mockResolvedValueOnce({ ...base, titulo: "Cena 2" });
+    await createPrismaPlansStore().update("u1", "p1", { titulo: "Cena 2", description: "d", dueDate: "2026-06-20" });
+    expect(record).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: "edited", planTitle: "Cena 2" }),
+    );
+    findUnique.mockResolvedValueOnce({ ...base, members: [] });
+    memberCreate.mockResolvedValueOnce({});
+    await createPrismaPlansStore().joinByCode("u2", "plz-aaaaaa");
+    expect(record).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: "joined", userId: "u2", planId: "p1" }),
+    );
   });
 });
