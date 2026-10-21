@@ -7,6 +7,8 @@ interface ConfirmDialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   description: ReactNode;
+  /** Label of the cancel/dismiss button. Defaults to "Cancelar". */
+  cancelLabel?: string;
   confirmLabel: string;
   /** Label of the accept button while the request is pending. */
   pendingLabel?: string;
@@ -23,6 +25,7 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
+  cancelLabel = "Cancelar",
   confirmLabel,
   pendingLabel,
   pending = false,
@@ -51,7 +54,7 @@ export function ConfirmDialog({
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <AlertDialog.Cancel asChild>
               <Button type="button" variant="outline" disabled={pending}>
-                Cancelar
+                {cancelLabel}
               </Button>
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>

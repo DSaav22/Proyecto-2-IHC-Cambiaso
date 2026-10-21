@@ -286,7 +286,8 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave 
         }}
         title="¿Cancelar este plan?"
         description={`«${plan.titulo || plan.description}» pasará a Cancelado. Podrás eliminarlo una vez cancelado.`}
-        confirmLabel="Cancelar plan"
+        cancelLabel="Mantener plan"
+        confirmLabel="Sí, cancelar plan"
         pendingLabel="Cancelando…"
         pending={pending}
         error={actionError}

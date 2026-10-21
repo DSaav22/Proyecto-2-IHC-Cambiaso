@@ -134,6 +134,8 @@ describe("PlanCard - cancel flow", () => {
     const dialog = screen.getByRole("alertdialog");
     expect(dialog).toHaveTextContent("Cena de equipo");
     expect(dialog).toHaveTextContent(/pasará a Cancelado/i);
+    expect(within(dialog).getByRole("button", { name: "Mantener plan" })).toBeEnabled();
+    expect(within(dialog).getByRole("button", { name: "Sí, cancelar plan" })).toBeEnabled();
     expect(onCancel).not.toHaveBeenCalled();
   });
 
@@ -147,7 +149,7 @@ describe("PlanCard - cancel flow", () => {
     expect(dialog).toHaveTextContent(/pasará a Cancelado/i);
 
     await userEvent.click(
-      within(dialog).getByRole("button", { name: "Cancelar plan" }),
+      within(dialog).getByRole("button", { name: "Sí, cancelar plan" }),
     );
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledWith(basePlan.id);
@@ -158,7 +160,7 @@ describe("PlanCard - cancel flow", () => {
     render(<PlanCard plan={confirmed} onCancel={onCancel} />);
     await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
     await userEvent.click(
-      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancelar plan" }),
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Sí, cancelar plan" }),
     );
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledWith(confirmed.id);
@@ -170,12 +172,12 @@ describe("PlanCard - cancel flow", () => {
     render(<PlanCard plan={confirmed} onCancel={onCancel} />);
     await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
     await userEvent.click(
-      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancelar plan" }),
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Sí, cancelar plan" }),
     );
 
     const dialog = await screen.findByRole("alertdialog");
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("No se pudo cancelar el plan.");
-    expect(within(dialog).getByRole("button", { name: "Cancelar plan" })).toBeEnabled();
+    expect(within(dialog).getByRole("button", { name: "Sí, cancelar plan" })).toBeEnabled();
   });
 
   it("allows retrying after a failure and closes once the retry succeeds", async () => {
@@ -186,7 +188,7 @@ describe("PlanCard - cancel flow", () => {
     render(<PlanCard plan={confirmed} onCancel={onCancel} />);
     await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
     const accept = () =>
-      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancelar plan" });
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Sí, cancelar plan" });
     await userEvent.click(accept());
     expect(await screen.findByRole("alert")).toHaveTextContent("Sin conexión");
 
@@ -200,11 +202,11 @@ describe("PlanCard - cancel flow", () => {
     render(<PlanCard plan={confirmed} onCancel={onCancel} />);
     await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
     await userEvent.click(
-      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancelar plan" }),
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Sí, cancelar plan" }),
     );
     expect(await screen.findByRole("alert")).toBeInTheDocument();
 
-    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancelar" }));
+    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Mantener plan" }));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: "Cancelar plan" }));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();

@@ -278,7 +278,7 @@ describe("MyPlansPage", () => {
     const dialog = await screen.findByRole("alertdialog");
     expect(dialog).toHaveTextContent("¿Cancelar este plan?");
 
-    await userEvent.click(within(dialog).getByRole("button", { name: "Cancelar plan" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sí, cancelar plan" }));
 
     expect(cancelMock).toHaveBeenCalledWith(confirmedPlan.id);
     await waitFor(() =>
@@ -505,7 +505,7 @@ describe("MyPlansPage", () => {
 
     const dialog = screen.getByRole("alertdialog");
     expect(dialog).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole("button", { name: "Cancelar plan" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sí, cancelar plan" }));
 
     await waitFor(() => expect(cancelPlan).toHaveBeenCalledWith(saved.id));
 

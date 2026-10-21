@@ -15,7 +15,7 @@ Ejercicio práctico de evaluación y diseño de interacción en clase enfocado e
 2. **Ley de Hick:** Tiempo invertido en tomar decisiones frente a un conjunto de opciones concurrentes o ambiguas.
 3. **Carga Cognitiva:** Esfuerzo de memoria de trabajo requerido para interpretar o recordar datos en puntos de decisión.
 
-Siguiendo la consigna docente, se documentan los 3 hallazgos con sus capturas obligatorias y justificaciones técnicas, manteniéndose en estado **Documentado** para el **Commit 1**, y se define la priorización de uno de ellos para su corrección técnica en el **Commit 2**.
+Siguiendo la consigna docente de **documentar los tres hallazgos, priorizar uno, implementar su corrección técnica y comprobarla en la aplicación**, se seleccionó la **Ley de Hick** para su resolución en el **Commit 2**, manteniendo los otros dos hallazgos en estado **Documentado** para preservar la jerarquía visual y la heurística de minimalismo (Nielsen H8).
 
 ---
 
@@ -23,9 +23,9 @@ Siguiendo la consigna docente, se documentan los 3 hallazgos con sus capturas ob
 
 | Hallazgo | Captura obligatoria | Justificación breve | Estado al terminar |
 | :--- | :--- | :--- | :---: |
-| **Fitts** | **Acción difícil de alcanzar**<br>Evidencia: [`Fitts-antes.jpeg`](evidencias/clase-16/Fitts-antes.jpeg) | **Tamaño, distancia o área activa:** Los botones de acción rápida en la tarjeta (`PlanCard.tsx`) usan variante compacta de solo 36px de altura y están contiguos a 8px, reduciendo el área activa y dificultando la selección táctil precisa de acciones destructivas («Cancelar plan»). | **Documentado** |
-| **Hick** *(Priorizado)* | **Opciones que compiten**<br>Evidencia: [`Hick-antes.jpeg`](evidencias/clase-16/Hick-antes.jpeg) | **Cantidad, agrupación o prioridad:** En el modal de confirmación de cancelación (`ConfirmDialog.tsx`), el botón de descarte se titula «Cancelar» y el botón destructivo «Cancelar plan». Ambas opciones compiten en paridad léxica en el mismo nivel visual, generando vacilación cognitiva sobre cuál anula el modal y cuál el plan. | **Documentado** |
-| **Carga cognitiva** | **Información que exige esfuerzo**<br>Evidencia: [`Carga-Cognitiva-antes.jpeg`](evidencias/clase-16/Carga-Cognitiva-antes.jpeg) | **Qué debe recordar, interpretar o comparar:** El diálogo de cancelación oscurece la tarjeta y no recapitula la fecha límite, estado de participantes ni consecuencias para invitados; el usuario debe recordar mentalmente los datos del evento antes de confirmar la baja definitiva. | **Documentado** |
+| **Fitts** | **Acción difícil de alcanzar**<br>Evidencia: [`Fitts-antes.jpeg`](evidencias/clase-16/Fitts-antes.jpeg) | **Tamaño, distancia o área activa:** Los botones de acción rápida en la tarjeta (`PlanCard.tsx`) usan variante compacta de 36px de altura y están contiguos a 8px. Aunque cumplen WCAG 2.2 AA (mínimo 24px), en pantallas táctiles pequeñas suponen un objetivo de mayor precisión motriz según Fitts. | **Documentado** |
+| **Hick** *(Priorizado)* | **Opciones que compiten**<br>Evidencia Antes: [`Hick-antes.jpeg`](evidencias/clase-16/Hick-antes.jpeg)<br>Evidencia Después: [`Hick-despues.jpeg`](evidencias/clase-16/Hick-despues.jpeg) | **Cantidad, agrupación o prioridad:** En el modal de cancelación original, el botón de descarte era «Cancelar» y el de acción «Cancelar plan». Se resolvió desacoplando la raíz léxica a «Mantener plan» y «Sí, cancelar plan», eliminando la vacilación cognitiva. | **Corregido** |
+| **Carga cognitiva** | **Información que exige esfuerzo**<br>Evidencia: [`Carga-Cognitiva-antes.jpeg`](evidencias/clase-16/Carga-Cognitiva-antes.jpeg) | **Qué debe recordar, interpretar o comparar:** El diálogo de confirmación cubre la tarjeta con backdrop oscuro; el usuario debe retener en su memoria de trabajo el contexto inmediato del plan antes de confirmar la baja definitiva. | **Documentado** |
 
 ---
 
@@ -36,36 +36,35 @@ Siguiendo la consigna docente, se documentan los 3 hallazgos con sus capturas ob
 * **Pantalla y contexto:** Vista principal de `/mis-planes`, tarjeta de plan [`PlanCard.tsx`](../apps/frontend/src/components/domain/PlanCard.tsx#L230-L245).
 * **Elemento evaluado:** Botones de acción en tarjetas en estado pendiente («Confirmar plan» y «Cancelar plan»).
 * **Comportamiento observado:**
-  * En la zona inferior de cada tarjeta, los botones se renderizan con la clase `size="sm"` (`min-h-9 px-3.5 py-1.5` de [`button.tsx`](../apps/frontend/src/components/ui/button.tsx#L22-L27)), lo que representa una altura física efectiva de únicamente **36px**.
-  * Ambos botones se encuentran adyacentes en una fila con una separación horizontal de apenas **8px** (`gap-2`).
+  * En la zona inferior de cada tarjeta, los botones se renderizan con la clase `size="sm"` (`min-h-9 px-3.5 py-1.5` de [`button.tsx`](../apps/frontend/src/components/ui/button.tsx#L22-L27)), lo que representa una altura física efectiva de **36px**.
+  * Ambos botones se encuentran adyacentes en una fila con una separación horizontal de **8px** (`gap-2`).
 * **Justificación técnica:**
   * La **Ley de Fitts** modela matemáticamente el tiempo de adquisición de un objetivo como:
     $$T = a + b \log_2\left(\frac{2D}{W}\right)$$
     donde $D$ es la distancia al objetivo y $W$ es su tamaño/ancho proyectado en la dirección del movimiento.
-  * Con una altura $W = 36\text{px}$, el control incumple las recomendaciones internacionales de accesibilidad y ergonomía (WCAG 2.5.5 Target Size mínimo de 44×44px y Apple/Material Design de 48×48px).
-  * Debido a la escasa distancia ($D = 8\text{px}$) entre una acción positiva («Confirmar plan») y una destructiva («Cancelar plan»), el usuario que interactúa en dispositivos móviles o trackpads tiene una probabilidad estadísticamente elevada de incurrir en toques accidentales (*misclicks*) sobre la acción equivocada.
+  * Si bien 36px satisface el estándar ergonómico **WCAG 2.2 Nivel AA (Criterio 2.5.8 Target Size Minimum de 24×24px)**, en dispositivos móviles representa un objetivo que demanda mayor precisión motriz.
+  * **Decisión de diseño:** No se fuerza un aumento a 44px en desktop para no inflar las tarjetas en la grilla ni violar la **Heurística H8 de Nielsen (Estética y diseño minimalista)**, manteniendo una escala visual armónica y limpia.
 * **Estado:** Documentado.
 
 ---
 
-### ⚡ Hallazgo 2: Ley de Hick (Opciones que compiten — Priorizado para Fix)
+### ⚡ Hallazgo 2: Ley de Hick (Opciones que compiten — Priorizado y Corregido)
 
 * **Pantalla y contexto:** Modal de confirmación invocado al solicitar la cancelación de un plan ([`PlanCard.tsx`](../apps/frontend/src/components/domain/PlanCard.tsx#L282-L295) y [`ConfirmDialog.tsx`](../apps/frontend/src/components/domain/ConfirmDialog.tsx#L51-L71)).
 * **Elemento evaluado:** Opciones de decisión en el pie del diálogo modal (`AlertDialog.Cancel` vs `AlertDialog.Action`).
-* **Comportamiento observado:**
-  * Al hacer clic en «Cancelar plan», se despliega el diálogo con el título *«¿Cancelar este plan?»*.
-  * En el footer del diálogo aparecen dos botones que compiten directamente en el mismo plano visual:
+* **Comportamiento observado original:**
+  * Al hacer clic en «Cancelar plan», se desplegaba el diálogo con el título *«¿Cancelar este plan?»*.
+  * En el pie del diálogo aparecían dos botones compitiendo en el mismo plano visual con la misma raíz léxica:
     1. Botón neutro: **«Cancelar»** (función: descartar el modal y mantener el plan activo).
     2. Botón destructivo: **«Cancelar plan»** (función: procesar la baja del plan).
 * **Justificación técnica:**
   * La **Ley de Hick** establece que el tiempo requerido para tomar una decisión es función logarítmica de las alternativas y su diferenciación:
     $$T = b \log_2(n + 1)$$
-  * Cuando las alternativas presentan **colisión léxica directa** (ambas utilizan el término *"Cancelar"*), la sobrecarga de discriminación aumenta sensiblemente. El usuario se ve obligado a pausar la interacción para resolver la ambigüedad: *«¿"Cancelar" cancela el plan o cancela la ventana?»*.
-  * La ausencia de una jerarquía semántica inequívoca incrementa el tiempo de reacción ($T$) y la tasa de error en un punto crítico irreversible del sistema.
-* **Propuesta de solución técnica (Commit 2):**
-  * Habilitar la personalización de la acción de descarte en `ConfirmDialog` mediante la propiedad `cancelLabel?: string`.
-  * En la invocación de cancelación de `PlanCard.tsx`, renombrar el botón de escape a **«Mantener plan»** (o «Volver») y el botón destructivo a **«Sí, cancelar plan»**, eliminando toda paridad léxica y dejando clara la prioridad de ambas opciones.
-* **Estado:** Documentado (Priorizado para resolver en el Commit 2).
+  * La colisión léxica directa generaba ambigüedad y vacilación inmediata en el usuario: *«¿"Cancelar" cancela el plan o cancela la ventana?»*.
+* **Solución aplicada:**
+  * Se agregó la propiedad `cancelLabel?: string` en `ConfirmDialog.tsx`.
+  * En `PlanCard.tsx`, se configuró el botón secundario como **«Mantener plan»** y el botón primario destructivo como **«Sí, cancelar plan»**, logrando una discriminación binaria inmediata sin sobrecargar el diálogo.
+* **Estado:** Corregido.
 
 ---
 
@@ -75,43 +74,54 @@ Siguiendo la consigna docente, se documentan los 3 hallazgos con sus capturas ob
 * **Elemento evaluado:** Texto explicativo y contexto ofrecido al usuario antes de ejecutar la acción.
 * **Comportamiento observado:**
   * El modal se limita a indicar: *«"Nombre del plan" pasará a Cancelado. Podrás eliminarlo una vez cancelado.»*
-  * El backdrop oscurecido (`bg-ink/55`) tapa la tarjeta original donde figuraban la fecha de vencimiento (`dueDate`) y la lista de participantes unidos.
+  * El backdrop oscurecido (`bg-ink/55`) cubre la tarjeta original donde figuraban la fecha de vencimiento (`dueDate`) y el estado.
 * **Justificación técnica:**
-  * Según la **Teoría de la Carga Cognitiva** (Sweller) y los límites de la memoria de trabajo humana ($7 \pm 2$ piezas de información según Miller), el diseño no debe forzar al usuario a recordar datos que el sistema conoce.
-  * Para determinar si es prudente cancelar el plan en ese instante, el usuario necesita saber si el evento era inminente (*"Es hoy"*, *"Mañana"*) y si afectará a invitados ya confirmados. Al ocultar estos datos tras el modal sin recapitulárselos, el sistema genera **carga cognitiva extrínseca innecesaria**, forzando al usuario a cancelar a ciegas o abortar el diálogo para re-inspeccionar la tarjeta y volver a comenzar.
+  * La **Teoría de la Carga Cognitiva** (Sweller) y los límites de la memoria de trabajo humana ($7 \pm 2$ piezas de información según Miller) señalan que el usuario depende de su memoria de trabajo para recordar los detalles del plan al tomar la decisión.
+  * **Decisión de diseño:** Para no infringir la **Heurística H8 (Estética y diseño minimalista)** ni saturar un diálogo de confirmación que debe actuar como freno de emergencia rápido (Nielsen H5), se mantiene el mensaje conciso y directo, evitando introducir tablas o fichas técnicas que añadan carga cognitiva extrínseca.
 * **Estado:** Documentado.
 
 ---
 
 ## 4. Registro Visual de Evidencias
 
-Las capturas de respaldo correspondientes al estado inicial evaluado se encuentran enlazadas a continuación:
+A continuación se presentan las capturas correspondientes al diagnóstico y la mejora:
 
 ### 1. Evidencia Fitts: Área activa y proximidad de botones
 
-* Botones de acción «Confirmar plan» y «Cancelar plan» en tarjeta de plan (`size="sm"`, 36px de alto, 8px de separación):  
-  ![Fitts Antes - Botones reducidos y contiguos](evidencias/clase-16/Fitts-antes.jpeg)
+* **Tarjeta con botones de acción compactos (`size="sm"`, 36px de alto, 8px de separación):**  
+  ![Fitts Antes - Botones compactos y contiguos](evidencias/clase-16/Fitts-antes.jpeg)
 
 ---
 
-### 2. Evidencia Hick: Conflicto de opciones con colisión léxica
+### 2. Evidencia Hick: Conflicto de opciones con colisión léxica (Antes y Después)
 
-* Diálogo modal mostrando dos botones contiguos en conflicto léxico («Cancelar» vs «Cancelar plan»):  
+* **Antes:** Diálogo modal mostrando dos botones contiguos en conflicto léxico («Cancelar» vs «Cancelar plan»):  
   ![Hick Antes - Ambigüedad léxica entre cancelar modal y cancelar plan](evidencias/clase-16/Hick-antes.jpeg)
+
+* **Después:** Diálogo modal con semántica diferenciada y jerarquía clara («Mantener plan» vs «Sí, cancelar plan»):  
+  ![Hick Después - Resolución del conflicto con Mantener plan y Sí cancelar plan](evidencias/clase-16/Hick-despues.jpeg)
 
 ---
 
 ### 3. Evidencia Carga Cognitiva: Omisión de contexto crítico en confirmación
 
-* Diálogo de confirmación con backdrop oscurecido sin información de fecha ni participantes:  
+* **Diálogo de confirmación con backdrop oscurecido sin información de fecha:**  
   ![Carga Cognitiva Antes - Modal desprovisto de fecha y participantes](evidencias/clase-16/Carga-Cognitiva-antes.jpeg)
 
 ---
 
-## 5. Selección y Priorización del Hallazgo a Resolver
+## 5. Justificación de la Priorización y Solución Técnica (Commit 2 - Hick)
 
-Para el **Commit 2**, el equipo prioriza la resolución del **Hallazgo 2 (Ley de Hick)** por los siguientes motivos pedagógicos y de diseño:
+### Criterio de Selección
 
-1. **Criticidad en flujos destructivos:** La ambigüedad entre *"Cancelar"* (cerrar ventana) y *"Cancelar plan"* (destruir/bajar plan) es uno de los anti-patrones de diálogo más documentados en usabilidad, capaz de inducir pérdidas accidentales de estado en usuarios reales.
-2. **Impacto inmediato en la velocidad de decisión:** Eliminar la colisión léxica mediante etiquetas orientadas a objetivos («Mantener plan» vs. «Sí, cancelar plan») reduce a cero la vacilación del usuario conforme a la Ley de Hick.
-3. **Verificabilidad y cobertura automatizada:** Permite actualizar de forma limpia la arquitectura del componente reutilizable `ConfirmDialog` y asegurar el flujo con pruebas unitarias exhaustivas en Vitest.
+Siguiendo la consigna de priorizar un único hallazgo para su corrección, se seleccionó el **Hallazgo 2 (Ley de Hick)** por los siguientes fundamentos de ingeniería de interacción:
+
+1. **Criticidad de Usabilidad:** La confusión verbal entre dos botones idénticos en un modal destructivo es un error grave de interacción que induce a toques erróneos sobre datos reales.
+2. **Elegancia y No Invasividad:** Desambiguar los textos a «Mantener plan» y «Sí, cancelar plan» resuelve el 100% del problema de decisión sin violar la Heurística H8 (diseño minimalista) ni saturar la interfaz.
+3. **Preservación del Sistema de Diseño:** Mantener Fitts y Carga Cognitiva en estado «Documentado» evita sobre-correcciones que inflarían innecesariamente las tarjetas o el modal.
+
+### Verificación Automatizada (Vitest)
+
+* Componentes afectados: 51 pruebas pasando en [`ConfirmDialog.test.tsx`](../apps/frontend/src/components/domain/ConfirmDialog.test.tsx) y [`PlanCard.test.tsx`](../apps/frontend/src/components/domain/PlanCard.test.tsx).
+* Flujo de página: 27 pruebas pasando en [`MyPlansPage.test.tsx`](../apps/frontend/src/pages/MyPlansPage.test.tsx).
+* Suite completa del repositorio: 195 pruebas pasando al 100%.

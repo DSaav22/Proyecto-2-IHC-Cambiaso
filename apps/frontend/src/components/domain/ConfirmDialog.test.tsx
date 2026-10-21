@@ -21,6 +21,12 @@ describe("ConfirmDialog", () => {
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeEnabled();
   });
 
+  it("renders a custom cancel label when cancelLabel is specified", () => {
+    render(<ConfirmDialog {...baseProps} cancelLabel="Mantener plan" />);
+    expect(screen.getByRole("button", { name: "Mantener plan" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Cancelar" })).not.toBeInTheDocument();
+  });
+
   it("renders nothing when closed", () => {
     render(<ConfirmDialog {...baseProps} open={false} />);
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
