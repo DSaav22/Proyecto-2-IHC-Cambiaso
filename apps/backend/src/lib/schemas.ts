@@ -90,9 +90,29 @@ export function fieldErrors(error: z.ZodError): Record<string, string> {
   return result;
 }
 
-// --- Plan activity history ---
+// --- Plan activity history (GET /api/plans/activity) ---
+
 export const ACTIVITY_ACTIONS = ["created", "confirmed", "cancelled", "edited", "joined", "left"] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
+
+export const ACTIVITY_FILTERS = ["todos", "estados", "creaciones", "participacion"] as const;
+export type ActivityFilter = (typeof ACTIVITY_FILTERS)[number];
+
+/** Actions matched by each thematic filter; `null` means no action restriction. */
+export const ACTIVITY_FILTER_ACTIONS: Record<ActivityFilter, readonly ActivityAction[] | null> = {
+  todos: null,
+  estados: ["confirmed", "cancelled"],
+  creaciones: ["created"],
+  participacion: ["joined", "left"],
+};
+
+/** Query string of `GET /api/plans/activity`. */
+export const activityQuerySchema = z.object({
+  tipo: z
+    .enum(ACTIVITY_FILTERS, "Filtro de actividad inválido")
+    .optional()
+    .default("todos"),
+});
 
 export interface RecordActivityInput {
   planId: string | null;
@@ -102,4 +122,27 @@ export interface RecordActivityInput {
   previousState?: string | null;
   newState?: string | null;
   details?: Record<string, unknown> | null;
+}
+
+/** Activity event as returned by the service layer. */
+export interface ActivityEvent {
+  id: string;
+  action: ActivityAction;
+  planId: string | null;
+  planTitle: string;
+  previousState: string | null;
+  newState: string | null;
+  /** Current state of the plan; `null` when the plan no longer exists. */
+  planEstado: string | null;
+  actorName: string;
+  createdAt: Date;
+}
+
+/** JSON shape of an activity event in the API response. */
+export interface ActivityEventResponse extends Omit<ActivityEvent, "createdAt"> {
+  createdAt: string;
+}
+
+export interface ActivityListResponse {
+  activities: ActivityEventResponse[];
 }

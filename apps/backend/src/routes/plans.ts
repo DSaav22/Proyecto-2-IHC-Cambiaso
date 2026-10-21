@@ -2,7 +2,14 @@ import { Router, type NextFunction, type Request, type Response } from "express"
 import type { User } from "@prisma/client";
 import { z } from "zod";
 import { DeleteBlockedError, EditBlockedError, InvalidTransitionError } from "../lib/planState.js";
-import { fieldErrors, planListQuerySchema, planSchema } from "../lib/schemas.js";
+import {
+  activityQuerySchema,
+  fieldErrors,
+  planListQuerySchema,
+  planSchema,
+  type ActivityEvent,
+} from "../lib/schemas.js";
+import { createPrismaActivityStore, type ActivityStore } from "../services/activity.service.js";
 import {
   type StoredPlan,
   type PlansStore,
@@ -47,6 +54,10 @@ function comparePlans(a: StoredPlan, b: StoredPlan): number {
   );
 }
 
+function serializeActivity(event: ActivityEvent) {
+  return { ...event, createdAt: event.createdAt.toISOString() };
+}
+
 const joinPlanSchema = z.object({
   code: z.string().trim().min(1, "El código es requerido"),
 });
@@ -56,8 +67,28 @@ const wrap = (handler: Handler) => (req: Request, res: Response, next: NextFunct
   handler(req, res).catch(next);
 };
 
-export function createPlansRouter(store: PlansStore): Router {
+export function createPlansRouter(
+  store: PlansStore,
+  activityStore: ActivityStore = createPrismaActivityStore(),
+): Router {
   const router = Router();
+
+  // Registered before any `/:id` route so "activity" is never read as a plan id.
+  router.get(
+    "/activity",
+    wrap(async (req, res) => {
+      const user = res.locals.user as User;
+      const parsed = activityQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+        res
+          .status(400)
+          .json({ message: "Filtro de actividad inválido", errors: fieldErrors(parsed.error) });
+        return;
+      }
+      const events = await activityStore.list(user.id, parsed.data.tipo);
+      res.status(200).json({ activities: events.map(serializeActivity) });
+    }),
+  );
 
   router.get(
     "/",
