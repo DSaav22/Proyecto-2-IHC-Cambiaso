@@ -161,6 +161,14 @@ Para las evaluaciones de usabilidad según las 10 Heurísticas de Nielsen (H1–
 * Consultar el protocolo operativo completo en la skill `heuristic-evaluation` y el informe oficial en [docs/evaluacion-heuristica.md](docs/evaluacion-heuristica.md).
 * **Reglas clave:** Único issue principal tracker (`Evaluación heurística H1–H10 · <funcionalidad>`) con lista verificable, sub-issues atómicos únicamente para hallazgos con severidad 1 a 4, y commits de cierre individuales (`fix: ... (Closes #<sub-issue>, Refs #<padre>)`).
 
+### Decisiones de Interacción Ergonómica (IHC · Fitts, Hick y Carga Cognitiva)
+
+Para el diseño y evaluación ergonómica de flujos e interfaces:
+
+* Consultar el protocolo completo en la skill `interaction-decisions` y el informe oficial en [docs/decisiones-interaccion.md](docs/decisiones-interaccion.md).
+* **Estructura obligatoria:** Contrastar siempre la alternativa base o ingenua (**Antes**) frente a la solución implementada (**Después**), justificando con las fórmulas teóricas de Fitts ($T = a + b \log_2(2D/W)$), Hick ($T = b \log_2(n+1)$) y la capacidad de memoria de trabajo de Miller/Sweller ($7 \pm 2$).
+* **Evidencias gráficas:** Guardadas en `docs/evidencias/historial/` respetando la nomenclatura `Fitts-antes.png`, `Fitts-despues.png`, `Hick-antes.png`, `Hick-despues.png`, `Carga-Cognitiva-antes.png`, `Carga-Cognitiva-despues.png`.
+
 ### Issues Generales
 
 * Toda tarea o requerimiento fuera de los requisitos docentes debe registrarse en una issue breve con:
@@ -168,10 +176,9 @@ Para las evaluaciones de usabilidad según las 10 Heurísticas de Nielsen (H1–
   * **Criterios de Aceptación:** Qué comportamiento define que la tarea está terminada.
   * **Pruebas esperadas:** Qué casos de prueba unitaria deben cubrirse (mínimo 4 si involucra reglas de negocio o transiciones de estado, según [AGENTS.md](AGENTS.md)).
 
-### Pull Requests (PRs)
+### Pull Requests (PRs) y Verificación de Sub-issues
 
-* Crear una rama descriptiva (`feat/<nombre>`, `fix/<nombre>`).
-* Estructurar los PRs alineados a los sub-issues (o PRs por fases bien delimitadas).
+* Crear una rama descriptiva vinculada a la tarea (`feat/issue-<número>`, `fix/issue-<número>`).
 * **Referencias y cierre en PRs:**
   * Usar `Closes #<número-sub-issue>` para que el sub-issue completado se cierre automáticamente al mergear.
   * Usar `Refs #<número-issue-padre>` para referenciar el issue general del docente (**NUNCA usar `Closes` sobre el issue del docente**).
@@ -179,4 +186,8 @@ Para las evaluaciones de usabilidad según las 10 Heurísticas de Nielsen (H1–
 * Respetar las responsabilidades de [ARCHITECTURE.md](ARCHITECTURE.md):
   * Backend: lógica y reglas de estado en `services/`, validación HTTP en `routes/`.
   * Frontend: llamadas en `api/`, estado en `hooks/`, presentación en `components/`.
-* Verificar que pasen las pruebas (`pnpm --filter backend test` / `pnpm --filter frontend test`) antes de solicitar revisión.
+* **Verificación Automática (Hooks y GitHub Actions):**
+  * Se cuenta con un script de verificación cruzada (`pnpm verify-subissue` o `node scripts/verify-subissue.mjs`).
+  * **Git hook local:** `.git/hooks/pre-push` valida automáticamente que en ramas de sub-issues los criterios se cumplan y los tests de Vitest pasen antes de permitir el `git push`.
+  * **GitHub Action:** `.github/workflows/verify-pr-subissue.yml` bloquea cualquier PR hacia `master` proveniente de una rama si no cumple los criterios de la sub-issue o si fallan las pruebas unitarias.
+  * **Flujo directo en `master`:** Si se trabaja directamente sobre la rama `master`, las verificaciones de rama de PR no bloquean el flujo diario.

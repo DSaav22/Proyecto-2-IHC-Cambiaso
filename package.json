@@ -13,6 +13,8 @@
     "logs": "docker compose logs -f",
     "seed": "pnpm --filter backend prisma db seed",
     "build": "pnpm -r build",
-    "lint": "pnpm -r --if-present lint"
+    "lint": "pnpm -r --if-present lint",
+    "test": "pnpm -r test",
+    "verify-subissue": "node scripts/verify-subissue.mjs"
   }
 }

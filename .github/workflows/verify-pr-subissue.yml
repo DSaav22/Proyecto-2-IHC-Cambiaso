@@ -1,0 +1,34 @@
+name: Validar PR de Sub-issue
+
+on:
+  pull_request:
+    branches:
+      - master
+      - main
+
+jobs:
+  validate-subissue:
+    name: Verificar Criterios y Pruebas de Sub-issue
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Activar pnpm
+        run: corepack enable pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Ejecutar script de verificación de sub-issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/verify-subissue.mjs
