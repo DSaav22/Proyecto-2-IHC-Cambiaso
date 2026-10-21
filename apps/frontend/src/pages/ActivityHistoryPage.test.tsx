@@ -45,7 +45,7 @@ describe("ActivityHistoryPage", () => {
     expect(screen.getByText("Hace 15 min")).toBeInTheDocument();
     expect(screen.getByTestId("activity-status-badge")).toHaveTextContent("Confirmado");
     const link = screen.getByRole("link", { name: "Cumpleaños" });
-    expect(link).toHaveAttribute("href", "/mis-planes");
+    expect(link).toHaveAttribute("href", "/mis-planes#plan-p1");
   });
 
   it("shows the empty state with a primary CTA to create a plan", async () => {

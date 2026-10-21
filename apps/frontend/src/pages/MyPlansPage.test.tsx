@@ -559,5 +559,18 @@ describe("MyPlansPage", () => {
     const dialogAlert = await within(screen.getByRole("alertdialog")).findByRole("alert");
     expect(dialogAlert).toHaveTextContent("Error al abandonar el plan");
   });
+
+  it("scrolls into view and focuses targeted plan when navigating with a hash", async () => {
+    listPlans.mockResolvedValue({ plans: [saved], summary: oneSummary });
+    const scrollMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollMock;
+
+    renderPage(`/mis-planes#plan-${saved.id}`);
+    await waitFor(() => expect(screen.getByRole("article")).toBeInTheDocument());
+
+    await waitFor(() => {
+      expect(scrollMock).toHaveBeenCalledWith({ behavior: "smooth", block: "center" });
+    });
+  });
 });
 

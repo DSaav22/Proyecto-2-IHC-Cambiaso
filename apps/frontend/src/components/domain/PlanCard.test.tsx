@@ -425,5 +425,12 @@ describe("PlanCard - actions menu", () => {
       expect(screen.queryByRole("button", { name: "Confirmar plan" })).not.toBeInTheDocument();
       expect(screen.getByRole("note")).toHaveTextContent(/^Solo lectura/);
     });
+
+    it("renders an article with anchor id and tabIndex -1 for deep-linking", () => {
+      render(<PlanCard plan={basePlan} />);
+      const card = screen.getByRole("article");
+      expect(card).toHaveAttribute("id", `plan-${basePlan.id}`);
+      expect(card).toHaveAttribute("tabindex", "-1");
+    });
   });
 });

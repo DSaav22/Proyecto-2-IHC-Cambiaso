@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { CalendarClock, ListChecks, Plus, RotateCw, TriangleAlert, Users } from "lucide-react";
 import type { Plan, PlanInput } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
@@ -25,6 +25,7 @@ import { getDueStatus } from "../lib/plans";
 
 export default function MyPlansPage() {
   const { user } = useAuth();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const rawParams = searchParams.toString();
   const criteria = useMemo(() => parsePlanFilters(new URLSearchParams(rawParams)), [rawParams]);
@@ -49,6 +50,20 @@ export default function MyPlansPage() {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Scroll to targeted plan when navigating via hash (e.g. from activity history)
+  useEffect(() => {
+    if (loading || !location.hash) return;
+    const targetId = location.hash.replace(/^#/, "");
+    const timer = setTimeout(() => {
+      const element = document.getElementById(targetId);
+      if (element) {
+        element.scrollIntoView?.({ behavior: "smooth", block: "center" });
+        element.focus?.({ preventScroll: true });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [loading, location.hash, plans]);
 
   // Rewrite a corrupted or non-canonical URL once so it always mirrors the criteria in use.
   useEffect(() => {

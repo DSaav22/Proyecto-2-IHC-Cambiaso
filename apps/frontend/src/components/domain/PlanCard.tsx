@@ -78,8 +78,12 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave 
 
   return (
     <article
+      id={`plan-${plan.id}`}
+      tabIndex={-1}
       className={cn(
-        "relative flex h-full flex-col gap-4 overflow-hidden rounded-xl border bg-card p-5 pl-6 shadow-xs transition-shadow hover:shadow-sm",
+        "relative flex h-full flex-col gap-4 overflow-hidden rounded-xl border bg-card p-5 pl-6 shadow-xs transition-all duration-300 hover:shadow-sm",
+        "target:ring-2 target:ring-primary target:ring-offset-2 target:ring-offset-background",
+        "focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background focus:outline-none",
         isCancelled && "border-border/80 bg-muted/20 opacity-75",
       )}
     >

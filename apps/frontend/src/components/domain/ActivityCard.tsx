@@ -42,7 +42,7 @@ export function ActivityCard({ event, now }: { event: ActivityEvent; now?: Date 
         </div>
         {event.planId ? (
           <Link
-            to="/mis-planes"
+            to={`/mis-planes#plan-${event.planId}`}
             className="wrap-break-word w-fit font-semibold text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             {event.planTitle}
