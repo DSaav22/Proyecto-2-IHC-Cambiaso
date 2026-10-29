@@ -11,6 +11,13 @@ import {
 } from "../lib/schemas.js";
 import { createPrismaActivityStore, type ActivityStore } from "../services/activity.service.js";
 import {
+  addOption,
+  castVote,
+  CoordinationError,
+  getCoordination,
+  inviteByEmail,
+} from "../services/coordination.service.js";
+import {
   type StoredPlan,
   type PlansStore,
   createPrismaPlansStore,
@@ -291,6 +298,83 @@ export function createPlansRouter(
         }
         if (error instanceof DeleteBlockedError) {
           res.status(409).json({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }),
+  );
+
+  router.get(
+    "/:id/coordination",
+    wrap(async (req, res) => {
+      const user = res.locals.user as User;
+      const planId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      try {
+        const board = await getCoordination(user.id, planId);
+        res.status(200).json(board);
+      } catch (error) {
+        if (error instanceof CoordinationError) {
+          res.status(error.status).json({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }),
+  );
+
+  router.post(
+    "/:id/invite",
+    wrap(async (req, res) => {
+      const user = res.locals.user as User;
+      const planId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      try {
+        const board = await inviteByEmail(user.id, planId, String(req.body?.email ?? ""));
+        res.status(200).json(board);
+      } catch (error) {
+        if (error instanceof CoordinationError) {
+          res.status(error.status).json({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }),
+  );
+
+  router.post(
+    "/:id/options",
+    wrap(async (req, res) => {
+      const user = res.locals.user as User;
+      const planId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      try {
+        const board = await addOption(
+          user.id,
+          planId,
+          String(req.body?.kind ?? ""),
+          String(req.body?.label ?? ""),
+        );
+        res.status(201).json(board);
+      } catch (error) {
+        if (error instanceof CoordinationError) {
+          res.status(error.status).json({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }),
+  );
+
+  router.post(
+    "/:id/votes",
+    wrap(async (req, res) => {
+      const user = res.locals.user as User;
+      const planId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      try {
+        const board = await castVote(user.id, planId, String(req.body?.optionId ?? ""));
+        res.status(200).json(board);
+      } catch (error) {
+        if (error instanceof CoordinationError) {
+          res.status(error.status).json({ message: error.message });
           return;
         }
         throw error;

@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { formatDueDate, getDueStatus, PLAN_STATUS_LABELS } from "../../lib/plans";
 import type { DueTone } from "../../lib/plans";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { PlanCoordinationDialog } from "./PlanCoordinationDialog";
 
 const toneStyles: Record<DueTone, { badge: "danger" | "warning" | "default" | "muted"; bar: string }> = {
   overdue: { badge: "danger", bar: "bg-destructive" },
@@ -52,6 +53,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave 
   const isOwner = plan.isOwner ?? true;
 
   const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
+  const [coordOpen, setCoordOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [copied, setCopied] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -231,6 +233,10 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave 
           ) : null}
         </div>
 
+        <Button type="button" size="sm" variant="outline" onClick={() => setCoordOpen(true)}>
+          Fechas y lugares
+        </Button>
+
         {isOwner ? (
           isPending ? (
             <div className="flex flex-wrap gap-2">
@@ -270,6 +276,13 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave 
         )}
       </div>
 
+      <PlanCoordinationDialog
+        planId={plan.id}
+        planTitle={plan.titulo || plan.description}
+        canInvite={isOwner}
+        open={coordOpen}
+        onOpenChange={setCoordOpen}
+      />
       <ConfirmDialog
         open={openDialog === "confirm"}
         onOpenChange={(open) => {

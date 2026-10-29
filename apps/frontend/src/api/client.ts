@@ -144,4 +144,23 @@ export const api = {
   cancelPlan: (id: string) => post<{ plan: Plan }>(`/plans/${id}/cancel`),
   deletePlan: (id: string) => del<{ message: string }>(`/plans/${id}`),
   leavePlan: (id: string) => post<{ message: string }>(`/plans/${id}/leave`),
+  getCoordination: (planId: string) => request<CoordinationBoard>(`/plans/${planId}/coordination`),
+  inviteToPlan: (planId: string, email: string) =>
+    post<CoordinationBoard>(`/plans/${planId}/invite`, { email }),
+  addPlanOption: (planId: string, kind: "fecha" | "lugar", label: string) =>
+    post<CoordinationBoard>(`/plans/${planId}/options`, { kind, label }),
+  votePlanOption: (planId: string, optionId: string) =>
+    post<CoordinationBoard>(`/plans/${planId}/votes`, { optionId }),
 };
+
+export interface CoordinationBoard {
+  participants: { name: string; role: "Creador" | "Participante" }[];
+  options: {
+    id: string;
+    kind: string;
+    label: string;
+    authorName: string;
+    votes: number;
+    mine: boolean;
+  }[];
+}

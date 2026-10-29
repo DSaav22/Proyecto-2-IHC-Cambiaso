@@ -19,6 +19,8 @@ model User {
   plans               Plan[]
   joinedPlans         PlanMember[]
   activities          PlanActivity[]
+  optionsCreated      PlanOption[]
+  votes               PlanVote[]
 }
 
 model Plan {
@@ -33,6 +35,8 @@ model Plan {
   createdAt   DateTime     @default(now())
   members     PlanMember[]
   activities  PlanActivity[]
+  options     PlanOption[]
+  votes       PlanVote[]
 
   @@index([userId, dueDate])
 }
@@ -64,4 +68,32 @@ model PlanActivity {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([planId])
+}
+
+model PlanOption {
+  id        String     @id @default(uuid())
+  planId    String
+  kind      String
+  label     String
+  createdBy String
+  createdAt DateTime   @default(now())
+  plan      Plan       @relation(fields: [planId], references: [id], onDelete: Cascade)
+  author    User       @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  votes     PlanVote[]
+
+  @@index([planId])
+}
+
+model PlanVote {
+  id        String     @id @default(uuid())
+  planId    String
+  optionId  String
+  userId    String
+  createdAt DateTime   @default(now())
+  plan      Plan       @relation(fields: [planId], references: [id], onDelete: Cascade)
+  option    PlanOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, userId])
+  @@index([optionId])
 }
