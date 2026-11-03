@@ -13,9 +13,11 @@ import { createPrismaActivityStore, type ActivityStore } from "../services/activ
 import {
   addOption,
   castVote,
+  closeVoting,
   CoordinationError,
   getCoordination,
   inviteByEmail,
+  removeVote,
 } from "../services/coordination.service.js";
 import {
   type StoredPlan,
@@ -371,6 +373,45 @@ export function createPlansRouter(
       const planId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
       try {
         const board = await castVote(user.id, planId, String(req.body?.optionId ?? ""));
+        res.status(200).json(board);
+      } catch (error) {
+        if (error instanceof CoordinationError) {
+          res.status(error.status).json({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }),
+  );
+
+  router.delete(
+    "/:id/votes/:optionId",
+    wrap(async (req, res) => {
+      const user = res.locals.user as User;
+      const planId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const optionId = Array.isArray(req.params.optionId)
+        ? req.params.optionId[0]
+        : req.params.optionId;
+      try {
+        const board = await removeVote(user.id, planId, optionId);
+        res.status(200).json(board);
+      } catch (error) {
+        if (error instanceof CoordinationError) {
+          res.status(error.status).json({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }),
+  );
+
+  router.post(
+    "/:id/voting/close",
+    wrap(async (req, res) => {
+      const user = res.locals.user as User;
+      const planId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      try {
+        const board = await closeVoting(user.id, planId);
         res.status(200).json(board);
       } catch (error) {
         if (error instanceof CoordinationError) {

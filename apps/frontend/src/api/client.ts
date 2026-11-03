@@ -151,9 +151,13 @@ export const api = {
     post<CoordinationBoard>(`/plans/${planId}/options`, { kind, label }),
   votePlanOption: (planId: string, optionId: string) =>
     post<CoordinationBoard>(`/plans/${planId}/votes`, { optionId }),
+  removePlanVote: (planId: string, optionId: string) =>
+    del<CoordinationBoard>(`/plans/${planId}/votes/${optionId}`),
+  closePlanVoting: (planId: string) => post<CoordinationBoard>(`/plans/${planId}/voting/close`),
 };
 
 export interface CoordinationBoard {
+  votingClosed: boolean;
   participants: { name: string; role: "Creador" | "Participante" }[];
   options: {
     id: string;

@@ -271,10 +271,11 @@ describe("PlanCard - actions menu", () => {
     expect(await screen.findByRole("menuitem", { name: "Eliminar" })).toBeInTheDocument();
   });
 
-  it("applies dimmed styling and preserves original date on cancelled plan", () => {
+  it("applies muted styling without opacity and preserves original date on cancelled plan", () => {
     const { container } = render(<PlanCard plan={cancelled} />);
     const article = container.querySelector("article");
-    expect(article?.className).toContain("opacity-75");
+    expect(article?.className).toContain("bg-muted/20");
+    expect(article?.className).not.toContain("opacity-");
     expect(screen.getByText("24 de diciembre de 2026")).toBeInTheDocument();
   });
 

@@ -50,7 +50,15 @@ En `/mis-planes` (con sesión) la barra superior muestra la marca, el icono de p
 
 API (requiere cookie de sesión): `GET /api/plans`, `POST /api/plans`, `POST /api/plans/:id/confirm` (`200` plan confirmado, `404` no existe o no es tuyo, `409` ya estaba confirmado) y `DELETE /api/plans/:id`.
 
+### Fechas y lugares (votación)
+
+Desde el botón "Fechas y lugares" de cada tarjeta se proponen fechas o lugares y se vota. Cada persona puede votar por varias opciones y quitar su voto mientras la votación esté abierta. Quien creó el plan puede cerrar la votación; después de eso ya no se puede votar ni proponer, pero se siguen viendo los votos.
+
+API (requiere cookie de sesión): `GET /api/plans/:id/coordination`, `POST /api/plans/:id/options`, `POST /api/plans/:id/votes`, `DELETE /api/plans/:id/votes/:optionId` y `POST /api/plans/:id/voting/close`. Si la votación está cerrada responden `409`.
+
 Pruebas unitarias (Vitest): `pnpm --filter backend test` y `pnpm --filter frontend test`.
+
+Pruebas E2E (Playwright): con la app corriendo en `http://localhost:5173`, ejecuta `pnpm test:e2e` (la primera vez hay que correr `pnpm exec playwright install chromium`). Con `--ui` se puede ver el navegador. Las pruebas están en `tests/`.
 
 ## Pruebas del estado del plan
 

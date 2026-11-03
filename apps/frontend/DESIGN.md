@@ -24,7 +24,7 @@ Los valores viven en `src/tokens.css` (color, tipografía, espacio) y `src/index
 | `muted` / `muted-foreground` | `#e5f0ee` / `#46666a` | Fondos y texto de apoyo |
 | `accent` / `accent-foreground` | `#fbbf24` / `#3b2504` | Avisos de atención (p. ej. «vence hoy») |
 | `destructive` | `#be123c` | Eliminar, errores |
-| `success` | `#15803d` | Estado «Confirmado» |
+| `success` | `#166534` | Estado «Confirmado» |
 | `warning` | `#b45309` | Reservado para avisos; hoy sin uso |
 | `ink` / `ink-foreground` | `#062b30` / `#e6faf6` | Superficies oscuras y overlay de diálogos |
 | `border` / `input` / `ring` | `#d0e2df` / `#a9c5c1` / `#14b8a6` | Bordes, campos, anillo de foco |

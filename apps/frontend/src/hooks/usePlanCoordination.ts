@@ -48,5 +48,7 @@ export function usePlanCoordination(planId: string, open: boolean) {
     propose: (kind: "fecha" | "lugar", label: string) =>
       run(() => api.addPlanOption(planId, kind, label)),
     vote: (optionId: string) => run(() => api.votePlanOption(planId, optionId)),
+    unvote: (optionId: string) => run(() => api.removePlanVote(planId, optionId)),
+    closeVoting: () => run(() => api.closePlanVoting(planId)),
   };
 }

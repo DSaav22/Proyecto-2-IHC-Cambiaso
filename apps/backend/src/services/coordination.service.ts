@@ -34,11 +34,17 @@ async function requireParticipant(planId: string, userId: string) {
   return { plan, isOwner };
 }
 
+function requireOpenVote(plan: { votingClosedAt: Date | null }) {
+  if (plan.votingClosedAt) throw new CoordinationError(409, "La votación está cerrada.");
+}
+
 export async function getCoordination(userId: string, planId: string) {
   const { plan } = await requireParticipant(planId, userId);
-  const myVote = await prisma.planVote.findUnique({
-    where: { planId_userId: { planId, userId } },
+  const myVotes = await prisma.planVote.findMany({
+    where: { planId, userId },
+    select: { optionId: true },
   });
+  const votedOptionIds = new Set(myVotes.map((vote) => vote.optionId));
   const options = await prisma.planOption.findMany({
     where: { planId },
     orderBy: { createdAt: "asc" },
@@ -49,6 +55,7 @@ export async function getCoordination(userId: string, planId: string) {
   });
 
   return {
+    votingClosed: plan.votingClosedAt !== null,
     participants: [
       { name: plan.user.name, role: "Creador" as const },
       ...plan.members.map((member) => ({ name: member.user.name, role: "Participante" as const })),
@@ -59,7 +66,7 @@ export async function getCoordination(userId: string, planId: string) {
       label: option.label,
       authorName: option.author.name,
       votes: option._count.votes,
-      mine: myVote?.optionId === option.id,
+      mine: votedOptionIds.has(option.id),
     })),
   };
 }
@@ -89,7 +96,8 @@ export async function inviteByEmail(userId: string, planId: string, rawEmail: st
 }
 
 export async function addOption(userId: string, planId: string, kind: string, label: string) {
-  await requireParticipant(planId, userId);
+  const { plan } = await requireParticipant(planId, userId);
+  requireOpenVote(plan);
   const proposal = readProposal(kind, label);
   if (!proposal.ok) throw new CoordinationError(400, proposal.message);
 
@@ -104,18 +112,46 @@ export async function addOption(userId: string, planId: string, kind: string, la
   return getCoordination(userId, planId);
 }
 
-// Cada persona tiene un solo voto en el plan. Si vota otra vez, el voto se mueve.
-export async function castVote(userId: string, planId: string, optionId: string) {
-  await requireParticipant(planId, userId);
+async function requireOption(planId: string, optionId: string) {
   const option = await prisma.planOption.findFirst({
     where: { id: optionId, planId },
   });
   if (!option) throw new CoordinationError(404, "Esa opción no está en el plan.");
+}
+
+// A person can vote for several options of a plan, but only once per option.
+export async function castVote(userId: string, planId: string, optionId: string) {
+  const { plan } = await requireParticipant(planId, userId);
+  requireOpenVote(plan);
+  await requireOption(planId, optionId);
 
   await prisma.planVote.upsert({
-    where: { planId_userId: { planId, userId } },
+    where: { optionId_userId: { optionId, userId } },
     create: { planId, optionId, userId },
-    update: { optionId },
+    update: {},
+  });
+  return getCoordination(userId, planId);
+}
+
+export async function removeVote(userId: string, planId: string, optionId: string) {
+  const { plan } = await requireParticipant(planId, userId);
+  requireOpenVote(plan);
+  await requireOption(planId, optionId);
+
+  await prisma.planVote.deleteMany({ where: { optionId, userId } });
+  return getCoordination(userId, planId);
+}
+
+export async function closeVoting(userId: string, planId: string) {
+  const { plan, isOwner } = await requireParticipant(planId, userId);
+  if (!isOwner) {
+    throw new CoordinationError(403, "Solo quien creó el plan puede cerrar la votación.");
+  }
+  if (plan.votingClosedAt) throw new CoordinationError(409, "La votación ya está cerrada.");
+
+  await prisma.plan.update({
+    where: { id: planId },
+    data: { votingClosedAt: new Date() },
   });
   return getCoordination(userId, planId);
 }

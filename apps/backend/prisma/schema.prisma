@@ -8,14 +8,14 @@ datasource db {
 }
 
 model User {
-  id                  String    @id @default(uuid())
-  email               String    @unique
+  id                  String         @id @default(uuid())
+  email               String         @unique
   passwordHash        String
   name                String
   resetTokenHash      String?
   resetTokenExpiresAt DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
   plans               Plan[]
   joinedPlans         PlanMember[]
   activities          PlanActivity[]
@@ -24,19 +24,20 @@ model User {
 }
 
 model Plan {
-  id          String       @id @default(uuid())
-  titulo      String       @default("")
-  description String
-  dueDate     DateTime     @db.Date
-  estado      String       @default("pendiente")
-  shareCode   String       @unique
-  userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime     @default(now())
-  members     PlanMember[]
-  activities  PlanActivity[]
-  options     PlanOption[]
-  votes       PlanVote[]
+  id             String         @id @default(uuid())
+  titulo         String         @default("")
+  description    String
+  dueDate        DateTime       @db.Date
+  estado         String         @default("pendiente")
+  shareCode      String         @unique
+  votingClosedAt DateTime?
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+  members        PlanMember[]
+  activities     PlanActivity[]
+  options        PlanOption[]
+  votes          PlanVote[]
 
   @@index([userId, dueDate])
 }
@@ -94,6 +95,6 @@ model PlanVote {
   option    PlanOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([planId, userId])
-  @@index([optionId])
+  @@unique([optionId, userId])
+  @@index([planId, userId])
 }
