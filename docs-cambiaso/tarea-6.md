@@ -1,4 +1,4 @@
-# Tarea 6 — Pruebas E2E y varios votos
+	# Tarea 6 — Pruebas E2E y varios votos
 
 ## Qué había que hacer
 

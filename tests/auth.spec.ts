@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { login, uniqueName, usuarioUno } from "./support/planazo";
+
 test("Una persona nueva crea su cuenta, sale y vuelve a entrar", async ({ page }) => {
   const name = uniqueName("Persona E2E");
   const email = `e2e-${Date.now()}@planazo.test`;

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { createPlan, myPlans, planCard, signUpNewUser, uniqueName } from "./support/planazo";
+
 test("Encuentra su plan por nombre y por estado", async ({ page }) => {
   const wanted = uniqueName("Cena");
   const other = uniqueName("Partido");

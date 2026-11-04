@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { createPlan, planCard, signUpNewUser, successNotice, uniqueName } from "./support/planazo";
+
 test("Quien creó un plan lo confirma y después lo cancela", async ({ page }) => {
   const title = uniqueName("Plan para confirmar");
   await signUpNewUser(page);
