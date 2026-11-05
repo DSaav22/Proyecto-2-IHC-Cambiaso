@@ -244,7 +244,7 @@ describe("usePlans", () => {
         dueDate: "2026-05-01",
       });
     });
-    expect(outcome).toEqual({ ok: true });
+    expect(outcome).toEqual({ ok: true, plan: expect.objectContaining({ description: "Descripción B" }) });
     expect(result.current.plans.map((p) => p.description)).toEqual(["Descripción A", "Descripción B", "Descripción C"]);
     expect(listPlans).toHaveBeenCalledTimes(2);
   });

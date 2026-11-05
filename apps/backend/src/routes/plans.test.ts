@@ -214,7 +214,7 @@ describe("plans router", () => {
     const res = await request(app)
       .post("/api/plans")
       .set("Cookie", cookieFor("u1"))
-      .send({ titulo: "  Plan fiesta  ", description: " hola ", dueDate: "2026-01-02" });
+      .send({ titulo: "  Plan fiesta  ", description: " hola ", dueDate: "2026-12-02" });
     expect(res.status).toBe(201);
     expect(res.body.plan).toMatchObject({ titulo: "Plan fiesta", description: "hola" });
   });
@@ -254,9 +254,9 @@ describe("plans router", () => {
         .post("/api/plans")
         .set("Cookie", cookieFor("u1"))
         .send({ titulo: "Plan " + description, description, dueDate });
-    await send("late", "2026-12-01");
-    await send("early-first", "2026-03-01");
-    await send("early-second", "2026-03-01");
+    await send("late", "2026-12-10");
+    await send("early-first", "2026-12-01");
+    await send("early-second", "2026-12-01");
     const listed = await request(app).get("/api/plans").set("Cookie", cookieFor("u1"));
     expect(listed.body.plans.map((p: { description: string }) => p.description)).toEqual([
       "early-first",

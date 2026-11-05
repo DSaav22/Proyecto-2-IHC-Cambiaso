@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "./Field";
 import { TextArea } from "./TextArea";
 import { ErrorAlert } from "./Notices";
+import { localToday } from "../../lib/plans";
 
 const TITULO_MIN = 3;
 const TITULO_MAX = 100;
@@ -27,6 +28,9 @@ function validate(values: PlanInput): Errors {
     errors.description = `La descripción debe tener máximo ${DESCRIPTION_MAX} caracteres.`;
   }
   if (!values.dueDate) errors.dueDate = "Selecciona una fecha límite.";
+  else if (values.dueDate < localToday()) {
+    errors.dueDate = "La fecha límite no puede ser anterior a hoy.";
+  }
   return errors;
 }
 
@@ -106,6 +110,7 @@ export function PlanForm({
         label="Fecha límite"
         type="date"
         icon={CalendarDays}
+        min={localToday()}
         value={dueDate}
         onChange={(e) => setDueDate(e.target.value)}
         error={errors.dueDate}

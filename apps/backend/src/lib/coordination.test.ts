@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readProposal } from "./coordination.js";
+import { boliviaToday } from "./schemas.js";
 
 describe("readProposal", () => {
   it("acepta un lugar y le quita los espacios", () => {
@@ -15,6 +16,29 @@ describe("readProposal", () => {
       ok: true,
       kind: "fecha",
       label: "2026-11-08",
+    });
+  });
+
+  it("rechaza una fecha anterior a hoy", () => {
+    const result = readProposal("fecha", "2026-11-04");
+    expect(result).toEqual({
+      ok: false,
+      message: "La fecha propuesta no puede ser anterior a hoy.",
+    });
+  });
+
+  it("rechaza una fecha de calendario imposible", () => {
+    expect(readProposal("fecha", "2026-02-30")).toEqual({
+      ok: false,
+      message: "Ingresa una fecha válida.",
+    });
+  });
+
+  it("acepta la fecha actual de Bolivia", () => {
+    expect(readProposal("fecha", boliviaToday())).toEqual({
+      ok: true,
+      kind: "fecha",
+      label: boliviaToday(),
     });
   });
 

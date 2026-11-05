@@ -6,7 +6,7 @@ import { comparePlans, localToday } from "../lib/plans";
 import { useDebouncedValue } from "./useDebouncedValue";
 
 export type AddPlanResult =
-  | { ok: true }
+  | { ok: true; plan?: Plan }
   | { ok: false; message: string; fieldErrors: Record<string, string> };
 
 export type JoinPlanResult =
@@ -102,7 +102,7 @@ export function usePlans(criteria: PlanFilterCriteria = INITIAL_PLAN_FILTERS) {
       const { plan } = await api.createPlan(input);
       setPlans((current) => [...current, plan].sort(comparePlans));
       void reload();
-      return { ok: true };
+      return { ok: true, plan };
     } catch (error) {
       if (error instanceof ApiError) {
         return { ok: false, message: error.message, fieldErrors: error.fieldErrors };

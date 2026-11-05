@@ -40,6 +40,17 @@ export function isRealCalendarDate(value: string): boolean {
   );
 }
 
+const BOLIVIA_TIME_ZONE = "America/La_Paz";
+const boliviaDateFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: BOLIVIA_TIME_ZONE });
+
+export function boliviaToday(now: Date = new Date()): string {
+  return boliviaDateFormatter.format(now);
+}
+
+function isTodayOrFuture(value: string): boolean {
+  return value >= boliviaToday();
+}
+
 export { PLAN_STATES as planStatusValues, type PlanState as PlanStatus } from "./planState.js";
 
 export const planSchema = z.object({
@@ -55,7 +66,8 @@ export const planSchema = z.object({
     .max(500, "La descripción debe tener máximo 500 caracteres"),
   dueDate: z
     .string("La fecha límite es obligatoria")
-    .refine(isRealCalendarDate, "Ingresa una fecha válida"),
+    .refine(isRealCalendarDate, "Ingresa una fecha válida")
+    .refine(isTodayOrFuture, "La fecha límite no puede ser anterior a hoy"),
 });
 
 export type PlanInput = z.infer<typeof planSchema>;

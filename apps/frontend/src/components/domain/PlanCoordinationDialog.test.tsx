@@ -79,6 +79,29 @@ describe("PlanCoordinationDialog", () => {
     expect(screen.getByRole("button", { name: "Quitar voto de Lugar: Casa de Ana" })).toBeInTheDocument();
   });
 
+  it("shows dates and places in separate sections", async () => {
+    getCoordination.mockResolvedValue({
+      ...board(noVotes),
+      options: [
+        {
+          id: "date",
+          kind: "fecha",
+          label: "2026-11-08",
+          authorName: "Usuario Uno",
+          votes: 0,
+          mine: false,
+        },
+        ...board(noVotes).options,
+      ],
+    });
+    renderDialog();
+
+    expect(await screen.findByRole("heading", { name: "Fechas" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Lugares" })).toBeInTheDocument();
+    expect(screen.getByText("Fecha: 8 de noviembre de 2026")).toBeInTheDocument();
+    expect(screen.getByText("Lugar: Parque central")).toBeInTheDocument();
+  });
+
   it("removes a vote and shows the new count", async () => {
     const user = userEvent.setup();
     getCoordination.mockResolvedValue(board({ park: [2, true], house: [0, false] }));

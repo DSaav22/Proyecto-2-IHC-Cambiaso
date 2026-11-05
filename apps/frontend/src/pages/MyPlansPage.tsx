@@ -22,6 +22,7 @@ import {
   type PlanFilterCriteria,
 } from "../lib/planFilters";
 import { getDueStatus } from "../lib/plans";
+import { PlanCoordinationDialog } from "../components/domain/PlanCoordinationDialog";
 
 export default function MyPlansPage() {
   const { user } = useAuth();
@@ -50,6 +51,8 @@ export default function MyPlansPage() {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [newPlanForCoordination, setNewPlanForCoordination] = useState<Plan | null>(null);
+  const [coordinationPlan, setCoordinationPlan] = useState<Plan | null>(null);
 
   // Scroll to targeted plan when navigating via hash (e.g. from activity history)
   useEffect(() => {
@@ -89,9 +92,10 @@ export default function MyPlansPage() {
       return result;
     }
     const result = await addPlan(input);
-    if (result.ok) {
+    if (result.ok && result.plan) {
       setDialogOpen(false);
       setNotice("Plan creado correctamente.");
+      setNewPlanForCoordination(result.plan);
     }
     return result;
   }
@@ -202,6 +206,23 @@ export default function MyPlansPage() {
           <SuccessNotice onClose={() => setNotice(null)}>{notice}</SuccessNotice>
         </div>
       ) : null}
+      {newPlanForCoordination ? (
+        <div className="rounded-lg border border-secondary bg-secondary/60 px-4 py-3 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p>
+              <span className="font-semibold">Plan creado correctamente.</span>{" "}
+              Ahora puedes agregar fechas y lugares para que el grupo vote.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setCoordinationPlan(newPlanForCoordination)}
+            >
+              Agregar opciones
+            </Button>
+          </div>
+        </div>
+      ) : null}
       <ErrorAlert message={loadError || actionError} />
       {loadError ? (
         <div>
@@ -272,6 +293,15 @@ export default function MyPlansPage() {
         }}
         initialData={editingPlan}
         onSubmit={handleSubmit}
+      />
+      <PlanCoordinationDialog
+        planId={coordinationPlan?.id ?? ""}
+        planTitle={coordinationPlan?.titulo ?? ""}
+        isOwner
+        open={coordinationPlan !== null}
+        onOpenChange={(open) => {
+          if (!open) setCoordinationPlan(null);
+        }}
       />
 
       <JoinPlanDialog

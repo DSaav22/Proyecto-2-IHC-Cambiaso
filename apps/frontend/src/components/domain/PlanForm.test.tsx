@@ -53,6 +53,18 @@ describe("PlanForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it("rejects a past due date on the client", async () => {
+    const onSubmit = vi.fn();
+    render(<PlanForm onSubmit={onSubmit} onCancel={() => {}} />);
+    await userEvent.type(screen.getByLabelText("Título"), "Cumpleaños");
+    await userEvent.type(screen.getByLabelText("Descripción"), "Cena");
+    await userEvent.type(screen.getByLabelText("Fecha límite"), "2026-11-04");
+    await userEvent.click(screen.getByRole("button", { name: "Crear plan" }));
+
+    expect(screen.getByText("La fecha límite no puede ser anterior a hoy.")).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("submits trimmed titulo, description and due date when valid", async () => {
     const onSubmit = vi.fn().mockResolvedValue(ok);
     render(<PlanForm onSubmit={onSubmit} onCancel={() => {}} />);

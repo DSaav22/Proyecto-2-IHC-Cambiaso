@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   PLAN_DATE_FILTERS,
   fieldErrors,
+  boliviaToday,
   isRealCalendarDate,
   planListQuerySchema,
   planSchema,
@@ -76,9 +77,13 @@ describe("planSchema", () => {
     }
   });
 
-  it("accepts a leap-day and past dates", () => {
+  it("accepts a leap-day and rejects past dates", () => {
     expect(planSchema.safeParse({ ...valid, dueDate: "2028-02-29" }).success).toBe(true);
-    expect(planSchema.safeParse({ ...valid, dueDate: "2001-01-01" }).success).toBe(true);
+    expect(planSchema.safeParse({ ...valid, dueDate: "2001-01-01" }).success).toBe(false);
+  });
+
+  it("accepts the current Bolivia calendar date", () => {
+    expect(planSchema.safeParse({ ...valid, dueDate: boliviaToday() }).success).toBe(true);
   });
 
   it("rejects missing fields", () => {

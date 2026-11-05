@@ -113,6 +113,7 @@ describe("MyPlansPage", () => {
     expect(await screen.findByRole("article")).toHaveTextContent("Cena de grupo");
     expect(screen.getByText("24 de diciembre de 2026")).toBeInTheDocument();
     expect(statusText()).toContain("Plan creado");
+    expect(screen.getByRole("button", { name: "Agregar opciones" })).toBeInTheDocument();
     expect(screen.queryByLabelText("ID del plan")).not.toBeInTheDocument();
     expect(createPlan).toHaveBeenCalledWith({
       titulo: "Cena de grupo",
@@ -573,4 +574,3 @@ describe("MyPlansPage", () => {
     });
   });
 });
-

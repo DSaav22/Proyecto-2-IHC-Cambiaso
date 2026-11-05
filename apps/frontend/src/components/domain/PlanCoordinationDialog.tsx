@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { usePlanCoordination } from "../../hooks/usePlanCoordination";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { localToday } from "../../lib/plans";
 
 interface PlanCoordinationDialogProps {
   planId: string;
@@ -52,9 +53,9 @@ export function PlanCoordinationDialog({
     if (result.ok) setEmail("");
   }
 
-  async function onPropose(event: React.FormEvent) {
+  async function onPropose(event: React.FormEvent, proposalKind: "fecha" | "lugar") {
     event.preventDefault();
-    const result = await propose(kind, label);
+    const result = await propose(proposalKind, label);
     if (result.ok) setLabel("");
   }
 
@@ -121,8 +122,13 @@ export function PlanCoordinationDialog({
               )}
             </section>
 
-            <section className="grid gap-2">
-              <h3 className="text-sm font-semibold">Propuestas</h3>
+            <section className="grid gap-4">
+              <div>
+                <h3 className="text-sm font-semibold">Opciones para coordinar</h3>
+                <p className="text-xs text-muted-foreground">
+                  Las fechas y los lugares se votan por separado.
+                </p>
+              </div>
 
               {votingClosed ? (
                 <p
@@ -132,78 +138,100 @@ export function PlanCoordinationDialog({
                   <Lock aria-hidden="true" className="size-4 shrink-0" />
                   La votación está cerrada.
                 </p>
-              ) : (
-                <form onSubmit={onPropose} className="flex flex-wrap items-end gap-2">
-                  <div className="grid gap-1">
-                    <Label htmlFor="option-kind">Tipo</Label>
-                    <select
-                      id="option-kind"
-                      value={kind}
-                      onChange={(event) => {
-                        setKind(event.target.value === "lugar" ? "lugar" : "fecha");
-                        setLabel("");
-                      }}
-                      className="h-11 rounded-lg border border-input bg-card px-3 text-sm"
-                    >
-                      <option value="fecha">Fecha</option>
-                      <option value="lugar">Lugar</option>
-                    </select>
-                  </div>
-                  <div className="grid min-w-40 flex-1 gap-1">
-                    <Label htmlFor="option-label">{kind === "fecha" ? "Fecha" : "Lugar"}</Label>
-                    <Input
-                      id="option-label"
-                      type={kind === "fecha" ? "date" : "text"}
-                      value={label}
-                      placeholder={kind === "lugar" ? "Parque central" : undefined}
-                      onChange={(event) => setLabel(event.target.value)}
-                    />
-                  </div>
-                  <Button type="submit" size="sm" disabled={pending}>
-                    Proponer
-                  </Button>
-                </form>
-              )}
+              ) : null}
 
-              {board.options.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Todavía no hay propuestas.</p>
-              ) : (
-                <ul className="grid gap-2">
-                  {board.options.map((option) => {
-                    const optionText = `${option.kind === "fecha" ? "Fecha" : "Lugar"}: ${showOption(option.kind, option.label)}`;
-                    return (
-                      <li
-                        key={option.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2"
+              {(["fecha", "lugar"] as const).map((sectionKind) => {
+                const sectionOptions = board.options.filter((option) => option.kind === sectionKind);
+                const isDateSection = sectionKind === "fecha";
+                const inputId = isDateSection ? "option-date" : "option-place";
+                return (
+                  <section key={sectionKind} className="grid gap-2 rounded-lg border border-border/70 p-3">
+                    <div>
+                      <h4 className="font-semibold">{isDateSection ? "Fechas" : "Lugares"}</h4>
+                      <p className="text-xs text-muted-foreground">
+                        {isDateSection
+                          ? "Propón días desde hoy para que el grupo los vote."
+                          : "Propón lugares para que el grupo los vote."}
+                      </p>
+                    </div>
+
+                    {!votingClosed ? (
+                      <form
+                        onSubmit={(event) => {
+                          setKind(sectionKind);
+                          void onPropose(event, sectionKind);
+                        }}
+                        className="flex flex-wrap items-end gap-2"
                       >
-                        <div className="text-sm">
-                          <p className="font-medium">{optionText}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {option.authorName} · {option.votes} {option.votes === 1 ? "voto" : "votos"}
-                            {option.mine ? " · Votaste esta opción" : ""}
-                          </p>
+                        <div className="grid min-w-40 flex-1 gap-1">
+                          <Label htmlFor={inputId}>{isDateSection ? "Fecha" : "Lugar"}</Label>
+                          <Input
+                            id={inputId}
+                            type={isDateSection ? "date" : "text"}
+                            min={isDateSection ? localToday() : undefined}
+                            value={kind === sectionKind ? label : ""}
+                            placeholder={!isDateSection ? "Parque central" : undefined}
+                            onChange={(event) => {
+                              setKind(sectionKind);
+                              setLabel(event.target.value);
+                            }}
+                          />
                         </div>
-                        {votingClosed ? null : (
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="min-h-11"
-                            variant={option.mine ? "secondary" : "outline"}
-                            aria-pressed={option.mine}
-                            aria-label={
-                              option.mine ? `Quitar voto de ${optionText}` : `Votar por ${optionText}`
-                            }
-                            disabled={pending}
-                            onClick={() => void (option.mine ? unvote(option.id) : vote(option.id))}
-                          >
-                            {option.mine ? "Quitar voto" : "Votar"}
-                          </Button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+                        <Button type="submit" size="sm" disabled={pending}>
+                          Proponer
+                        </Button>
+                      </form>
+                    ) : null}
+
+                    {sectionOptions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Todavía no hay {isDateSection ? "fechas" : "lugares"} propuestos.
+                      </p>
+                    ) : (
+                      <ul className="grid gap-2">
+                        {sectionOptions.map((option) => {
+                          const optionText = `${isDateSection ? "Fecha" : "Lugar"}: ${showOption(option.kind, option.label)}`;
+                          return (
+                            <li
+                              key={option.id}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2"
+                            >
+                              <div className="text-sm">
+                                <p className="font-medium">{optionText}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {option.authorName} · {option.votes}{" "}
+                                  {option.votes === 1 ? "voto" : "votos"}
+                                  {option.mine ? " · Votaste esta opción" : ""}
+                                </p>
+                              </div>
+                              {!votingClosed ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="min-h-11"
+                                  variant={option.mine ? "secondary" : "outline"}
+                                  aria-pressed={option.mine}
+                                  aria-label={
+                                    option.mine
+                                      ? `Quitar voto de ${optionText}`
+                                      : `Votar por ${optionText}`
+                                  }
+                                  disabled={pending}
+                                  onClick={() =>
+                                    void (option.mine ? unvote(option.id) : vote(option.id))
+                                  }
+                                >
+                                  {option.mine ? "Quitar voto" : "Votar"}
+                                </Button>
+                              ) : null}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </section>
+                );
+              })}
 
               {isOwner && !votingClosed ? (
                 <div className="flex justify-end">

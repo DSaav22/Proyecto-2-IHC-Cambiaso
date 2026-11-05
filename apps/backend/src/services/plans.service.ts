@@ -12,7 +12,7 @@ import {
   type PlanState,
 } from "../lib/planState.js";
 import { recordActivity } from "./activity.service.js";
-import type { PlanDateFilter, PlanInput } from "../lib/schemas.js";
+import { boliviaToday, type PlanDateFilter, type PlanInput } from "../lib/schemas.js";
 
 export class PlanNotFoundError extends Error {
   constructor(message = "Plan no encontrado con este código") {
@@ -73,14 +73,7 @@ export function toUtcDate(ymd: string): Date {
   return new Date(`${ymd}T00:00:00.000Z`);
 }
 
-const BOLIVIA_TIME_ZONE = "America/La_Paz";
-// `en-CA` formats dates as YYYY-MM-DD.
-const boliviaDateFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: BOLIVIA_TIME_ZONE });
-
-/** Current calendar date in Bolivia (UTC-4, no DST) as `YYYY-MM-DD`. */
-export function boliviaToday(now: Date = new Date()): string {
-  return boliviaDateFormatter.format(now);
-}
+export { boliviaToday };
 
 /**
  * Prisma passes `contains` to PostgreSQL `LIKE`/`ILIKE` without escaping, so `%` and `_` act as

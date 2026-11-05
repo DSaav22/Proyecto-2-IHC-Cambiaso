@@ -1,3 +1,5 @@
+import { boliviaToday, isRealCalendarDate } from "./schemas.js";
+
 export type OptionKind = "fecha" | "lugar";
 
 export type Proposal =
@@ -15,6 +17,12 @@ export function readProposal(kind: string, label: string): Proposal {
   }
   if (text.length > 120) {
     return { ok: false, message: "Usa como máximo 120 caracteres." };
+  }
+  if (kind === "fecha") {
+    if (!isRealCalendarDate(text)) return { ok: false, message: "Ingresa una fecha válida." };
+    if (text < boliviaToday()) {
+      return { ok: false, message: "La fecha propuesta no puede ser anterior a hoy." };
+    }
   }
   return { ok: true, kind, label: text };
 }
