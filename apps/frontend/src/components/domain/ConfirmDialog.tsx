@@ -42,8 +42,10 @@ export function ConfirmDialog({
             <AlertDialog.Title className="font-display text-2xl font-bold leading-tight">
               {title}
             </AlertDialog.Title>
-            <AlertDialog.Description className="text-sm text-muted-foreground">
+            <AlertDialog.Description asChild>
+              <div className="text-sm text-muted-foreground">
               {description}
+              </div>
             </AlertDialog.Description>
           </div>
           {error ? (

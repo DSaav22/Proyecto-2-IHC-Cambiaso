@@ -39,13 +39,23 @@ export function PlanCoordinationDialog({
   open,
   onOpenChange,
 }: PlanCoordinationDialogProps) {
-  const { board, loading, error, pending, invite, propose, vote, unvote, closeVoting } =
+  const { board, loading, error, pending, invite, propose, vote, unvote, decideVoting } =
     usePlanCoordination(planId, open);
   const [email, setEmail] = useState("");
   const [kind, setKind] = useState<"fecha" | "lugar">("fecha");
   const [label, setLabel] = useState("");
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [closeError, setCloseError] = useState<string | null>(null);
+  const [dateChoice, setDateChoice] = useState("");
+  const [placeChoice, setPlaceChoice] = useState("");
+  const [decisionReason, setDecisionReason] = useState("");
+
+  function leaders(kind: "fecha" | "lugar") {
+    const options = board?.options.filter((option) => option.kind === kind) ?? [];
+    if (options.length === 0) return [];
+    const maxVotes = Math.max(...options.map((option) => option.votes));
+    return options.filter((option) => option.votes === maxVotes);
+  }
 
   async function onInvite(event: React.FormEvent) {
     event.preventDefault();
@@ -59,14 +69,27 @@ export function PlanCoordinationDialog({
     if (result.ok) setLabel("");
   }
 
-  async function onCloseVoting() {
+  async function onDecideVoting() {
     setCloseError(null);
-    const result = await closeVoting();
+    const dateLeaders = leaders("fecha");
+    const placeLeaders = leaders("lugar");
+    const hasTie = dateLeaders.length > 1 || placeLeaders.length > 1;
+    if (hasTie && !decisionReason.trim()) {
+      setCloseError("Escribe un motivo para resolver el empate.");
+      return;
+    }
+    const result = await decideVoting({
+      dateOptionId: dateLeaders.length === 1 ? dateLeaders[0].id : dateChoice || undefined,
+      placeOptionId: placeLeaders.length === 1 ? placeLeaders[0].id : placeChoice || undefined,
+      reason: decisionReason,
+    });
     if (result.ok) setConfirmCloseOpen(false);
     else setCloseError(result.message);
   }
 
+  const decision = board?.decision ?? null;
   const votingClosed = board?.votingClosed ?? false;
+  const legacyClosed = votingClosed && !decision;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,7 +153,7 @@ export function PlanCoordinationDialog({
                 </p>
               </div>
 
-              {votingClosed ? (
+              {votingClosed && !legacyClosed ? (
                 <p
                   role="status"
                   className="flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/15 px-3 py-2 text-sm font-medium"
@@ -138,6 +161,43 @@ export function PlanCoordinationDialog({
                   <Lock aria-hidden="true" className="size-4 shrink-0" />
                   La votación está cerrada.
                 </p>
+              ) : null}
+              {legacyClosed ? (
+                <p
+                  role="status"
+                  className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm font-medium"
+                >
+                  Esta votación se cerró sin confirmar el plan. Selecciona los resultados para
+                  completar la confirmación.
+                </p>
+              ) : null}
+
+              {decision ? (
+                <section className="grid gap-2 rounded-lg border border-success/30 bg-success/5 p-3">
+                  <h3 className="font-semibold">Resultado confirmado</h3>
+                  {decision.dateOption ? (
+                    <p className="text-sm">
+                      <span className="font-semibold">Fecha elegida:</span>{" "}
+                      {showOption("fecha", decision.dateOption.label)}
+                    </p>
+                  ) : null}
+                  {decision.placeOption ? (
+                    <p className="text-sm">
+                      <span className="font-semibold">Lugar elegido:</span>{" "}
+                      {decision.placeOption.label}
+                    </p>
+                  ) : null}
+                  {decision.decidedBy ? (
+                    <p className="text-sm text-muted-foreground">
+                      Decidió {decision.decidedBy.name}
+                    </p>
+                  ) : null}
+                  {decision.reason ? (
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-semibold">Motivo:</span> {decision.reason}
+                    </p>
+                  ) : null}
+                </section>
               ) : null}
 
               {(["fecha", "lugar"] as const).map((sectionKind) => {
@@ -155,7 +215,7 @@ export function PlanCoordinationDialog({
                       </p>
                     </div>
 
-                    {!votingClosed ? (
+                    {!votingClosed && !decision ? (
                       <form
                         onSubmit={(event) => {
                           setKind(sectionKind);
@@ -204,7 +264,7 @@ export function PlanCoordinationDialog({
                                   {option.mine ? " · Votaste esta opción" : ""}
                                 </p>
                               </div>
-                              {!votingClosed ? (
+                              {!votingClosed && !decision ? (
                                 <Button
                                   type="button"
                                   size="sm"
@@ -233,7 +293,7 @@ export function PlanCoordinationDialog({
                 );
               })}
 
-              {isOwner && !votingClosed ? (
+              {isOwner && !decision && (!votingClosed || legacyClosed) ? (
                 <div className="flex justify-end">
                   <Button
                     type="button"
@@ -247,7 +307,7 @@ export function PlanCoordinationDialog({
                     }}
                   >
                     <Lock aria-hidden="true" />
-                    Cerrar votación
+                    {legacyClosed ? "Confirmar plan" : "Cerrar votación y confirmar plan"}
                   </Button>
                 </div>
               ) : null}
@@ -260,13 +320,66 @@ export function PlanCoordinationDialog({
           onOpenChange={(next) => {
             if (!pending) setConfirmCloseOpen(next);
           }}
-          title="¿Cerrar la votación?"
-          description="Nadie podrá votar, quitar votos ni proponer opciones nuevas. Esta acción no se puede deshacer."
-          confirmLabel="Cerrar votación"
-          pendingLabel="Cerrando…"
+          title="¿Confirmar el plan?"
+          description={
+            <div className="grid gap-3">
+              <p>
+                La votación se cerrará y el plan pasará a confirmado. Esta acción no se puede
+                deshacer.
+              </p>
+              {leaders("fecha").length > 1 ? (
+                <label className="grid gap-1 text-sm font-medium">
+                  Fecha ganadora
+                  <select
+                    value={dateChoice}
+                    onChange={(event) => setDateChoice(event.target.value)}
+                    className="h-11 rounded-lg border border-input bg-card px-3 font-normal"
+                  >
+                    <option value="">Elige una fecha empatada</option>
+                    {leaders("fecha").map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {showOption("fecha", option.label)} ({option.votes} votos)
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              {leaders("lugar").length > 1 ? (
+                <label className="grid gap-1 text-sm font-medium">
+                  Lugar ganador
+                  <select
+                    value={placeChoice}
+                    onChange={(event) => setPlaceChoice(event.target.value)}
+                    className="h-11 rounded-lg border border-input bg-card px-3 font-normal"
+                  >
+                    <option value="">Elige un lugar empatado</option>
+                    {leaders("lugar").map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label} ({option.votes} votos)
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              {leaders("fecha").length > 1 || leaders("lugar").length > 1 ? (
+                <label className="grid gap-1 text-sm font-medium">
+                  Motivo del desempate
+                  <textarea
+                    value={decisionReason}
+                    onChange={(event) => setDecisionReason(event.target.value)}
+                    rows={3}
+                    className="rounded-lg border border-input bg-card px-3 py-2 font-normal"
+                    placeholder="Explica por qué eliges esta opción"
+                  />
+                </label>
+              ) : null}
+            </div>
+          }
+          confirmLabel="Confirmar plan"
+          pendingLabel="Confirmando…"
           pending={pending}
           error={closeError}
-          onConfirm={() => void onCloseVoting()}
+          onConfirm={() => void onDecideVoting()}
         />
       </DialogContent>
     </Dialog>

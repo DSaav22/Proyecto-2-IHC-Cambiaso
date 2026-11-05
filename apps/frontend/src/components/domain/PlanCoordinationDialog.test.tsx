@@ -12,7 +12,7 @@ vi.mock("../../api/client", async (importOriginal) => {
       getCoordination: vi.fn(),
       votePlanOption: vi.fn(),
       removePlanVote: vi.fn(),
-      closePlanVoting: vi.fn(),
+      decidePlanVoting: vi.fn(),
       addPlanOption: vi.fn(),
       inviteToPlan: vi.fn(),
     },
@@ -22,7 +22,7 @@ vi.mock("../../api/client", async (importOriginal) => {
 const getCoordination = vi.mocked(api.getCoordination);
 const votePlanOption = vi.mocked(api.votePlanOption);
 const removePlanVote = vi.mocked(api.removePlanVote);
-const closePlanVoting = vi.mocked(api.closePlanVoting);
+const decidePlanVoting = vi.mocked(api.decidePlanVoting);
 
 type Votes = { park: [number, boolean]; house: [number, boolean] };
 
@@ -116,36 +116,88 @@ describe("PlanCoordinationDialog", () => {
     expect(screen.getByRole("button", { name: "Votar por Lugar: Parque central" })).toBeInTheDocument();
   });
 
-  it("lets the creator close the vote after confirming", async () => {
+  it("lets the creator confirm the plan after reviewing the vote", async () => {
     const user = userEvent.setup();
-    closePlanVoting.mockResolvedValue(board({ park: [1, true], house: [0, false] }, true));
+    decidePlanVoting.mockResolvedValue({
+      ...board({ park: [1, true], house: [0, false] }, true),
+      decision: {
+        dateOption: null,
+        placeOption: { id: "park", label: "Parque central" },
+        reason: null,
+        decidedAt: "2026-11-05T12:00:00.000Z",
+        decidedBy: { id: "owner-1", name: "Usuario Uno" },
+      },
+    });
+    getCoordination.mockResolvedValue(board({ park: [1, false], house: [0, false] }));
     renderDialog(true);
 
-    await user.click(await screen.findByRole("button", { name: "Cerrar votación" }));
-    const confirm = await screen.findByRole("alertdialog", { name: "¿Cerrar la votación?" });
-    await user.click(within(confirm).getByRole("button", { name: "Cerrar votación" }));
+    await user.click(await screen.findByRole("button", { name: "Cerrar votación y confirmar plan" }));
+    const confirm = await screen.findByRole("alertdialog", { name: "¿Confirmar el plan?" });
+    await user.click(within(confirm).getByRole("button", { name: "Confirmar plan" }));
 
-    expect(closePlanVoting).toHaveBeenCalledWith("plan-1");
+    expect(decidePlanVoting).toHaveBeenCalledWith("plan-1", {
+      dateOptionId: undefined,
+      placeOptionId: "park",
+      reason: "",
+    });
     expect(await screen.findByText("La votación está cerrada.")).toBeInTheDocument();
+    expect(screen.getByText("Resultado confirmado")).toBeInTheDocument();
+    const result = screen.getByText("Resultado confirmado").closest("section")!;
+    expect(within(result).getByText("Parque central")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^(Votar|Quitar voto)/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Proponer" })).not.toBeInTheDocument();
   });
 
-  it("keeps the counts but offers no controls when the vote is closed", async () => {
+  it("requires a selected winner and reason for a tie", async () => {
+    const user = userEvent.setup();
+    getCoordination.mockResolvedValue({
+      ...board(noVotes),
+      options: [
+        { id: "park", kind: "lugar", label: "Parque central", authorName: "Usuario Uno", votes: 1, mine: false },
+        { id: "house", kind: "lugar", label: "Casa de Ana", authorName: "Usuario Dos", votes: 1, mine: false },
+      ],
+    });
+    renderDialog(true);
+
+    await user.click(await screen.findByRole("button", { name: "Cerrar votación y confirmar plan" }));
+    const confirm = await screen.findByRole("alertdialog", { name: "¿Confirmar el plan?" });
+    await user.click(within(confirm).getByRole("button", { name: "Confirmar plan" }));
+    expect(await within(confirm).findByRole("alert")).toHaveTextContent(
+      "Escribe un motivo para resolver el empate.",
+    );
+    expect(decidePlanVoting).not.toHaveBeenCalled();
+  });
+
+  it("shows a server error when confirming the plan fails", async () => {
+    const user = userEvent.setup();
+    decidePlanVoting.mockRejectedValue(new ApiError(409, "La votación ya está cerrada."));
+    getCoordination.mockResolvedValue(board({ park: [1, false], house: [0, false] }));
+    renderDialog(true);
+
+    await user.click(await screen.findByRole("button", { name: "Cerrar votación y confirmar plan" }));
+    const confirm = await screen.findByRole("alertdialog", { name: "¿Confirmar el plan?" });
+    await user.click(within(confirm).getByRole("button", { name: "Confirmar plan" }));
+
+    expect(await within(confirm).findByRole("alert")).toHaveTextContent("La votación ya está cerrada.");
+  });
+
+  it("keeps the counts but offers no voting controls when the vote is closed", async () => {
     getCoordination.mockResolvedValue(board({ park: [2, true], house: [1, false] }, true));
     renderDialog(false);
 
-    expect(await screen.findByText("La votación está cerrada.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Esta votación se cerró sin confirmar el plan. Selecciona los resultados para completar la confirmación."),
+    ).toBeInTheDocument();
     const park = screen.getByText("Lugar: Parque central").closest("li")!;
     expect(within(park).getByText(/2 votos/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^(Votar|Quitar voto)/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Cerrar votación" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cerrar votación y confirmar plan" })).not.toBeInTheDocument();
   });
 
   it("does not offer closing the vote to a member", async () => {
     renderDialog(false);
     expect(await screen.findByRole("button", { name: "Votar por Lugar: Parque central" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Cerrar votación" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cerrar votación y confirmar plan" })).not.toBeInTheDocument();
   });
 
   it("shows the server message when the vote closed in the meantime", async () => {

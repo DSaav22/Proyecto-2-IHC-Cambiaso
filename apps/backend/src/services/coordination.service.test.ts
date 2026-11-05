@@ -8,11 +8,13 @@ const optionCreate = vi.hoisted(() => vi.fn());
 const voteFindMany = vi.hoisted(() => vi.fn());
 const voteUpsert = vi.hoisted(() => vi.fn());
 const voteDeleteMany = vi.hoisted(() => vi.fn());
+const transaction = vi.hoisted(() => vi.fn());
 vi.mock("../lib/prisma.js", () => ({
   prisma: {
     plan: { findUnique: planFindUnique, update: planUpdate },
     planOption: { findMany: optionFindMany, findFirst: optionFindFirst, create: optionCreate },
     planVote: { findMany: voteFindMany, upsert: voteUpsert, deleteMany: voteDeleteMany },
+    $transaction: transaction,
   },
 }));
 
@@ -21,6 +23,7 @@ import {
   castVote,
   closeVoting,
   CoordinationError,
+  decideVoting,
   getCoordination,
   removeVote,
 } from "./coordination.service.js";
@@ -34,6 +37,11 @@ function storedPlan({ closed = false } = {}) {
     id: PLAN,
     userId: OWNER,
     votingClosedAt: closed ? new Date("2026-11-03T19:00:00.000Z") : null,
+    decidedAt: null,
+    decisionReason: null,
+    winningDateOption: null,
+    winningPlaceOption: null,
+    decisionMaker: null,
     user: { id: OWNER, name: "Usuario Uno" },
     members: [{ userId: MEMBER, user: { id: MEMBER, name: "Usuario Dos" } }],
   };
@@ -61,6 +69,9 @@ beforeEach(() => {
   optionFindFirst.mockResolvedValue({ id: "opt-1", planId: PLAN });
   optionFindMany.mockResolvedValue([]);
   voteFindMany.mockResolvedValue([]);
+  transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) =>
+    callback({ plan: { update: planUpdate } }),
+  );
 });
 
 describe("getCoordination", () => {
@@ -132,12 +143,13 @@ describe("removeVote", () => {
 });
 
 describe("closeVoting", () => {
-  it("lets the creator close the vote", async () => {
-    await closeVoting(OWNER, PLAN);
-    expect(planUpdate).toHaveBeenCalledWith({
-      where: { id: PLAN },
-      data: { votingClosedAt: expect.any(Date) },
-    });
+  it("requires the creator to use the decision flow", async () => {
+    await expectCoordinationError(
+      closeVoting(OWNER, PLAN),
+      409,
+      "La votación debe cerrarse al confirmar el plan y seleccionar sus resultados.",
+    );
+    expect(planUpdate).not.toHaveBeenCalled();
   });
 
   it("does not let a member close the vote", async () => {
@@ -149,11 +161,6 @@ describe("closeVoting", () => {
     expect(planUpdate).not.toHaveBeenCalled();
   });
 
-  it("rejects closing a vote twice", async () => {
-    planFindUnique.mockResolvedValue(storedPlan({ closed: true }));
-    await expectCoordinationError(closeVoting(OWNER, PLAN), 409, "La votación ya está cerrada.");
-    expect(planUpdate).not.toHaveBeenCalled();
-  });
 });
 
 describe("addOption", () => {
@@ -165,5 +172,147 @@ describe("addOption", () => {
       "La votación está cerrada.",
     );
     expect(optionCreate).not.toHaveBeenCalled();
+  });
+
+  describe("decideVoting", () => {
+    it("persists the unique leader for each category", async () => {
+      const date = {
+        id: "date-1",
+        kind: "fecha",
+        label: "2026-11-08",
+        author: { name: "Usuario Uno" },
+        _count: { votes: 3 },
+      };
+      const place = storedOption("place-1", "Parque central", 2);
+      optionFindMany
+        .mockResolvedValueOnce([date, place])
+        .mockResolvedValueOnce([date, place]);
+      planFindUnique.mockResolvedValueOnce(storedPlan()).mockResolvedValueOnce({
+        ...storedPlan(),
+        decidedAt: new Date("2026-11-05T12:00:00.000Z"),
+        winningDateOption: { id: date.id, label: date.label },
+        winningPlaceOption: { id: place.id, label: place.label },
+        decisionMaker: { id: OWNER, name: "Usuario Uno" },
+      });
+
+      await decideVoting(OWNER, PLAN, {});
+
+      expect(planUpdate).toHaveBeenCalledWith({
+        where: { id: PLAN },
+        data: expect.objectContaining({
+          winningDateOptionId: "date-1",
+          winningPlaceOptionId: "place-1",
+          votingClosedAt: expect.any(Date),
+          estado: "confirmado",
+        }),
+      });
+    });
+
+    it("requires a winner when a category is tied", async () => {
+      optionFindMany.mockResolvedValue([
+        storedOption("place-1", "Parque central", 1),
+        storedOption("place-2", "Casa de Ana", 1),
+      ]);
+
+      await expectCoordinationError(
+        decideVoting(OWNER, PLAN, {}),
+        409,
+        "Hay un empate en Lugares. Elige una opción.",
+      );
+      expect(transaction).not.toHaveBeenCalled();
+    });
+
+    it("requires a reason to resolve a tie", async () => {
+      optionFindMany.mockResolvedValue([
+        storedOption("place-1", "Parque central", 1),
+        storedOption("place-2", "Casa de Ana", 1),
+      ]);
+
+      await expectCoordinationError(
+        decideVoting(OWNER, PLAN, { placeOptionId: "place-1" }),
+        400,
+        "Escribe un motivo para resolver el empate.",
+      );
+      expect(transaction).not.toHaveBeenCalled();
+    });
+
+    it("rejects a non-owner decision", async () => {
+      await expectCoordinationError(
+        decideVoting(MEMBER, PLAN, {}),
+        403,
+        "Solo quien creó el plan puede confirmar la votación.",
+      );
+      expect(optionFindMany).not.toHaveBeenCalled();
+    });
+
+    it("rejects a decision after the vote is closed", async () => {
+      planFindUnique.mockResolvedValue({
+        ...storedPlan({ closed: true }),
+        decidedAt: new Date("2026-11-05T12:00:00.000Z"),
+      });
+
+      await expectCoordinationError(
+        decideVoting(OWNER, PLAN, {}),
+        409,
+        "El plan ya fue confirmado.",
+      );
+      expect(optionFindMany).not.toHaveBeenCalled();
+    });
+
+    it("rejects a selected option that is not a leader", async () => {
+      optionFindMany.mockResolvedValue([
+        storedOption("place-1", "Parque central", 2),
+        storedOption("place-2", "Casa de Ana", 1),
+      ]);
+
+      await expectCoordinationError(
+        decideVoting(OWNER, PLAN, { placeOptionId: "place-2" }),
+        400,
+        "La opción elegida no está entre las líderes de Lugares.",
+      );
+      expect(transaction).not.toHaveBeenCalled();
+    });
+
+    it("allows an empty category while selecting the available category", async () => {
+      optionFindMany
+        .mockResolvedValueOnce([storedOption("place-1", "Parque central", 1)])
+        .mockResolvedValueOnce([storedOption("place-1", "Parque central", 1)]);
+      planFindUnique.mockResolvedValueOnce(storedPlan()).mockResolvedValueOnce(storedPlan());
+
+      await decideVoting(OWNER, PLAN, {});
+
+      expect(planUpdate).toHaveBeenCalledWith({
+        where: { id: PLAN },
+        data: expect.objectContaining({
+          winningDateOptionId: null,
+          winningPlaceOptionId: "place-1",
+        }),
+      });
+    });
+
+    it("can complete a legacy closed vote that has no decision", async () => {
+      const place = storedOption("place-1", "Parque central", 2);
+      optionFindMany
+        .mockResolvedValueOnce([place])
+        .mockResolvedValueOnce([place]);
+      planFindUnique
+        .mockResolvedValueOnce(storedPlan({ closed: true }))
+        .mockResolvedValueOnce({
+          ...storedPlan({ closed: true }),
+          decidedAt: new Date("2026-11-05T12:00:00.000Z"),
+          winningPlaceOption: { id: place.id, label: place.label },
+          decisionMaker: { id: OWNER, name: "Usuario Uno" },
+        });
+
+      await decideVoting(OWNER, PLAN, {});
+
+      expect(planUpdate).toHaveBeenCalledWith({
+        where: { id: PLAN },
+        data: expect.objectContaining({
+          winningPlaceOptionId: "place-1",
+          estado: "confirmado",
+        }),
+      });
+    });
   });
 });

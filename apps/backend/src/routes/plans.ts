@@ -14,6 +14,7 @@ import {
   addOption,
   castVote,
   closeVoting,
+  decideVoting,
   CoordinationError,
   getCoordination,
   inviteByEmail,
@@ -412,6 +413,29 @@ export function createPlansRouter(
       const planId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
       try {
         const board = await closeVoting(user.id, planId);
+        res.status(200).json(board);
+      } catch (error) {
+        if (error instanceof CoordinationError) {
+          res.status(error.status).json({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }),
+  );
+
+  router.post(
+    "/:id/voting/decision",
+    wrap(async (req, res) => {
+      const user = res.locals.user as User;
+      const planId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      try {
+        const board = await decideVoting(user.id, planId, {
+          dateOptionId: typeof req.body?.dateOptionId === "string" ? req.body.dateOptionId : undefined,
+          placeOptionId:
+            typeof req.body?.placeOptionId === "string" ? req.body.placeOptionId : undefined,
+          reason: typeof req.body?.reason === "string" ? req.body.reason : undefined,
+        });
         res.status(200).json(board);
       } catch (error) {
         if (error instanceof CoordinationError) {

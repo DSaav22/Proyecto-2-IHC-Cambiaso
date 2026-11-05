@@ -21,6 +21,7 @@ model User {
   activities          PlanActivity[]
   optionsCreated      PlanOption[]
   votes               PlanVote[]
+  decisions           Plan[] @relation("PlanDecisionMaker")
 }
 
 model Plan {
@@ -31,8 +32,16 @@ model Plan {
   estado         String         @default("pendiente")
   shareCode      String         @unique
   votingClosedAt DateTime?
+  winningDateOptionId String?
+  winningPlaceOptionId String?
+  decisionReason String?
+  decidedAt      DateTime?
+  decidedBy      String?
   userId         String
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  winningDateOption PlanOption? @relation("WinningDateOption", fields: [winningDateOptionId], references: [id], onDelete: SetNull)
+  winningPlaceOption PlanOption? @relation("WinningPlaceOption", fields: [winningPlaceOptionId], references: [id], onDelete: SetNull)
+  decisionMaker User? @relation("PlanDecisionMaker", fields: [decidedBy], references: [id], onDelete: SetNull)
   createdAt      DateTime       @default(now())
   members        PlanMember[]
   activities     PlanActivity[]
@@ -81,6 +90,8 @@ model PlanOption {
   plan      Plan       @relation(fields: [planId], references: [id], onDelete: Cascade)
   author    User       @relation(fields: [createdBy], references: [id], onDelete: Cascade)
   votes     PlanVote[]
+  winningDatePlans Plan[] @relation("WinningDateOption")
+  winningPlacePlans Plan[] @relation("WinningPlaceOption")
 
   @@index([planId])
 }

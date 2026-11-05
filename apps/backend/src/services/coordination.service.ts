@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { readProposal } from "../lib/coordination.js";
 import { prisma } from "../lib/prisma.js";
+import { recordActivity } from "./activity.service.js";
 
 export class CoordinationError extends Error {
   status: number;
@@ -12,6 +13,12 @@ export class CoordinationError extends Error {
   }
 }
 
+export interface VotingDecisionInput {
+  dateOptionId?: string;
+  placeOptionId?: string;
+  reason?: string;
+}
+
 const emailSchema = z.string().trim().toLowerCase().pipe(z.email("Escribe un correo válido."));
 
 async function requireParticipant(planId: string, userId: string) {
@@ -19,6 +26,9 @@ async function requireParticipant(planId: string, userId: string) {
     where: { id: planId },
     include: {
       user: { select: { id: true, name: true } },
+      winningDateOption: { select: { id: true, label: true } },
+      winningPlaceOption: { select: { id: true, label: true } },
+      decisionMaker: { select: { id: true, name: true } },
       members: {
         include: { user: { select: { id: true, name: true } } },
         orderBy: { joinedAt: "asc" },
@@ -56,6 +66,15 @@ export async function getCoordination(userId: string, planId: string) {
 
   return {
     votingClosed: plan.votingClosedAt !== null,
+    decision: plan.decidedAt
+      ? {
+          dateOption: plan.winningDateOption,
+          placeOption: plan.winningPlaceOption,
+          reason: plan.decisionReason,
+          decidedAt: plan.decidedAt,
+          decidedBy: plan.decisionMaker,
+        }
+      : null,
     participants: [
       { name: plan.user.name, role: "Creador" as const },
       ...plan.members.map((member) => ({ name: member.user.name, role: "Participante" as const })),
@@ -143,15 +162,91 @@ export async function removeVote(userId: string, planId: string, optionId: strin
 }
 
 export async function closeVoting(userId: string, planId: string) {
-  const { plan, isOwner } = await requireParticipant(planId, userId);
+  const { isOwner } = await requireParticipant(planId, userId);
   if (!isOwner) {
     throw new CoordinationError(403, "Solo quien creó el plan puede cerrar la votación.");
   }
-  if (plan.votingClosedAt) throw new CoordinationError(409, "La votación ya está cerrada.");
+  throw new CoordinationError(
+    409,
+    "La votación debe cerrarse al confirmar el plan y seleccionar sus resultados.",
+  );
+}
 
-  await prisma.plan.update({
-    where: { id: planId },
-    data: { votingClosedAt: new Date() },
+export async function decideVoting(
+  userId: string,
+  planId: string,
+  input: VotingDecisionInput,
+) {
+  const { plan, isOwner } = await requireParticipant(planId, userId);
+  if (!isOwner) {
+    throw new CoordinationError(403, "Solo quien creó el plan puede confirmar la votación.");
+  }
+  if (plan.decidedAt) {
+    throw new CoordinationError(409, "El plan ya fue confirmado.");
+  }
+
+  const options = await prisma.planOption.findMany({
+    where: { planId },
+    include: { _count: { select: { votes: true } } },
   });
+  const chooseWinner = (kind: "fecha" | "lugar", selectedId?: string) => {
+    const candidates = options.filter((option) => option.kind === kind);
+    if (candidates.length === 0) return null;
+    const maxVotes = Math.max(...candidates.map((option) => option._count.votes));
+    const leaders = candidates.filter((option) => option._count.votes === maxVotes);
+    if (selectedId && !leaders.some((option) => option.id === selectedId)) {
+      throw new CoordinationError(
+        400,
+        `La opción elegida no está entre las líderes de ${kind === "fecha" ? "Fechas" : "Lugares"}.`,
+      );
+    }
+    const chosenId = selectedId ?? (leaders.length === 1 ? leaders[0].id : undefined);
+    if (!chosenId) {
+      throw new CoordinationError(
+        409,
+        `Hay un empate en ${kind === "fecha" ? "Fechas" : "Lugares"}. Elige una opción.`,
+      );
+    }
+    return { id: chosenId, tied: leaders.length > 1 };
+  };
+
+  const dateWinner = chooseWinner("fecha", input.dateOptionId);
+  const placeWinner = chooseWinner("lugar", input.placeOptionId);
+  const hasTie = Boolean(dateWinner?.tied || placeWinner?.tied);
+  const reason = input.reason?.trim() ?? "";
+  if (hasTie && !reason) {
+    throw new CoordinationError(400, "Escribe un motivo para resolver el empate.");
+  }
+
+  const decidedAt = new Date();
+  await prisma.$transaction(async (tx) => {
+    await tx.plan.update({
+      where: { id: planId },
+      data: {
+        winningDateOptionId: dateWinner?.id ?? null,
+        winningPlaceOptionId: placeWinner?.id ?? null,
+        decisionReason: reason || null,
+        decidedAt,
+        decidedBy: userId,
+        votingClosedAt: decidedAt,
+        estado: "confirmado",
+      },
+    });
+  });
+
+  await recordActivity(prisma, {
+    planId,
+    userId,
+    planTitle: plan.titulo,
+    action: "confirmed",
+    previousState: plan.estado,
+    newState: "confirmado",
+    details: {
+      winningDateOptionId: dateWinner?.id ?? null,
+      winningPlaceOptionId: placeWinner?.id ?? null,
+      reason: reason || null,
+    },
+  });
+
   return getCoordination(userId, planId);
 }

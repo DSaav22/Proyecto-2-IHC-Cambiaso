@@ -50,5 +50,10 @@ export function usePlanCoordination(planId: string, open: boolean) {
     vote: (optionId: string) => run(() => api.votePlanOption(planId, optionId)),
     unvote: (optionId: string) => run(() => api.removePlanVote(planId, optionId)),
     closeVoting: () => run(() => api.closePlanVoting(planId)),
+    decideVoting: (decision: {
+      dateOptionId?: string;
+      placeOptionId?: string;
+      reason?: string;
+    }) => run(() => api.decidePlanVoting(planId, decision)),
   };
 }

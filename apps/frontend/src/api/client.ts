@@ -154,10 +154,21 @@ export const api = {
   removePlanVote: (planId: string, optionId: string) =>
     del<CoordinationBoard>(`/plans/${planId}/votes/${optionId}`),
   closePlanVoting: (planId: string) => post<CoordinationBoard>(`/plans/${planId}/voting/close`),
+  decidePlanVoting: (
+    planId: string,
+    decision: { dateOptionId?: string; placeOptionId?: string; reason?: string },
+  ) => post<CoordinationBoard>(`/plans/${planId}/voting/decision`, decision),
 };
 
 export interface CoordinationBoard {
   votingClosed: boolean;
+  decision?: {
+    dateOption: { id: string; label: string } | null;
+    placeOption: { id: string; label: string } | null;
+    reason: string | null;
+    decidedAt: string;
+    decidedBy: { id: string; name: string } | null;
+  } | null;
   participants: { name: string; role: "Creador" | "Participante" }[];
   options: {
     id: string;
