@@ -561,6 +561,37 @@ describe("MyPlansPage", () => {
     expect(dialogAlert).toHaveTextContent("Error al abandonar el plan");
   });
 
+  it("separates the plans the user organizes from the ones they were invited to", async () => {
+    const guestPlan: Plan = { ...saved, id: "guest-1", titulo: "Paseo ajeno", isOwner: false };
+    listPlans.mockResolvedValue({ plans: [saved, guestPlan], summary: { ...oneSummary, total: 2 } });
+    renderPage();
+    expect(await screen.findAllByRole("article")).toHaveLength(2);
+
+    const sections = screen.getByRole("navigation", { name: "Secciones de Mis planes" });
+    expect(within(sections).getByRole("link", { name: /Todos/ })).toHaveAttribute("aria-current", "page");
+
+    await userEvent.click(within(sections).getByRole("link", { name: /Me invitaron/ }));
+    expect(screen.getByTestId("search")).toHaveTextContent(/^\?vista=invitado$/);
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.getByRole("article")).toHaveTextContent("Paseo ajeno");
+
+    await userEvent.click(within(sections).getByRole("link", { name: /Organizo yo/ }));
+    expect(screen.getByRole("article")).toHaveTextContent("Cena de grupo");
+  });
+
+  it("keeps the section when clearing filters and explains an empty section", async () => {
+    listPlans.mockResolvedValue({ plans: [saved], summary: oneSummary });
+    renderPage("/mis-planes?vista=invitado&estado=pendiente");
+
+    expect(
+      await screen.findByText("No hay planes de otras personas en esta vista. Únete a uno con su código."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
+    expect(screen.getByTestId("search")).toHaveTextContent(/^\?vista=invitado$/);
+  });
+
   it("scrolls into view and focuses targeted plan when navigating with a hash", async () => {
     listPlans.mockResolvedValue({ plans: [saved], summary: oneSummary });
     const scrollMock = vi.fn();

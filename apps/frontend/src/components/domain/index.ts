@@ -16,6 +16,7 @@ export * from "./PlanDialog";
 export * from "./PlanFiltersBar";
 export * from "./PlanForm";
 export * from "./PlanList";
+export * from "./PlanSectionTabs";
 export * from "./ProfileMenu";
 export * from "./PublicNavbar";
 export * from "./StatCard";

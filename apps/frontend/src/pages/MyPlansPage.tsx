@@ -10,6 +10,7 @@ import {
   PlanDialog,
   PlanFiltersBar,
   PlanList,
+  PlanSectionTabs,
   StatCard,
   SuccessNotice,
 } from "../components/domain";
@@ -22,6 +23,13 @@ import {
   type PlanFilterCriteria,
 } from "../lib/planFilters";
 import { getDueStatus } from "../lib/plans";
+import {
+  countPlansBySection,
+  filterPlansBySection,
+  parsePlanSection,
+  PLAN_SECTION_EMPTY_TEXT,
+  withPlanSection,
+} from "../lib/planSections";
 import { PlanCoordinationDialog } from "../components/domain/PlanCoordinationDialog";
 
 export default function MyPlansPage() {
@@ -30,7 +38,8 @@ export default function MyPlansPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const rawParams = searchParams.toString();
   const criteria = useMemo(() => parsePlanFilters(new URLSearchParams(rawParams)), [rawParams]);
-  const canonicalParams = serializePlanFilters(criteria).toString();
+  const section = parsePlanSection(new URLSearchParams(rawParams));
+  const canonicalParams = withPlanSection(serializePlanFilters(criteria), section).toString();
   const {
     plans,
     summary,
@@ -77,8 +86,14 @@ export default function MyPlansPage() {
 
   // Typing replaces the history entry; discrete changes (selects, chips, reset) push one.
   function setCriteria(next: PlanFilterCriteria) {
-    setSearchParams(serializePlanFilters(next), { replace: next.query !== criteria.query });
+    setSearchParams(withPlanSection(serializePlanFilters(next), section), {
+      replace: next.query !== criteria.query,
+    });
   }
+
+  const sectionCounts = countPlansBySection(plans);
+  const visiblePlans = filterPlansBySection(plans, section);
+  const sectionIsEmpty = section !== "todos" && plans.length > 0 && visiblePlans.length === 0;
 
   async function handleSubmit(input: PlanInput) {
     setActionError(null);
@@ -258,20 +273,30 @@ export default function MyPlansPage() {
                 />
               </div>
 
+              <PlanSectionTabs
+                section={section}
+                counts={sectionCounts}
+                searchFor={(next) => withPlanSection(serializePlanFilters(criteria), next).toString()}
+              />
+
               <PlanFiltersBar
                 criteria={criteria}
                 onChange={setCriteria}
                 onReset={() => setCriteria(INITIAL_PLAN_FILTERS)}
                 totalCount={summary.total}
-                resultCount={plans.length}
+                resultCount={visiblePlans.length}
               />
             </>
           ) : null}
 
           <section aria-label="Tus planes" aria-busy={refreshing}>
-            {loadError && summary.total === 0 && plans.length === 0 ? null : (
+            {loadError && summary.total === 0 && plans.length === 0 ? null : sectionIsEmpty ? (
+              <p className="rounded-xl border border-dashed bg-card/70 px-6 py-10 text-center text-sm text-muted-foreground">
+                {PLAN_SECTION_EMPTY_TEXT[section]}
+              </p>
+            ) : (
               <PlanList
-                plans={plans}
+                plans={visiblePlans}
                 emptyState={summary.total > 0 ? "no-match" : "no-plans"}
                 onClearFilters={() => setCriteria(INITIAL_PLAN_FILTERS)}
                 onEdit={handleEdit}
