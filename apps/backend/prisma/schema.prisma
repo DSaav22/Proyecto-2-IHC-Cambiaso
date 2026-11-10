@@ -22,6 +22,11 @@ model User {
   optionsCreated      PlanOption[]
   votes               PlanVote[]
   decisions           Plan[] @relation("PlanDecisionMaker")
+  expensesPaid        PlanExpense[]      @relation("ExpensePayer")
+  expensesCreated     PlanExpense[]      @relation("ExpenseCreator")
+  expenseShares       PlanExpenseShare[]
+  paymentsSent        PlanPayment[]      @relation("PaymentSender")
+  paymentsReceived    PlanPayment[]      @relation("PaymentReceiver")
 }
 
 model Plan {
@@ -47,6 +52,8 @@ model Plan {
   activities     PlanActivity[]
   options        PlanOption[]
   votes          PlanVote[]
+  expenses       PlanExpense[]
+  payments       PlanPayment[]
 
   @@index([userId, dueDate])
 }
@@ -108,4 +115,50 @@ model PlanVote {
 
   @@unique([optionId, userId])
   @@index([planId, userId])
+}
+
+// Amounts are stored in cents (Bs) to keep splits and balances exact.
+model PlanExpense {
+  id          String             @id @default(uuid())
+  planId      String
+  description String
+  amountCents Int
+  splitMode   String
+  paidById    String
+  createdById String
+  createdAt   DateTime           @default(now())
+  plan        Plan               @relation(fields: [planId], references: [id], onDelete: Cascade)
+  paidBy      User               @relation("ExpensePayer", fields: [paidById], references: [id], onDelete: Cascade)
+  createdBy   User               @relation("ExpenseCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  shares      PlanExpenseShare[]
+
+  @@index([planId])
+}
+
+model PlanExpenseShare {
+  id          String      @id @default(uuid())
+  expenseId   String
+  userId      String
+  amountCents Int
+  expense     PlanExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, userId])
+}
+
+model PlanPayment {
+  id           String    @id @default(uuid())
+  planId       String
+  fromUserId   String
+  toUserId     String
+  amountCents  Int
+  status       String    @default("pendiente")
+  rejectReason String?
+  createdAt    DateTime  @default(now())
+  resolvedAt   DateTime?
+  plan         Plan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  fromUser     User      @relation("PaymentSender", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser       User      @relation("PaymentReceiver", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
 }

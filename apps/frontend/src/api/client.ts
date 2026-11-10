@@ -158,7 +158,58 @@ export const api = {
     planId: string,
     decision: { dateOptionId?: string; placeOptionId?: string; reason?: string },
   ) => post<CoordinationBoard>(`/plans/${planId}/voting/decision`, decision),
+  getExpenses: (planId: string) => request<ExpensesBoard>(`/plans/${planId}/expenses`),
+  addExpense: (planId: string, input: ExpenseInput) =>
+    post<ExpensesBoard>(`/plans/${planId}/expenses`, input),
+  registerPayment: (planId: string, input: { toUserId: string; amount: string }) =>
+    post<ExpensesBoard>(`/plans/${planId}/payments`, input),
+  confirmPayment: (planId: string, paymentId: string) =>
+    post<ExpensesBoard>(`/plans/${planId}/payments/${paymentId}/confirm`),
+  rejectPayment: (planId: string, paymentId: string, reason: string) =>
+    post<ExpensesBoard>(`/plans/${planId}/payments/${paymentId}/reject`, { reason }),
 };
+
+export type SplitMode = "igual" | "personalizado";
+export type PaymentStatus = "pendiente" | "confirmado" | "rechazado";
+
+/** Amounts travel as typed Bs text ("120,50"); the server converts them to cents. */
+export interface ExpenseInput {
+  description: string;
+  amount: string;
+  paidById: string;
+  splitMode: SplitMode;
+  participantIds?: string[];
+  shares?: { userId: string; amount: string }[];
+}
+
+export interface ExpensesBoard {
+  meId: string;
+  participants: {
+    id: string;
+    name: string;
+    role: "Creador" | "Participante";
+    /** Positive: the group owes this person. Negative: this person owes. */
+    balanceCents: number;
+  }[];
+  expenses: {
+    id: string;
+    description: string;
+    amountCents: number;
+    splitMode: SplitMode;
+    paidBy: { id: string; name: string };
+    shares: { userId: string; name: string; amountCents: number }[];
+    createdAt: string;
+  }[];
+  payments: {
+    id: string;
+    from: { id: string; name: string };
+    to: { id: string; name: string };
+    amountCents: number;
+    status: PaymentStatus;
+    rejectReason: string | null;
+    createdAt: string;
+  }[];
+}
 
 export interface CoordinationBoard {
   votingClosed: boolean;

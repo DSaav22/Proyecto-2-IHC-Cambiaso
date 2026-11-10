@@ -20,6 +20,7 @@ import {
   inviteByEmail,
   removeVote,
 } from "../services/coordination.service.js";
+import { registerExpenseRoutes } from "./expenses.js";
 import {
   type StoredPlan,
   type PlansStore,
@@ -446,6 +447,8 @@ export function createPlansRouter(
       }
     }),
   );
+
+  registerExpenseRoutes(router);
 
   return router;
 }

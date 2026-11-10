@@ -12,6 +12,7 @@ import {
   LogOut,
   Pencil,
   Trash2,
+  Wallet,
 } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 import type { Plan } from "../../api/client";
@@ -22,6 +23,7 @@ import { formatDueDate, getDueStatus, PLAN_STATUS_LABELS } from "../../lib/plans
 import type { DueTone } from "../../lib/plans";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { PlanCoordinationDialog } from "./PlanCoordinationDialog";
+import { PlanExpensesDialog } from "./PlanExpensesDialog";
 
 const toneStyles: Record<DueTone, { badge: "danger" | "warning" | "default" | "muted"; bar: string }> = {
   overdue: { badge: "danger", bar: "bg-destructive" },
@@ -54,6 +56,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave 
 
   const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
   const [coordOpen, setCoordOpen] = useState(false);
+  const [expensesOpen, setExpensesOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [copied, setCopied] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -233,9 +236,15 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave 
           ) : null}
         </div>
 
-        <Button type="button" size="sm" variant="outline" onClick={() => setCoordOpen(true)}>
-          Fechas y lugares
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => setCoordOpen(true)}>
+            Fechas y lugares
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => setExpensesOpen(true)}>
+            <Wallet aria-hidden="true" />
+            Gastos
+          </Button>
+        </div>
 
         {isOwner ? (
           isPending ? (
@@ -282,6 +291,12 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave 
         isOwner={isOwner}
         open={coordOpen}
         onOpenChange={setCoordOpen}
+      />
+      <PlanExpensesDialog
+        planId={plan.id}
+        planTitle={plan.titulo || plan.description}
+        open={expensesOpen}
+        onOpenChange={setExpensesOpen}
       />
       <ConfirmDialog
         open={openDialog === "confirm"}

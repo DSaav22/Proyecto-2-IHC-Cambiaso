@@ -13,6 +13,7 @@ export * from "./Notices";
 export * from "./PlanCard";
 export * from "./PlanCoordinationDialog";
 export * from "./PlanDialog";
+export * from "./PlanExpensesDialog";
 export * from "./PlanFiltersBar";
 export * from "./PlanForm";
 export * from "./PlanList";
