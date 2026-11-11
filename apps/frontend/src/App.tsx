@@ -6,6 +6,7 @@ import RegisterPage from "./pages/RegisterPage";
 import RecoverPage from "./pages/RecoverPage";
 import MyPlansPage from "./pages/MyPlansPage";
 import ActivityHistoryPage from "./pages/ActivityHistoryPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="/mis-planes" element={<MyPlansPage />} />
         <Route path="/historial" element={<ActivityHistoryPage />} />
+        {import.meta.env.DEV ? <Route path="/analitica" element={<AnalyticsPage />} /> : null}
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

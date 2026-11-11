@@ -2,6 +2,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { config } from "./lib/config.js";
+import { createAnalyticsRouter } from "./routes/analytics.js";
 import { authRouter } from "./routes/auth.js";
 import { createPlansRouter } from "./routes/plans.js";
 import { createPrismaActivityStore, type ActivityStore } from "./services/activity.service.js";
@@ -25,6 +26,7 @@ export function createApp(options: AppOptions = {}) {
     res.status(200).json({ status: "ok" });
   });
   app.use("/api/auth", authRouter);
+  app.use("/api/analytics", requireAuth, createAnalyticsRouter());
   app.use(
     "/api/plans",
     requireAuth,

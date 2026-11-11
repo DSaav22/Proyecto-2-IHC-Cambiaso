@@ -19,6 +19,7 @@ vi.mock("../api/client", async (importOriginal) => {
       cancelPlan: vi.fn(),
       deletePlan: vi.fn(),
       leavePlan: vi.fn(),
+      trackEvent: vi.fn(),
     },
   };
 });
@@ -49,10 +50,12 @@ const confirmPlanMock = vi.mocked(api.confirmPlan);
 const cancelPlanMock = vi.mocked(api.cancelPlan);
 const deletePlanMock = vi.mocked(api.deletePlan);
 const leavePlanMock = vi.mocked(api.leavePlan);
+const trackEventMock = vi.mocked(api.trackEvent);
 
 describe("usePlans", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    trackEventMock.mockResolvedValue({ ok: true });
   });
 
   afterEach(() => {
@@ -330,6 +333,39 @@ describe("usePlans", () => {
 
     expect(outcome).toEqual({ ok: false, message: "El plan ya está confirmado" });
     expect(result.current.plans[0].estado).toBe("pendiente");
+  });
+
+  it("registra plan_confirmado una sola vez, con la vía y nada más, cuando el plan se confirma", async () => {
+    const existing = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
+    listPlans.mockResolvedValueOnce({ plans: [existing], summary: emptySummary });
+    listPlans.mockReturnValue(new Promise(() => {}));
+    confirmPlanMock.mockResolvedValue({ plan: { ...existing, estado: "confirmado" } });
+
+    const { result } = renderHook(() => usePlans());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.confirmPlan(existing.id);
+    });
+
+    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledWith("plan_confirmado", { via: "boton" });
+    const [, props] = trackEventMock.mock.calls[0];
+    expect(JSON.stringify(props)).not.toContain(existing.titulo);
+    expect(JSON.stringify(props)).not.toContain(existing.id);
+  });
+
+  it("no registra plan_confirmado si la confirmación falla", async () => {
+    const existing = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
+    listPlans.mockResolvedValue({ plans: [existing], summary: emptySummary });
+    confirmPlanMock.mockRejectedValue(new ApiError(409, "El plan ya está confirmado"));
+
+    const { result } = renderHook(() => usePlans());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.confirmPlan(existing.id);
+    });
+
+    expect(trackEventMock).not.toHaveBeenCalled();
   });
 
   it("updates plan and resort in state on successful updatePlan", async () => {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, api } from "../api/client";
 import type { Plan, PlanInput, PlanListParams, PlanSummary } from "../api/client";
+import { track } from "../lib/analytics";
 import { INITIAL_PLAN_FILTERS, serializePlanFilters, toPlanListParams, type PlanFilterCriteria } from "../lib/planFilters";
 import { comparePlans, localToday } from "../lib/plans";
 import { useDebouncedValue } from "./useDebouncedValue";
@@ -145,6 +146,7 @@ export function usePlans(criteria: PlanFilterCriteria = INITIAL_PLAN_FILTERS) {
   const confirmPlan = useCallback(async (id: string): Promise<ConfirmPlanResult> => {
     try {
       const { plan } = await api.confirmPlan(id);
+      track("plan_confirmado", { via: "boton" });
       setPlans((current) => current.map((p) => (p.id === id ? { ...p, estado: plan.estado } : p)));
       void reload();
       return { ok: true };

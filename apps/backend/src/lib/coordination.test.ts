@@ -11,11 +11,11 @@ describe("readProposal", () => {
     });
   });
 
-  it("acepta una fecha", () => {
-    expect(readProposal("fecha", "2026-11-08")).toEqual({
+  it("acepta una fecha futura", () => {
+    expect(readProposal("fecha", "2099-11-08")).toEqual({
       ok: true,
       kind: "fecha",
-      label: "2026-11-08",
+      label: "2099-11-08",
     });
   });
 

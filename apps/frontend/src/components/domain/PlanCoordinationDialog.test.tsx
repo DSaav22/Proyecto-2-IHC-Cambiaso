@@ -15,6 +15,7 @@ vi.mock("../../api/client", async (importOriginal) => {
       decidePlanVoting: vi.fn(),
       addPlanOption: vi.fn(),
       inviteToPlan: vi.fn(),
+      trackEvent: vi.fn(),
     },
   };
 });
@@ -23,6 +24,7 @@ const getCoordination = vi.mocked(api.getCoordination);
 const votePlanOption = vi.mocked(api.votePlanOption);
 const removePlanVote = vi.mocked(api.removePlanVote);
 const decidePlanVoting = vi.mocked(api.decidePlanVoting);
+const trackEvent = vi.mocked(api.trackEvent);
 
 type Votes = { park: [number, boolean]; house: [number, boolean] };
 
@@ -58,6 +60,7 @@ describe("PlanCoordinationDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getCoordination.mockResolvedValue(board(noVotes));
+    trackEvent.mockResolvedValue({ ok: true });
   });
 
   it("lets a participant vote for two options", async () => {
@@ -146,6 +149,8 @@ describe("PlanCoordinationDialog", () => {
     expect(within(result).getByText("Parque central")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^(Votar|Quitar voto)/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Proponer" })).not.toBeInTheDocument();
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith("plan_confirmado", { via: "votacion" });
   });
 
   it("requires a selected winner and reason for a tie", async () => {
@@ -179,6 +184,7 @@ describe("PlanCoordinationDialog", () => {
     await user.click(within(confirm).getByRole("button", { name: "Confirmar plan" }));
 
     expect(await within(confirm).findByRole("alert")).toHaveTextContent("La votación ya está cerrada.");
+    expect(trackEvent).not.toHaveBeenCalled();
   });
 
   it("keeps the counts but offers no voting controls when the vote is closed", async () => {

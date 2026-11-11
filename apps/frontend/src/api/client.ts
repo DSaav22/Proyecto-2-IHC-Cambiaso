@@ -167,7 +167,23 @@ export const api = {
     post<ExpensesBoard>(`/plans/${planId}/payments/${paymentId}/confirm`),
   rejectPayment: (planId: string, paymentId: string, reason: string) =>
     post<ExpensesBoard>(`/plans/${planId}/payments/${paymentId}/reject`, { reason }),
+  trackEvent: <E extends AnalyticsEventName>(event: E, props: AnalyticsEventProps[E]) =>
+    post<{ ok: true }>("/analytics/events", { event, props }),
+  getAnalyticsSummary: () => request<AnalyticsSummary>("/analytics/summary"),
 };
+
+export interface AnalyticsEventProps {
+  plan_creacion_iniciada: Record<string, never>;
+  plan_confirmado: { via: "boton" | "votacion" };
+}
+
+export type AnalyticsEventName = keyof AnalyticsEventProps;
+
+export interface AnalyticsSummary {
+  counts: Record<AnalyticsEventName, number>;
+  completionRate: number;
+  recent: { id: string; event: string; props: Record<string, string>; createdAt: string }[];
+}
 
 export type SplitMode = "igual" | "personalizado";
 export type PaymentStatus = "pendiente" | "confirmado" | "rechazado";

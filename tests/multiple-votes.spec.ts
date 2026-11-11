@@ -4,7 +4,7 @@ import { createPlan, planCard, signUpNewUser, uniqueName, type TestUser } from "
 async function openCoordination(page: Page, planTitle: string) {
   await planCard(page, planTitle).getByRole("button", { name: "Fechas y lugares" }).click();
   const dialog = page.getByRole("dialog", { name: "Fechas y lugares" });
-  await expect(dialog.getByRole("heading", { name: "Propuestas" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Opciones para coordinar" })).toBeVisible();
   return dialog;
 }
 
@@ -37,9 +37,9 @@ test("Se vota por varias opciones, se quita un voto y, cerrada, ya no se puede v
 
   await test.step("Quien organiza propone dos lugares", async () => {
     for (const place of ["Parque E2E", "Cine E2E"]) {
-      await ownerDialog.getByLabel("Tipo").selectOption({ label: "Lugar" });
-      await ownerDialog.getByLabel("Lugar", { exact: true }).fill(place);
-      await ownerDialog.getByRole("button", { name: "Proponer" }).click();
+      const placeInput = ownerDialog.getByLabel("Lugar", { exact: true });
+      await placeInput.fill(place);
+      await placeInput.press("Enter");
       await expect(ownerDialog.getByText(`Lugar: ${place}`)).toBeVisible();
     }
   });
@@ -69,10 +69,10 @@ test("Se vota por varias opciones, se quita un voto y, cerrada, ya no se puede v
     );
   });
 
-  await test.step("Quien organiza cierra la votación", async () => {
-    await ownerDialog.getByRole("button", { name: "Cerrar votación" }).click();
-    const confirm = page.getByRole("alertdialog", { name: "¿Cerrar la votación?" });
-    await confirm.getByRole("button", { name: "Cerrar votación" }).click();
+  await test.step("Quien organiza cierra la votación y confirma el plan", async () => {
+    await ownerDialog.getByRole("button", { name: "Cerrar votación y confirmar plan" }).click();
+    const confirm = page.getByRole("alertdialog", { name: "¿Confirmar el plan?" });
+    await confirm.getByRole("button", { name: "Confirmar plan" }).click();
 
     await expect(confirm).toBeHidden();
     await expect(ownerDialog.getByText("La votación está cerrada.")).toBeVisible();
@@ -96,11 +96,12 @@ test("Solo quien creó el plan ve el botón para cerrar la votación", async ({ 
   const title = uniqueName("Plan sin cierre para invitados");
 
   const { guestPage, ownerDialog } = await planWithGuest(page, browser, title);
-  await expect(ownerDialog.getByRole("button", { name: "Cerrar votación" })).toBeVisible();
+  const closeButton = { name: "Cerrar votación y confirmar plan" };
+  await expect(ownerDialog.getByRole("button", closeButton)).toBeVisible();
 
   const guestDialog = await openCoordination(guestPage, title);
-  await expect(guestDialog.getByRole("button", { name: "Proponer" })).toBeVisible();
-  await expect(guestDialog.getByRole("button", { name: "Cerrar votación" })).toHaveCount(0);
+  await expect(guestDialog.getByRole("button", { name: "Proponer" })).toHaveCount(2);
+  await expect(guestDialog.getByRole("button", closeButton)).toHaveCount(0);
 
   await guestPage.context().close();
 });

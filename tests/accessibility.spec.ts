@@ -34,6 +34,6 @@ test("El diálogo de Fechas y lugares no tiene problemas de accesibilidad", asyn
 
   await planCard(page, title).getByRole("button", { name: "Fechas y lugares" }).click();
   const dialog = page.getByRole("dialog", { name: "Fechas y lugares" });
-  await expect(dialog.getByRole("heading", { name: "Propuestas" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Opciones para coordinar" })).toBeVisible();
   await expectNoA11yViolations(page);
 });

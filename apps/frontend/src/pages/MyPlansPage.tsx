@@ -22,6 +22,7 @@ import {
   serializePlanFilters,
   type PlanFilterCriteria,
 } from "../lib/planFilters";
+import { track } from "../lib/analytics";
 import { getDueStatus } from "../lib/plans";
 import {
   countPlansBySection,
@@ -129,6 +130,7 @@ export default function MyPlansPage() {
     setNotice(null);
     setActionError(null);
     setDialogOpen(true);
+    track("plan_creacion_iniciada", {});
   }
 
   function handleEdit(plan: Plan) {

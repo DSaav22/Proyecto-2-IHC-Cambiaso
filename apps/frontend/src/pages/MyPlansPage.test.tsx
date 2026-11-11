@@ -23,6 +23,7 @@ vi.mock("../api/client", async (importOriginal) => {
       cancelPlan: vi.fn(),
       deletePlan: vi.fn(),
       leavePlan: vi.fn(),
+      trackEvent: vi.fn(),
     },
   };
 });
@@ -33,6 +34,7 @@ const listPlans = vi.mocked(api.listPlans);
 const createPlan = vi.mocked(api.createPlan);
 const cancelPlan = vi.mocked(api.cancelPlan);
 const leavePlan = vi.mocked(api.leavePlan);
+const trackEvent = vi.mocked(api.trackEvent);
 
 const saved: Plan = {
   id: "3f2a9c1e-7b4d-4e8a-9c21-5d6e7f8a9b0c",
@@ -78,6 +80,21 @@ const statusText = () =>
 describe("MyPlansPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    trackEvent.mockResolvedValue({ ok: true });
+  });
+
+  it("registra plan_creacion_iniciada una sola vez y sin propiedades al abrir «Nuevo plan»", async () => {
+    listPlans.mockResolvedValue({ plans: [], summary: noSummary });
+    renderPage();
+    await screen.findByText(/todavía no tienes planes/i);
+    expect(trackEvent).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Nuevo plan" }));
+    await userEvent.type(screen.getByLabelText("Título"), "Cena de grupo");
+
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith("plan_creacion_iniciada", {});
+    expect(JSON.stringify(trackEvent.mock.calls)).not.toMatch(/Cena de grupo|a@x\.com|Ana/);
   });
 
   it("greets the user and shows the empty state with no logout button in the body", async () => {

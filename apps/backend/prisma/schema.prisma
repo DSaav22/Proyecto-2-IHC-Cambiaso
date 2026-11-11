@@ -162,3 +162,15 @@ model PlanPayment {
 
   @@index([planId])
 }
+
+// Anonymous on purpose: no user, plan or free text is stored with an event.
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  event     String
+  props     Json
+  createdAt DateTime @default(now())
+
+  @@index([event])
+  @@index([createdAt(sort: Desc)])
+  @@map("eventos")
+}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type CoordinationBoard } from "../api/client";
+import { track } from "../lib/analytics";
 
 export function usePlanCoordination(planId: string, open: boolean) {
   const [board, setBoard] = useState<CoordinationBoard | null>(null);
@@ -50,10 +51,14 @@ export function usePlanCoordination(planId: string, open: boolean) {
     vote: (optionId: string) => run(() => api.votePlanOption(planId, optionId)),
     unvote: (optionId: string) => run(() => api.removePlanVote(planId, optionId)),
     closeVoting: () => run(() => api.closePlanVoting(planId)),
-    decideVoting: (decision: {
+    decideVoting: async (decision: {
       dateOptionId?: string;
       placeOptionId?: string;
       reason?: string;
-    }) => run(() => api.decidePlanVoting(planId, decision)),
+    }) => {
+      const result = await run(() => api.decidePlanVoting(planId, decision));
+      if (result.ok) track("plan_confirmado", { via: "votacion" });
+      return result;
+    },
   };
 }
