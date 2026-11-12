@@ -161,5 +161,6 @@ corepack pnpm test:e2e
 
 ## Commits
 
-- Parte B (funcionalidad): pendiente de agregar el enlace.
-- Parte A (analítica): pendiente de agregar el enlace.
+- Parte B (funcionalidad): [`03dc9e7` feat: retirarse de un plan quitando votos y bloqueando con deudas](https://github.com/DSaav22/Proyecto-2-IHC-Cambiaso/commit/03dc9e76a315970fdc2308408983f1ffc84025a5)
+- Parte A (analítica): [`93cf563` feat: registrar eventos y embudos de todos los flujos en /analitica](https://github.com/DSaav22/Proyecto-2-IHC-Cambiaso/commit/93cf563d78e08b6f8c4fd4a31488828d0bc7d2d5)
+- Evidencia: [`c2f337b` docs: agregar evidencia de la Tarea 9](https://github.com/DSaav22/Proyecto-2-IHC-Cambiaso/commit/c2f337b7688d736fff5be06878f05eb2707caef5)
