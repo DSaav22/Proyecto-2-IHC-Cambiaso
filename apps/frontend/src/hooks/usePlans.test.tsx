@@ -501,7 +501,7 @@ describe("usePlans", () => {
     const plan1 = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
     const plan2 = plan("B", "2026-06-01", "2026-01-02T00:00:00.000Z");
     listPlans.mockResolvedValueOnce({ plans: [plan1, plan2], summary: emptySummary });
-    leavePlanMock.mockResolvedValue({ message: "Has abandonado el plan." });
+    leavePlanMock.mockResolvedValue({ message: "Has abandonado el plan.", votesRemoved: 0 });
 
     listPlans.mockReturnValue(new Promise(() => {})); // background refetch stays pending
     const { result } = renderHook(() => usePlans());
@@ -556,7 +556,7 @@ describe("usePlans", () => {
   it("leaves the list untouched when leaving an id that is not listed", async () => {
     const plan1 = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
     listPlans.mockResolvedValueOnce({ plans: [plan1], summary: emptySummary });
-    leavePlanMock.mockResolvedValue({ message: "Has abandonado el plan." });
+    leavePlanMock.mockResolvedValue({ message: "Has abandonado el plan.", votesRemoved: 0 });
 
     listPlans.mockReturnValue(new Promise(() => {})); // background refetch stays pending
     const { result } = renderHook(() => usePlans());
@@ -609,6 +609,53 @@ describe("usePlans", () => {
       fieldErrors: {},
     });
     expect(result.current.plans).toHaveLength(0);
+    expect(trackEventMock).toHaveBeenCalledWith("union_fallida", { motivo: "no_existe" });
+  });
+
+  it("registra plan_abandonado diciendo si la persona tenía votos", async () => {
+    const plan1 = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
+    listPlans.mockResolvedValueOnce({ plans: [plan1], summary: emptySummary });
+    listPlans.mockReturnValue(new Promise(() => {}));
+    leavePlanMock.mockResolvedValue({ message: "Has abandonado el plan.", votesRemoved: 2 });
+
+    const { result } = renderHook(() => usePlans());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.leavePlan(plan1.id);
+    });
+
+    expect(trackEventMock).toHaveBeenCalledWith("plan_abandonado", { tenia_votos: true });
+  });
+
+  it("registra retiro_bloqueado con el motivo que manda el servidor", async () => {
+    const plan1 = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
+    listPlans.mockResolvedValue({ plans: [plan1], summary: emptySummary });
+    leavePlanMock.mockRejectedValue(
+      new ApiError(409, "Tienes una deuda de Bs 45,00 en este plan.", {}, "deuda_pendiente"),
+    );
+
+    const { result } = renderHook(() => usePlans());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.leavePlan(plan1.id);
+    });
+
+    expect(trackEventMock).toHaveBeenCalledWith("retiro_bloqueado", { motivo: "deuda_pendiente" });
+    expect(trackEventMock).not.toHaveBeenCalledWith("plan_abandonado", expect.anything());
+  });
+
+  it("no registra retiro_bloqueado si el error no es una regla del retiro", async () => {
+    const plan1 = plan("A", "2026-05-01", "2026-01-01T00:00:00.000Z");
+    listPlans.mockResolvedValue({ plans: [plan1], summary: emptySummary });
+    leavePlanMock.mockRejectedValue(new ApiError(404, "Plan no encontrado"));
+
+    const { result } = renderHook(() => usePlans());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.leavePlan(plan1.id);
+    });
+
+    expect(trackEventMock).not.toHaveBeenCalled();
   });
 });
 

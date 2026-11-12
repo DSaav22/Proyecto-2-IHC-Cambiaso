@@ -72,11 +72,19 @@ export interface ActivityResponse {
 export class ApiError extends Error {
   status: number;
   fieldErrors: Record<string, string>;
+  /** Machine-readable cause some endpoints send along with the message. */
+  reason?: string;
 
-  constructor(status: number, message: string, fieldErrors: Record<string, string> = {}) {
+  constructor(
+    status: number,
+    message: string,
+    fieldErrors: Record<string, string> = {},
+    reason?: string,
+  ) {
     super(message);
     this.status = status;
     this.fieldErrors = fieldErrors;
+    this.reason = reason;
   }
 }
 
@@ -97,6 +105,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const data = (await response.json().catch(() => ({}))) as {
     message?: string;
     errors?: Record<string, string>;
+    reason?: string;
   } & T;
 
   if (!response.ok) {
@@ -104,6 +113,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       response.status,
       data.message ?? "Ocurrió un error inesperado.",
       data.errors ?? {},
+      data.reason,
     );
   }
   return data;
@@ -143,7 +153,8 @@ export const api = {
   confirmPlan: (id: string) => post<{ plan: Plan }>(`/plans/${id}/confirm`),
   cancelPlan: (id: string) => post<{ plan: Plan }>(`/plans/${id}/cancel`),
   deletePlan: (id: string) => del<{ message: string }>(`/plans/${id}`),
-  leavePlan: (id: string) => post<{ message: string }>(`/plans/${id}/leave`),
+  leavePlan: (id: string) =>
+    post<{ message: string; votesRemoved: number }>(`/plans/${id}/leave`),
   getCoordination: (planId: string) => request<CoordinationBoard>(`/plans/${planId}/coordination`),
   inviteToPlan: (planId: string, email: string) =>
     post<CoordinationBoard>(`/plans/${planId}/invite`, { email }),
@@ -172,17 +183,37 @@ export const api = {
   getAnalyticsSummary: () => request<AnalyticsSummary>("/analytics/summary"),
 };
 
+type NoProps = Record<string, never>;
+
 export interface AnalyticsEventProps {
-  plan_creacion_iniciada: Record<string, never>;
+  plan_creacion_iniciada: NoProps;
+  plan_creado: NoProps;
   plan_confirmado: { via: "boton" | "votacion" };
+  union_iniciada: NoProps;
+  plan_unido: NoProps;
+  union_fallida: { motivo: "no_existe" | "ya_unido" | "no_valido" };
+  gasto_iniciado: NoProps;
+  gasto_registrado: { modo: SplitMode };
+  gasto_rechazado: { motivo: "no_suma_total" | "plan_cancelado" | "dato_invalido" };
+  pago_registrado: NoProps;
+  pago_confirmado: NoProps;
+  retiro_iniciado: NoProps;
+  plan_abandonado: { tenia_votos: boolean };
+  retiro_bloqueado: { motivo: "deuda_pendiente" | "plan_cerrado" | "organizador" };
+  busqueda_sin_resultados: { filtro: "texto" | "estado" | "fecha" | "varios" };
 }
 
 export type AnalyticsEventName = keyof AnalyticsEventProps;
 
 export interface AnalyticsSummary {
   counts: Record<AnalyticsEventName, number>;
-  completionRate: number;
-  recent: { id: string; event: string; props: Record<string, string>; createdAt: string }[];
+  reasons: { event: AnalyticsEventName; motivo: string; count: number }[];
+  recent: {
+    id: string;
+    event: string;
+    props: Record<string, string | boolean>;
+    createdAt: string;
+  }[];
 }
 
 export type SplitMode = "igual" | "personalizado";

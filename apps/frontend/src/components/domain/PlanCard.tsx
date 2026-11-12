@@ -19,6 +19,7 @@ import type { Plan } from "../../api/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { track } from "../../lib/analytics";
 import { formatDueDate, getDueStatus, PLAN_STATUS_LABELS } from "../../lib/plans";
 import type { DueTone } from "../../lib/plans";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -171,7 +172,10 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave 
                 </>
               ) : (
                 <DropdownMenu.Item
-                  onSelect={() => changeDialog("leave")}
+                  onSelect={() => {
+                    changeDialog("leave");
+                    track("retiro_iniciado", {});
+                  }}
                   className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-semibold text-destructive outline-none data-highlighted:bg-destructive/10"
                 >
                   <LogOut aria-hidden="true" className="size-4" />
@@ -240,7 +244,15 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave 
           <Button type="button" size="sm" variant="outline" onClick={() => setCoordOpen(true)}>
             Fechas y lugares
           </Button>
-          <Button type="button" size="sm" variant="outline" onClick={() => setExpensesOpen(true)}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setExpensesOpen(true);
+              track("gasto_iniciado", {});
+            }}
+          >
             <Wallet aria-hidden="true" />
             Gastos
           </Button>

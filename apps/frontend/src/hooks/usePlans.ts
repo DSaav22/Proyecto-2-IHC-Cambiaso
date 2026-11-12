@@ -40,6 +40,18 @@ function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
 }
 
+function joinFailReason(status: number) {
+  if (status === 404) return "no_existe" as const;
+  if (status === 409) return "ya_unido" as const;
+  return "no_valido" as const;
+}
+
+function leaveBlockReason(error: ApiError) {
+  if (error.status === 403) return "organizador" as const;
+  if (error.reason === "deuda_pendiente" || error.reason === "plan_cerrado") return error.reason;
+  return null;
+}
+
 /**
  * Loads the plan list from the server for the given criteria and exposes
  * mutations. Only `query` is debounced; state and date filters apply at once.
@@ -101,6 +113,7 @@ export function usePlans(criteria: PlanFilterCriteria = INITIAL_PLAN_FILTERS) {
   const addPlan = useCallback(async (input: PlanInput): Promise<AddPlanResult> => {
     try {
       const { plan } = await api.createPlan(input);
+      track("plan_creado", {});
       setPlans((current) => [...current, plan].sort(comparePlans));
       void reload();
       return { ok: true, plan };
@@ -115,11 +128,13 @@ export function usePlans(criteria: PlanFilterCriteria = INITIAL_PLAN_FILTERS) {
   const joinPlan = useCallback(async (code: string): Promise<JoinPlanResult> => {
     try {
       const { plan } = await api.joinPlan(code);
+      track("plan_unido", {});
       setPlans((current) => [...current, plan].sort(comparePlans));
       void reload();
       return { ok: true };
     } catch (error) {
       if (error instanceof ApiError) {
+        track("union_fallida", { motivo: joinFailReason(error.status) });
         return { ok: false, message: error.message, fieldErrors: error.fieldErrors };
       }
       return { ok: false, message: "No se pudo unir al plan.", fieldErrors: {} };
@@ -192,12 +207,15 @@ export function usePlans(criteria: PlanFilterCriteria = INITIAL_PLAN_FILTERS) {
   const leavePlan = useCallback(
     async (id: string): Promise<LeavePlanResult> => {
       try {
-        await api.leavePlan(id);
+        const { votesRemoved } = await api.leavePlan(id);
+        track("plan_abandonado", { tenia_votos: votesRemoved > 0 });
         setPlans((current) => current.filter((p) => p.id !== id));
         void reload();
         return { ok: true };
       } catch (error) {
         if (error instanceof ApiError) {
+          const motivo = leaveBlockReason(error);
+          if (motivo) track("retiro_bloqueado", { motivo });
           return { ok: false, message: error.message };
         }
         return { ok: false, message: "No se pudo abandonar el plan." };

@@ -540,7 +540,7 @@ describe("MyPlansPage", () => {
     listPlans
       .mockResolvedValueOnce({ plans: [guestPlan], summary: oneSummary })
       .mockResolvedValue({ plans: [], summary: noSummary });
-    leavePlan.mockResolvedValue({ message: "Has abandonado el plan." });
+    leavePlan.mockResolvedValue({ message: "Has abandonado el plan.", votesRemoved: 0 });
 
     renderPage();
     await waitFor(() => expect(screen.getByRole("article")).toBeInTheDocument());

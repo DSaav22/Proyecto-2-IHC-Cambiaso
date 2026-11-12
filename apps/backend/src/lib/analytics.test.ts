@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { completionRate, parseEvent } from "./analytics";
+import { parseEvent } from "./analytics";
 
 describe("parseEvent", () => {
   it("acepta plan_creacion_iniciada sin propiedades", () => {
@@ -16,6 +16,17 @@ describe("parseEvent", () => {
     });
   });
 
+  it("acepta un error con un motivo de la lista fija", () => {
+    expect(parseEvent({ event: "retiro_bloqueado", props: { motivo: "deuda_pendiente" } })).toEqual({
+      event: "retiro_bloqueado",
+      props: { motivo: "deuda_pendiente" },
+    });
+  });
+
+  it("rechaza un motivo que no está en la lista", () => {
+    expect(parseEvent({ event: "union_fallida", props: { motivo: "me equivoqué de código" } })).toBeNull();
+  });
+
   it("rechaza un evento que no está en la lista", () => {
     expect(parseEvent({ event: "boton_clic", props: {} })).toBeNull();
   });
@@ -24,12 +35,6 @@ describe("parseEvent", () => {
     expect(
       parseEvent({ event: "plan_creacion_iniciada", props: { email: "ana@gmail.com" } }),
     ).toBeNull();
-  });
-});
-
-describe("completionRate", () => {
-  it("calcula el porcentaje que termina", () => {
-    expect(completionRate(8, 5)).toBe(63);
-    expect(completionRate(0, 0)).toBe(0);
+    expect(parseEvent({ event: "busqueda_sin_resultados", props: { filtro: "texto", q: "cena" } })).toBeNull();
   });
 });

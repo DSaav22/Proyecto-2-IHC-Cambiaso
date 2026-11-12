@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { CalendarClock, ListChecks, Plus, RotateCw, TriangleAlert, Users } from "lucide-react";
 import type { Plan, PlanInput } from "../api/client";
@@ -32,6 +32,15 @@ import {
   withPlanSection,
 } from "../lib/planSections";
 import { PlanCoordinationDialog } from "../components/domain/PlanCoordinationDialog";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
+
+function filterKind({ query, status, dateRange }: PlanFilterCriteria) {
+  const active = [query.trim() !== "", status !== "all", dateRange !== "all"];
+  if (active.filter(Boolean).length > 1) return "varios" as const;
+  if (active[1]) return "estado" as const;
+  if (active[2]) return "fecha" as const;
+  return "texto" as const;
+}
 
 export default function MyPlansPage() {
   const { user } = useAuth();
@@ -95,6 +104,17 @@ export default function MyPlansPage() {
   const sectionCounts = countPlansBySection(plans);
   const visiblePlans = filterPlansBySection(plans, section);
   const sectionIsEmpty = section !== "todos" && plans.length > 0 && visiblePlans.length === 0;
+
+  // Count a search without results once, after the user stopped typing and the list arrived.
+  const filterKey = serializePlanFilters(criteria).toString();
+  const settledFilterKey = useDebouncedValue(filterKey, 1000);
+  const lastEmptySearch = useRef("");
+  const noResults = !loading && !refreshing && summary.total > 0 && plans.length === 0;
+  useEffect(() => {
+    if (!noResults || settledFilterKey !== filterKey || lastEmptySearch.current === filterKey) return;
+    lastEmptySearch.current = filterKey;
+    track("busqueda_sin_resultados", { filtro: filterKind(criteria) });
+  }, [noResults, settledFilterKey, filterKey, criteria]);
 
   async function handleSubmit(input: PlanInput) {
     setActionError(null);
@@ -206,6 +226,7 @@ export default function MyPlansPage() {
               setNotice(null);
               setActionError(null);
               setJoinDialogOpen(true);
+              track("union_iniciada", {});
             }}
           >
             <Users aria-hidden="true" />
