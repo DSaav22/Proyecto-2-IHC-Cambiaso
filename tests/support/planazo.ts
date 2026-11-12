@@ -66,6 +66,20 @@ export function successNotice(page: Page, text: string): Locator {
   return page.getByRole("status").filter({ hasText: text });
 }
 
+export interface SentEvent {
+  event: string;
+  props: Record<string, unknown>;
+}
+
+// Keeps every analytics event this page sends, so a test can check its flow was measured.
+export function collectEvents(page: Page): SentEvent[] {
+  const sent: SentEvent[] = [];
+  page.on("request", (request) => {
+    if (request.url().endsWith("/api/analytics/events")) sent.push(request.postDataJSON());
+  });
+  return sent;
+}
+
 export async function createPlan(page: Page, title: string, daysAhead = 7) {
   await page.getByRole("button", { name: "Nuevo plan" }).click();
 

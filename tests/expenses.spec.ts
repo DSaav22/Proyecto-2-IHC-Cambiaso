@@ -1,5 +1,13 @@
 import { test, expect, type Browser, type Locator, type Page } from "@playwright/test";
-import { createPlan, planCard, signUpNewUser, uniqueName, type TestUser } from "./support/planazo";
+import {
+  collectEvents,
+  createPlan,
+  planCard,
+  signUpNewUser,
+  uniqueName,
+  type SentEvent,
+  type TestUser,
+} from "./support/planazo";
 
 async function invite(page: Page, planTitle: string, people: TestUser[]) {
   await planCard(page, planTitle).getByRole("button", { name: "Fechas y lugares" }).click();
@@ -88,6 +96,8 @@ test("Tres participantes, dos gastos y un pago pendiente que se confirma y actua
   const ana = await signUpNewUser(page, "Ana");
   await createPlan(page, title);
   await invite(page, title, [beto.user, caro.user]);
+  const anaEvents = collectEvents(page);
+  const caroEvents = collectEvents(caro.page);
 
   const anaDialog = await openExpenses(page, title);
 
@@ -149,6 +159,20 @@ test("Tres participantes, dos gastos y un pago pendiente que se confirma y actua
     await expect(balanceOf(caroDialog, caro.user)).toContainText("Al día");
   });
 
+  await test.step("Cada paso del flujo de gastos quedó registrado", async () => {
+    const names = (events: SentEvent[]) => events.map((sent) => sent.event);
+    await expect.poll(() => names(caroEvents)).toContain("pago_registrado");
+    expect(anaEvents).toEqual(
+      expect.arrayContaining([
+        { event: "gasto_iniciado", props: {} },
+        { event: "gasto_registrado", props: { modo: "igual" } },
+        { event: "gasto_registrado", props: { modo: "personalizado" } },
+        { event: "pago_confirmado", props: {} },
+      ]),
+    );
+    expect(names(caroEvents)).toContain("gasto_iniciado");
+  });
+
   await beto.page.context().close();
   await caro.page.context().close();
 });
@@ -163,6 +187,7 @@ test("Restricciones: la división debe sumar el total, un solo pago pendiente, s
   const ana = await signUpNewUser(page, "Ana");
   await createPlan(page, title);
   await invite(page, title, [beto.user]);
+  const anaEvents = collectEvents(page);
   const anaDialog = await openExpenses(page, title);
 
   await test.step("Una división personalizada que no suma el total se rechaza", async () => {
@@ -176,6 +201,10 @@ test("Restricciones: la división debe sumar el total, un solo pago pendiente, s
       "Los montos suman Bs 80,00 y el gasto es de Bs 120,00.",
     );
     await expect(anaDialog.getByText("Todavía no hay gastos.")).toBeVisible();
+    await expect.poll(() => anaEvents).toContainEqual({
+      event: "gasto_rechazado",
+      props: { motivo: "no_suma_total" },
+    });
   });
 
   await test.step("Con un gasto válido, Beto queda debiendo Bs 50", async () => {

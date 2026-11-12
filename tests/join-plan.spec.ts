@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
+  collectEvents,
   createPlan,
   login,
   planCard,
@@ -26,6 +27,7 @@ test("Una persona se une con el código que le comparte quien creó el plan", as
   });
 
   const guestPage = await browser.newPage();
+  const sent = collectEvents(guestPage);
 
   await test.step("La otra persona entra y se une con ese código", async () => {
     await signUpNewUser(guestPage, "Invitada");
@@ -37,6 +39,10 @@ test("Una persona se une con el código que le comparte quien creó el plan", as
 
     await expect(dialog).toBeHidden();
     await expect(successNotice(guestPage, "Te has unido al plan correctamente.")).toBeVisible();
+    await expect.poll(() => sent).toEqual([
+      { event: "union_iniciada", props: {} },
+      { event: "plan_unido", props: {} },
+    ]);
   });
 
   await test.step("Ve el plan como invitada y de solo lectura, también al recargar", async () => {
@@ -55,6 +61,7 @@ test("Una persona se une con el código que le comparte quien creó el plan", as
 
 test("Con un código que no existe, se le avisa y el diálogo sigue abierto", async ({ page }) => {
   await login(page, usuarioDos);
+  const sent = collectEvents(page);
   await page.getByRole("button", { name: "Unirse con código" }).click();
 
   const dialog = page.getByRole("dialog", { name: "Unirse a un plan" });
@@ -64,4 +71,8 @@ test("Con un código que no existe, se le avisa y el diálogo sigue abierto", as
   await expect(dialog.getByRole("alert")).toHaveText("Plan no encontrado con este código");
   await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel("Código del plan")).toHaveAttribute("aria-invalid", "true");
+  await expect.poll(() => sent).toEqual([
+    { event: "union_iniciada", props: {} },
+    { event: "union_fallida", props: { motivo: "no_existe" } },
+  ]);
 });

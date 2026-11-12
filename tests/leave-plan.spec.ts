@@ -1,5 +1,5 @@
 import { test, expect, type Browser, type Page } from "@playwright/test";
-import { createPlan, planCard, signUpNewUser, uniqueName } from "./support/planazo";
+import { collectEvents, createPlan, planCard, signUpNewUser, uniqueName } from "./support/planazo";
 
 async function openCoordination(page: Page, title: string) {
   await planCard(page, title).getByRole("button", { name: "Fechas y lugares" }).click();
@@ -32,6 +32,8 @@ test("Quien se retira deja de sumar sus votos, y quien tiene deuda no puede reti
   const cine = "Lugar: Cine E2E";
   const beto = await newParticipant(browser, "Beto");
   const caro = await newParticipant(browser, "Caro");
+  const betoEvents = collectEvents(beto.page);
+  const caroEvents = collectEvents(caro.page);
   await signUpNewUser(page, "Ana");
   await createPlan(page, title);
 
@@ -94,6 +96,17 @@ test("Quien se retira deja de sumar sus votos, y quien tiene deuda no puede reti
 
     await caro.page.reload();
     await expect(planCard(caro.page, title)).toBeVisible();
+  });
+
+  await test.step("Los dos intentos quedan registrados con su resultado", async () => {
+    expect(betoEvents).toEqual([
+      { event: "retiro_iniciado", props: {} },
+      { event: "plan_abandonado", props: { tenia_votos: true } },
+    ]);
+    expect(caroEvents).toEqual([
+      { event: "retiro_iniciado", props: {} },
+      { event: "retiro_bloqueado", props: { motivo: "deuda_pendiente" } },
+    ]);
   });
 
   await beto.page.context().close();

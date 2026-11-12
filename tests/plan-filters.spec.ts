@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { createPlan, myPlans, planCard, signUpNewUser, uniqueName } from "./support/planazo";
+import { collectEvents, createPlan, myPlans, planCard, signUpNewUser, uniqueName } from "./support/planazo";
 
 test("Encuentra su plan por nombre y por estado", async ({ page }) => {
   const wanted = uniqueName("Cena");
@@ -30,11 +30,15 @@ test("Si ningún plan coincide, se le explica y puede limpiar los filtros", asyn
   const title = uniqueName("Plan pendiente");
   await signUpNewUser(page);
   await createPlan(page, title);
+  const sent = collectEvents(page);
 
   await page.getByLabel("Estado", { exact: true }).selectOption({ label: "Confirmado" });
 
   await expect(page.getByText("Mostrando 0 de 1 planes")).toBeVisible();
   await expect(myPlans(page).getByText("No hay planes que coincidan con los filtros")).toBeVisible();
+  await expect.poll(() => sent).toEqual([
+    { event: "busqueda_sin_resultados", props: { filtro: "estado" } },
+  ]);
 
   await myPlans(page).getByRole("button", { name: "Limpiar filtros" }).click();
 
