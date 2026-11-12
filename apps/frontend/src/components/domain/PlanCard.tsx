@@ -346,7 +346,7 @@ export function PlanCard({ plan, onEdit, onConfirm, onCancel, onDelete, onLeave 
           if (!pending) changeDialog(open ? "leave" : null);
         }}
         title="¿Abandonar este plan?"
-        description={`«${plan.titulo || plan.description}» desaparecerá de tu lista. Podrás volver a unirte con el código de compartir.`}
+        description={`«${plan.titulo || plan.description}» desaparecerá de tu lista y tus votos dejarán de contar. Si debes plata en Gastos, primero tienes que pagarla.`}
         confirmLabel="Abandonar"
         pendingLabel="Abandonando…"
         pending={pending}

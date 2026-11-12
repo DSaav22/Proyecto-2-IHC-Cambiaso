@@ -71,6 +71,11 @@ function balancesOf(participantIds: string[], ledger: Ledger) {
   return computeBalances(participantIds, ledger.expenses, ledger.payments);
 }
 
+export async function getBalanceCents(userId: string, planId: string) {
+  const ledger = await loadLedger(planId);
+  return balancesOf([userId], ledger).get(userId) ?? 0;
+}
+
 export async function getExpenses(userId: string, planId: string) {
   const { participants } = await requireParticipant(planId, userId);
   const ledger = await loadLedger(planId);

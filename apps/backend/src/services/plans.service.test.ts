@@ -8,19 +8,26 @@ const planUpdate = vi.hoisted(() => vi.fn());
 const memberCreate = vi.hoisted(() => vi.fn());
 const memberFindUnique = vi.hoisted(() => vi.fn());
 const record = vi.hoisted(() => vi.fn());
+const voteDeleteMany = vi.hoisted(() => vi.fn());
+const transaction = vi.hoisted(() => vi.fn());
+const balance = vi.hoisted(() => vi.fn());
 vi.mock("../lib/prisma.js", () => ({
   prisma: {
     plan: { findMany, findUnique, create: planCreate, update: planUpdate },
     planMember: { deleteMany, create: memberCreate, findUnique: memberFindUnique },
+    planVote: { deleteMany: voteDeleteMany },
+    $transaction: transaction,
   },
 }));
 vi.mock("./activity.service.js", () => ({ recordActivity: record }));
+vi.mock("./expenses.service.js", () => ({ getBalanceCents: balance }));
 
 import {
   buildPlanWhere,
   computePlanSummary,
   createPrismaPlansStore,
   ForbiddenPlanActionError,
+  LeaveBlockedError,
   escapeLikePattern,
   toUtcDate,
   boliviaToday,
@@ -239,55 +246,64 @@ describe("createPrismaPlansStore list and summary", () => {
 });
 
 describe("createPrismaPlansStore leave", () => {
-  beforeEach(() => {
-    findUnique.mockReset();
-    deleteMany.mockReset();
+  const openPlan = (members = [{ id: "m2" }]) => ({
+    userId: "u1",
+    titulo: "Cena",
+    estado: "pendiente",
+    votingClosedAt: null,
+    members,
   });
 
-  it("resolves false without deleting when the plan does not exist", async () => {
+  beforeEach(() => {
+    findUnique.mockReset();
+    transaction.mockReset();
+    record.mockClear();
+    balance.mockReset();
+    balance.mockResolvedValue(0);
+    transaction.mockResolvedValue([{ count: 2 }, { count: 1 }]);
+  });
+
+  it("resolves false when the plan does not exist or the caller is not a member", async () => {
     findUnique.mockResolvedValueOnce(null);
     expect(await createPrismaPlansStore().leave("u2", "p1")).toBe(false);
-    expect(findUnique).toHaveBeenCalledWith({
-      where: { id: "p1" },
-      select: { userId: true, titulo: true },
-    });
-    expect(deleteMany).not.toHaveBeenCalled();
+    findUnique.mockResolvedValueOnce(openPlan([]));
+    expect(await createPrismaPlansStore().leave("u2", "p1")).toBe(false);
+    expect(transaction).not.toHaveBeenCalled();
   });
 
   it("throws ForbiddenPlanActionError for the creator and never deletes", async () => {
-    findUnique.mockResolvedValueOnce({ userId: "u1" });
+    findUnique.mockResolvedValueOnce(openPlan());
     await expect(createPrismaPlansStore().leave("u1", "p1")).rejects.toThrow(
       ForbiddenPlanActionError,
     );
-    expect(deleteMany).not.toHaveBeenCalled();
+    expect(transaction).not.toHaveBeenCalled();
   });
 
-  it("resolves false when the caller is not a member (count 0)", async () => {
-    findUnique.mockResolvedValueOnce({ userId: "u1" });
-    deleteMany.mockResolvedValueOnce({ count: 0 });
-    expect(await createPrismaPlansStore().leave("u2", "p1")).toBe(false);
-  });
-
-  it("removes only the caller's membership and resolves true (count 1)", async () => {
-    findUnique.mockResolvedValueOnce({ userId: "u1", titulo: "Cena" });
-    deleteMany.mockResolvedValueOnce({ count: 1 });
-    expect(await createPrismaPlansStore().leave("u2", "p1")).toBe(true);
+  it("removes the caller's votes and membership together and reports the removed votes", async () => {
+    findUnique.mockResolvedValueOnce(openPlan());
+    expect(await createPrismaPlansStore().leave("u2", "p1")).toEqual({ votesRemoved: 2 });
+    expect(voteDeleteMany).toHaveBeenCalledWith({ where: { planId: "p1", userId: "u2" } });
     expect(deleteMany).toHaveBeenCalledWith({ where: { planId: "p1", userId: "u2" } });
-  });
-
-  it("records a left activity only when a membership was removed", async () => {
-    record.mockClear();
-    findUnique.mockResolvedValueOnce({ userId: "u1", titulo: "Cena" });
-    deleteMany.mockResolvedValueOnce({ count: 0 });
-    await createPrismaPlansStore().leave("u2", "p1");
-    expect(record).not.toHaveBeenCalled();
-    findUnique.mockResolvedValueOnce({ userId: "u1", titulo: "Cena" });
-    deleteMany.mockResolvedValueOnce({ count: 1 });
-    await createPrismaPlansStore().leave("u2", "p1");
     expect(record).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ planId: "p1", userId: "u2", planTitle: "Cena", action: "left" }),
     );
+  });
+
+  it("blocks a participant who still owes money", async () => {
+    findUnique.mockResolvedValueOnce(openPlan());
+    balance.mockResolvedValueOnce(-4500);
+    await expect(createPrismaPlansStore().leave("u2", "p1")).rejects.toMatchObject({
+      reason: "deuda_pendiente",
+    });
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it("blocks leaving once the vote is closed", async () => {
+    findUnique.mockResolvedValueOnce({ ...openPlan(), votingClosedAt: new Date() });
+    await expect(createPrismaPlansStore().leave("u2", "p1")).rejects.toThrow(LeaveBlockedError);
+    expect(transaction).not.toHaveBeenCalled();
+    expect(record).not.toHaveBeenCalled();
   });
 });
 

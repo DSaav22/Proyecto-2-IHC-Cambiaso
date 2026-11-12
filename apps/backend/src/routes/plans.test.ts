@@ -20,6 +20,7 @@ import {
   AlreadyJoinedError,
   CreatorCannotJoinError,
   ForbiddenPlanActionError,
+  LeaveBlockedError,
   PlanNotFoundError,
 } from "./plans.js";
 
@@ -158,8 +159,11 @@ function createMemoryStore(): PlansStore {
       }
       const index = row.members.indexOf(userId);
       if (index === -1) return false;
+      if (row.estado === "confirmado") {
+        throw new LeaveBlockedError("plan_cerrado", "El plan ya se cerró, así que ya no puedes retirarte.");
+      }
       row.members.splice(index, 1);
-      return true;
+      return { votesRemoved: 0 };
     },
   };
 }
@@ -535,7 +539,7 @@ describe("plans router", () => {
         .post(`/api/plans/${planId}/leave`)
         .set("Cookie", cookieFor("u2"));
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ message: "Has abandonado el plan." });
+      expect(res.body).toEqual({ message: "Has abandonado el plan.", votesRemoved: 0 });
 
       const guestList = await request(app).get("/api/plans").set("Cookie", cookieFor("u2"));
       expect(guestList.body.plans).toHaveLength(0);
@@ -564,6 +568,20 @@ describe("plans router", () => {
 
       const ownerList = await request(app).get("/api/plans").set("Cookie", cookieFor("u1"));
       expect(ownerList.body.plans).toHaveLength(1);
+    });
+
+    it("answers 409 with the reason when leaving is blocked", async () => {
+      const planId = await createAndJoin();
+      await request(app).post(`/api/plans/${planId}/confirm`).set("Cookie", cookieFor("u1"));
+
+      const res = await request(app)
+        .post(`/api/plans/${planId}/leave`)
+        .set("Cookie", cookieFor("u2"));
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({
+        message: "El plan ya se cerró, así que ya no puedes retirarte.",
+        reason: "plan_cerrado",
+      });
     });
 
     it("answers 404 for a non-member and for a missing plan", async () => {

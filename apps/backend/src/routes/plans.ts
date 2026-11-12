@@ -30,6 +30,7 @@ import {
   AlreadyJoinedError,
   CreatorCannotJoinError,
   ForbiddenPlanActionError,
+  LeaveBlockedError,
   PlanNotFoundError,
 } from "../services/plans.service.js";
 
@@ -40,6 +41,7 @@ export {
   AlreadyJoinedError,
   CreatorCannotJoinError,
   ForbiddenPlanActionError,
+  LeaveBlockedError,
   PlanNotFoundError,
 };
 
@@ -272,10 +274,14 @@ export function createPlansRouter(
           res.status(404).json({ message: "Plan no encontrado" });
           return;
         }
-        res.status(200).json({ message: "Has abandonado el plan." });
+        res.status(200).json({ message: "Has abandonado el plan.", votesRemoved: left.votesRemoved });
       } catch (error) {
         if (error instanceof ForbiddenPlanActionError) {
           res.status(403).json({ message: error.message });
+          return;
+        }
+        if (error instanceof LeaveBlockedError) {
+          res.status(409).json({ message: error.message, reason: error.reason });
           return;
         }
         throw error;

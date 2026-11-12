@@ -11,7 +11,9 @@ import {
   EditBlockedError,
   type PlanState,
 } from "../lib/planState.js";
+import { leaveBlock, type LeaveBlockReason } from "../lib/leavePlan.js";
 import { recordActivity } from "./activity.service.js";
+import { getBalanceCents } from "./expenses.service.js";
 import { boliviaToday, type PlanDateFilter, type PlanInput } from "../lib/schemas.js";
 
 export class PlanNotFoundError extends Error {
@@ -39,6 +41,16 @@ export class ForbiddenPlanActionError extends Error {
   constructor(message = "Solo el creador puede realizar esta acción en el plan") {
     super(message);
     this.name = "ForbiddenPlanActionError";
+  }
+}
+
+export class LeaveBlockedError extends Error {
+  reason: LeaveBlockReason;
+
+  constructor(reason: LeaveBlockReason, message: string) {
+    super(message);
+    this.name = "LeaveBlockedError";
+    this.reason = reason;
   }
 }
 
@@ -176,10 +188,11 @@ export interface PlansStore {
    */
   delete(userId: string, planId: string): Promise<boolean>;
   /**
-   * Removes the caller's PlanMember row. Resolves `false` when the plan does not exist
-   * or the caller is not a member; throws ForbiddenPlanActionError for the creator.
+   * Removes the caller's membership and votes. Resolves `false` when the plan does not exist
+   * or the caller is not a member; throws ForbiddenPlanActionError for the creator and
+   * LeaveBlockedError when the plan is closed or the caller still owes money.
    */
-  leave(userId: string, planId: string): Promise<boolean>;
+  leave(userId: string, planId: string): Promise<false | { votesRemoved: number }>;
 }
 
 export function createPrismaPlansStore(): PlansStore {
@@ -450,21 +463,36 @@ export function createPrismaPlansStore(): PlansStore {
     leave: async (userId: string, planId: string) => {
       const plan = await prisma.plan.findUnique({
         where: { id: planId },
-        select: { userId: true, titulo: true },
+        select: {
+          userId: true,
+          titulo: true,
+          estado: true,
+          votingClosedAt: true,
+          members: { where: { userId }, select: { id: true } },
+        },
       });
       if (!plan) return false;
       if (plan.userId === userId) {
         throw new ForbiddenPlanActionError("El creador no puede abandonar su propio plan");
       }
-      const { count } = await prisma.planMember.deleteMany({ where: { planId, userId } });
-      if (count === 0) return false;
+      if (plan.members.length === 0) return false;
+
+      const planClosed = plan.votingClosedAt !== null || plan.estado === "confirmado";
+      const block = leaveBlock(planClosed, await getBalanceCents(userId, planId));
+      if (block) throw new LeaveBlockedError(block.reason, block.message);
+
+      // Removing the votes is what makes the tally go down for everyone else.
+      const [votes] = await prisma.$transaction([
+        prisma.planVote.deleteMany({ where: { planId, userId } }),
+        prisma.planMember.deleteMany({ where: { planId, userId } }),
+      ]);
       await recordActivity(prisma, {
         planId,
         userId,
         planTitle: plan.titulo,
         action: "left",
       });
-      return true;
+      return { votesRemoved: votes.count };
     },
   };
 }
