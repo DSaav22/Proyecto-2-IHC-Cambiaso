@@ -33,6 +33,10 @@ async function requireParticipant(planId: string, userId: string) {
         include: { user: { select: { id: true, name: true } } },
         orderBy: { joinedAt: "asc" },
       },
+      invitations: {
+        include: { user: { select: { id: true, name: true } } },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
   if (!plan) throw new CoordinationError(404, "Plan no encontrado");
@@ -49,7 +53,7 @@ function requireOpenVote(plan: { votingClosedAt: Date | null }) {
 }
 
 export async function getCoordination(userId: string, planId: string) {
-  const { plan } = await requireParticipant(planId, userId);
+  const { plan, isOwner } = await requireParticipant(planId, userId);
   const myVotes = await prisma.planVote.findMany({
     where: { planId, userId },
     select: { optionId: true },
@@ -79,6 +83,7 @@ export async function getCoordination(userId: string, planId: string) {
       { name: plan.user.name, role: "Creador" as const },
       ...plan.members.map((member) => ({ name: member.user.name, role: "Participante" as const })),
     ],
+    pendingInvites: isOwner ? plan.invitations.map((invitation) => ({ name: invitation.user.name })) : [],
     options: options.map((option) => ({
       id: option.id,
       kind: option.kind,
@@ -107,9 +112,12 @@ export async function inviteByEmail(userId: string, planId: string, rawEmail: st
   if (plan.members.some((member) => member.userId === person.id)) {
     throw new CoordinationError(409, "Esa persona ya está en el plan.");
   }
+  if (plan.invitations.some((invitation) => invitation.userId === person.id)) {
+    throw new CoordinationError(409, "Esa persona ya tiene una invitación pendiente.");
+  }
 
-  await prisma.planMember.create({
-    data: { planId, userId: person.id },
+  await prisma.planInvitation.create({
+    data: { planId, userId: person.id, invitedById: userId },
   });
   return getCoordination(userId, planId);
 }

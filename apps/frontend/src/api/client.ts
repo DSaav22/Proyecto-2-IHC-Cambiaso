@@ -181,7 +181,15 @@ export const api = {
   trackEvent: <E extends AnalyticsEventName>(event: E, props: AnalyticsEventProps[E]) =>
     post<{ ok: true }>("/analytics/events", { event, props }),
   getAnalyticsSummary: () => request<AnalyticsSummary>("/analytics/summary"),
+  listInvitations: () => request<PlanInvitation[]>("/invitations"),
+  acceptInvitation: (id: string) => post<Plan>(`/invitations/${id}/accept`),
+  declineInvitation: (id: string) => post<{ message: string }>(`/invitations/${id}/decline`),
 };
+
+export interface PlanInvitation {
+  id: string;
+  plan: { titulo: string; description: string; dueDate: string; ownerName: string };
+}
 
 type NoProps = Record<string, never>;
 
@@ -268,6 +276,8 @@ export interface CoordinationBoard {
     decidedBy: { id: string; name: string } | null;
   } | null;
   participants: { name: string; role: "Creador" | "Participante" }[];
+  /** Only filled for the owner; invited people aren't participants until they accept. */
+  pendingInvites: { name: string }[];
   options: {
     id: string;
     kind: string;

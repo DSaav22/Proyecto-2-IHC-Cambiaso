@@ -18,6 +18,8 @@ model User {
   updatedAt           DateTime       @updatedAt
   plans               Plan[]
   joinedPlans         PlanMember[]
+  invitations         PlanInvitation[] @relation("InvitedUser")
+  invitationsSent     PlanInvitation[] @relation("InvitationSender")
   activities          PlanActivity[]
   optionsCreated      PlanOption[]
   votes               PlanVote[]
@@ -49,6 +51,7 @@ model Plan {
   decisionMaker User? @relation("PlanDecisionMaker", fields: [decidedBy], references: [id], onDelete: SetNull)
   createdAt      DateTime       @default(now())
   members        PlanMember[]
+  invitations    PlanInvitation[]
   activities     PlanActivity[]
   options        PlanOption[]
   votes          PlanVote[]
@@ -65,6 +68,21 @@ model PlanMember {
   joinedAt DateTime @default(now())
   plan     Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, userId])
+  @@index([userId])
+}
+
+// Pending until the invited person accepts; only then a PlanMember is created.
+model PlanInvitation {
+  id          String   @id @default(uuid())
+  planId      String
+  userId      String
+  invitedById String
+  createdAt   DateTime @default(now())
+  plan        Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  user        User     @relation("InvitedUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy   User     @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: Cascade)
 
   @@unique([planId, userId])
   @@index([userId])

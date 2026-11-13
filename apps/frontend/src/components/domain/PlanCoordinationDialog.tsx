@@ -42,6 +42,7 @@ export function PlanCoordinationDialog({
   const { board, loading, error, pending, invite, propose, vote, unvote, decideVoting } =
     usePlanCoordination(planId, open);
   const [email, setEmail] = useState("");
+  const [invited, setInvited] = useState(false);
   const [kind, setKind] = useState<"fecha" | "lugar">("fecha");
   const [label, setLabel] = useState("");
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -60,8 +61,12 @@ export function PlanCoordinationDialog({
   async function onInvite(event: React.FormEvent) {
     event.preventDefault();
     const result = await invite(email);
+    setInvited(result.ok);
     if (result.ok) setEmail("");
   }
+
+  const pendingInvites = board?.pendingInvites ?? [];
+  const lastInvited = pendingInvites[pendingInvites.length - 1];
 
   async function onPropose(event: React.FormEvent, proposalKind: "fecha" | "lugar") {
     event.preventDefault();
@@ -122,6 +127,26 @@ export function PlanCoordinationDialog({
                   </li>
                 ))}
               </ul>
+              {isOwner && pendingInvites.length > 0 ? (
+                <>
+                  <h3 id="pending-invites-title" className="mt-2 text-sm font-semibold">
+                    Invitaciones pendientes
+                  </h3>
+                  <ul aria-labelledby="pending-invites-title" className="grid gap-1 text-sm">
+                    {pendingInvites.map((person) => (
+                      <li key={person.name}>
+                        {person.name}{" "}
+                        <span className="text-muted-foreground">(todavía no acepta)</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+              {isOwner && invited && lastInvited ? (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Invitación enviada a {lastInvited.name}. Tiene que aceptarla para entrar al plan.
+                </p>
+              ) : null}
               {isOwner ? (
                 <form onSubmit={onInvite} className="mt-1 flex flex-wrap items-end gap-2">
                   <div className="grid min-w-48 flex-1 gap-1">

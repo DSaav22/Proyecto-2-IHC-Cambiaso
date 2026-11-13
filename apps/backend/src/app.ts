@@ -4,6 +4,7 @@ import cors from "cors";
 import { config } from "./lib/config.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { authRouter } from "./routes/auth.js";
+import { createInvitationsRouter } from "./routes/invitations.js";
 import { createPlansRouter } from "./routes/plans.js";
 import { createPrismaActivityStore, type ActivityStore } from "./services/activity.service.js";
 import { createPrismaPlansStore, type PlansStore } from "./services/plans.service.js";
@@ -27,6 +28,7 @@ export function createApp(options: AppOptions = {}) {
   });
   app.use("/api/auth", authRouter);
   app.use("/api/analytics", requireAuth, createAnalyticsRouter());
+  app.use("/api/invitations", requireAuth, createInvitationsRouter());
   app.use(
     "/api/plans",
     requireAuth,

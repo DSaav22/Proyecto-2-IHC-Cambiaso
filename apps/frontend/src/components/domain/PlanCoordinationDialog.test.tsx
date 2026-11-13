@@ -35,6 +35,7 @@ function board(votes: Votes, votingClosed = false): CoordinationBoard {
       { name: "Usuario Uno", role: "Creador" },
       { name: "Usuario Dos", role: "Participante" },
     ],
+    pendingInvites: [],
     options: [
       { id: "park", kind: "lugar", label: "Parque central", authorName: "Usuario Uno", votes: votes.park[0], mine: votes.park[1] },
       { id: "house", kind: "lugar", label: "Casa de Ana", authorName: "Usuario Dos", votes: votes.house[0], mine: votes.house[1] },
@@ -61,6 +62,24 @@ describe("PlanCoordinationDialog", () => {
     vi.clearAllMocks();
     getCoordination.mockResolvedValue(board(noVotes));
     trackEvent.mockResolvedValue({ ok: true });
+  });
+
+  it("shows an invited person as pending, not as a participant", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.inviteToPlan).mockResolvedValue({
+      ...board(noVotes),
+      pendingInvites: [{ name: "Usuario Tres" }],
+    });
+    renderDialog();
+
+    await user.type(await screen.findByLabelText("Invitar por correo"), "usuario3@planazo.com");
+    await user.click(screen.getByRole("button", { name: "Invitar" }));
+
+    expect(await screen.findByRole("list", { name: "Invitaciones pendientes" })).toHaveTextContent(
+      "Usuario Tres",
+    );
+    expect(screen.getByText(/Invitación enviada a Usuario Tres/)).toBeInTheDocument();
+    expect(screen.queryByText("Usuario Tres (Participante)")).not.toBeInTheDocument();
   });
 
   it("lets a participant vote for two options", async () => {

@@ -9,8 +9,14 @@ const voteFindMany = vi.hoisted(() => vi.fn());
 const voteUpsert = vi.hoisted(() => vi.fn());
 const voteDeleteMany = vi.hoisted(() => vi.fn());
 const transaction = vi.hoisted(() => vi.fn());
+const userFindUnique = vi.hoisted(() => vi.fn());
+const invitationCreate = vi.hoisted(() => vi.fn());
+const memberCreate = vi.hoisted(() => vi.fn());
 vi.mock("../lib/prisma.js", () => ({
   prisma: {
+    user: { findUnique: userFindUnique },
+    planInvitation: { create: invitationCreate },
+    planMember: { create: memberCreate },
     plan: { findUnique: planFindUnique, update: planUpdate },
     planOption: { findMany: optionFindMany, findFirst: optionFindFirst, create: optionCreate },
     planVote: { findMany: voteFindMany, upsert: voteUpsert, deleteMany: voteDeleteMany },
@@ -25,14 +31,16 @@ import {
   CoordinationError,
   decideVoting,
   getCoordination,
+  inviteByEmail,
   removeVote,
 } from "./coordination.service.js";
 
 const OWNER = "owner-1";
 const MEMBER = "member-1";
+const GUEST = "guest-1";
 const PLAN = "plan-1";
 
-function storedPlan({ closed = false } = {}) {
+function storedPlan({ closed = false, invited = false } = {}) {
   return {
     id: PLAN,
     userId: OWNER,
@@ -44,6 +52,7 @@ function storedPlan({ closed = false } = {}) {
     decisionMaker: null,
     user: { id: OWNER, name: "Usuario Uno" },
     members: [{ userId: MEMBER, user: { id: MEMBER, name: "Usuario Dos" } }],
+    invitations: invited ? [{ userId: GUEST, user: { id: GUEST, name: "Usuario Tres" } }] : [],
   };
 }
 
@@ -101,6 +110,61 @@ describe("getCoordination", () => {
 
   it("hides the plan from people outside it", async () => {
     await expectCoordinationError(getCoordination("stranger", PLAN), 404, "Plan no encontrado");
+  });
+
+  it("shows pending invitations only to the owner", async () => {
+    planFindUnique.mockResolvedValue(storedPlan({ invited: true }));
+
+    expect((await getCoordination(OWNER, PLAN)).pendingInvites).toEqual([{ name: "Usuario Tres" }]);
+    expect((await getCoordination(MEMBER, PLAN)).pendingInvites).toEqual([]);
+  });
+
+  it("does not let an invited person in before accepting", async () => {
+    planFindUnique.mockResolvedValue(storedPlan({ invited: true }));
+    await expectCoordinationError(getCoordination(GUEST, PLAN), 404, "Plan no encontrado");
+  });
+});
+
+describe("inviteByEmail", () => {
+  it("creates a pending invitation instead of adding the person to the plan", async () => {
+    userFindUnique.mockResolvedValue({ id: GUEST });
+
+    await inviteByEmail(OWNER, PLAN, "tres@planazo.com");
+
+    expect(invitationCreate).toHaveBeenCalledWith({
+      data: { planId: PLAN, userId: GUEST, invitedById: OWNER },
+    });
+    expect(memberCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects someone who is already in the plan", async () => {
+    userFindUnique.mockResolvedValue({ id: MEMBER });
+    await expectCoordinationError(
+      inviteByEmail(OWNER, PLAN, "dos@planazo.com"),
+      409,
+      "Esa persona ya está en el plan.",
+    );
+    expect(invitationCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects a second invitation while the first one is pending", async () => {
+    planFindUnique.mockResolvedValue(storedPlan({ invited: true }));
+    userFindUnique.mockResolvedValue({ id: GUEST });
+    await expectCoordinationError(
+      inviteByEmail(OWNER, PLAN, "tres@planazo.com"),
+      409,
+      "Esa persona ya tiene una invitación pendiente.",
+    );
+    expect(invitationCreate).not.toHaveBeenCalled();
+  });
+
+  it("only lets the owner invite", async () => {
+    await expectCoordinationError(
+      inviteByEmail(MEMBER, PLAN, "tres@planazo.com"),
+      403,
+      "Solo quien creó el plan puede invitar.",
+    );
+    expect(invitationCreate).not.toHaveBeenCalled();
   });
 });
 

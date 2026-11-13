@@ -288,12 +288,15 @@ export function createPrismaPlansStore(): PlansStore {
       if (plan.members.length > 0) {
         throw new AlreadyJoinedError();
       }
-      await prisma.planMember.create({
-        data: {
-          planId: plan.id,
-          userId,
-        },
-      });
+      await prisma.$transaction([
+        prisma.planMember.create({
+          data: {
+            planId: plan.id,
+            userId,
+          },
+        }),
+        prisma.planInvitation.deleteMany({ where: { planId: plan.id, userId } }),
+      ]);
       await recordActivity(prisma, {
         planId: plan.id,
         userId,

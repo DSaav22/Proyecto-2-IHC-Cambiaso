@@ -11,10 +11,12 @@ const record = vi.hoisted(() => vi.fn());
 const voteDeleteMany = vi.hoisted(() => vi.fn());
 const transaction = vi.hoisted(() => vi.fn());
 const balance = vi.hoisted(() => vi.fn());
+const invitationDeleteMany = vi.hoisted(() => vi.fn());
 vi.mock("../lib/prisma.js", () => ({
   prisma: {
     plan: { findMany, findUnique, create: planCreate, update: planUpdate },
     planMember: { deleteMany, create: memberCreate, findUnique: memberFindUnique },
+    planInvitation: { deleteMany: invitationDeleteMany },
     planVote: { deleteMany: voteDeleteMany },
     $transaction: transaction,
   },
@@ -369,5 +371,11 @@ describe("createPrismaPlansStore activity logging", () => {
       expect.anything(),
       expect.objectContaining({ action: "joined", userId: "u2", planId: "p1" }),
     );
+  });
+
+  it("clears a pending invitation when the person joins with the code", async () => {
+    findUnique.mockResolvedValueOnce({ ...base, members: [] });
+    await createPrismaPlansStore().joinByCode("u2", "plz-aaaaaa");
+    expect(invitationDeleteMany).toHaveBeenCalledWith({ where: { planId: "p1", userId: "u2" } });
   });
 });

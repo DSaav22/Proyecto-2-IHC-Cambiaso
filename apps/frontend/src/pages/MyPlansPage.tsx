@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { CalendarClock, ListChecks, Plus, RotateCw, TriangleAlert, Users } from "lucide-react";
-import type { Plan, PlanInput } from "../api/client";
+import type { Plan, PlanInput, PlanInvitation } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,8 +31,10 @@ import {
   PLAN_SECTION_EMPTY_TEXT,
   withPlanSection,
 } from "../lib/planSections";
+import { PendingInvitations } from "../components/domain/PendingInvitations";
 import { PlanCoordinationDialog } from "../components/domain/PlanCoordinationDialog";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { useInvitations } from "../hooks/useInvitations";
 
 function filterKind({ query, status, dateRange }: PlanFilterCriteria) {
   const active = [query.trim() !== "", status !== "all", dateRange !== "all"];
@@ -65,6 +67,7 @@ export default function MyPlansPage() {
     deletePlan,
     leavePlan,
   } = usePlans(criteria);
+  const invitations = useInvitations();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
@@ -187,6 +190,24 @@ export default function MyPlansPage() {
     return result;
   }
 
+  async function handleAcceptInvitation(invitation: PlanInvitation) {
+    setNotice(null);
+    setActionError(null);
+    const result = await invitations.accept(invitation.id);
+    if (result.ok) {
+      setNotice(`Te uniste a «${invitation.plan.titulo}».`);
+      await reload();
+    } else setActionError(result.message);
+  }
+
+  async function handleDeclineInvitation(invitation: PlanInvitation) {
+    setNotice(null);
+    setActionError(null);
+    const result = await invitations.decline(invitation.id);
+    if (result.ok) setNotice(`Rechazaste la invitación a «${invitation.plan.titulo}».`);
+    else setActionError(result.message);
+  }
+
   async function handleLeave(id: string) {
     setNotice(null);
     setActionError(null);
@@ -261,6 +282,12 @@ export default function MyPlansPage() {
           </div>
         </div>
       ) : null}
+      <PendingInvitations
+        invitations={invitations.invitations}
+        pending={invitations.pending}
+        onAccept={(invitation) => void handleAcceptInvitation(invitation)}
+        onDecline={(invitation) => void handleDeclineInvitation(invitation)}
+      />
       <ErrorAlert message={loadError || actionError} />
       {loadError ? (
         <div>
