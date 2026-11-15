@@ -9,6 +9,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Clears the local session after the account was deleted on the server. */
+  clearUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -56,9 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const clearUser = useCallback(() => {
+    setUser(null);
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout],
+    () => ({ user, loading, login, register, logout, clearUser }),
+    [user, loading, login, register, logout, clearUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

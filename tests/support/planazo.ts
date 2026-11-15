@@ -80,6 +80,18 @@ export function collectEvents(page: Page): SentEvent[] {
   return sent;
 }
 
+// An invited person only joins the plan after accepting from "Mis planes".
+export async function acceptInvitation(page: Page, title: string) {
+  await page.goto("/mis-planes");
+  await page
+    .getByRole("region", { name: "Invitaciones pendientes" })
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: title, exact: true }) })
+    .getByRole("button", { name: "Unirme al plan" })
+    .click();
+  await expect(planCard(page, title)).toBeVisible();
+}
+
 export async function createPlan(page: Page, title: string, daysAhead = 7) {
   await page.getByRole("button", { name: "Nuevo plan" }).click();
 

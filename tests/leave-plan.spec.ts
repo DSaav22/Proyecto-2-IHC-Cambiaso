@@ -1,5 +1,5 @@
 import { test, expect, type Browser, type Page } from "@playwright/test";
-import { collectEvents, createPlan, planCard, signUpNewUser, uniqueName } from "./support/planazo";
+import { acceptInvitation, collectEvents, createPlan, planCard, signUpNewUser, uniqueName } from "./support/planazo";
 
 async function openCoordination(page: Page, title: string) {
   await planCard(page, title).getByRole("button", { name: "Fechas y lugares" }).click();
@@ -42,7 +42,7 @@ test("Quien se retira deja de sumar sus votos, y quien tiene deuda no puede reti
     for (const person of [beto.user, caro.user]) {
       await dialog.getByLabel("Invitar por correo").fill(person.email);
       await dialog.getByRole("button", { name: "Invitar" }).click();
-      await expect(dialog.getByText(person.name)).toBeVisible();
+      await expect(dialog.getByRole("list", { name: "Invitaciones pendientes" })).toContainText(person.name);
     }
     for (const place of ["Parque E2E", "Cine E2E"]) {
       const input = dialog.getByLabel("Lugar", { exact: true });
@@ -51,6 +51,11 @@ test("Quien se retira deja de sumar sus votos, y quien tiene deuda no puede reti
       await expect(dialog.getByText(`Lugar: ${place}`)).toBeVisible();
     }
     await page.keyboard.press("Escape");
+  });
+
+  await test.step("Beto y Caro aceptan la invitación", async () => {
+    await acceptInvitation(beto.page, title);
+    await acceptInvitation(caro.page, title);
   });
 
   await test.step("Beto vota por los dos lugares", async () => {

@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import RecoverPage from "./pages/RecoverPage";
 import MyPlansPage from "./pages/MyPlansPage";
+import MyDataPage from "./pages/MyDataPage";
 import ActivityHistoryPage from "./pages/ActivityHistoryPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 
@@ -20,6 +21,7 @@ export default function App() {
       <Route path="/recover/confirm" element={<RecoverPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/mis-planes" element={<MyPlansPage />} />
+        <Route path="/mis-datos" element={<MyDataPage />} />
         <Route path="/historial" element={<ActivityHistoryPage />} />
         {import.meta.env.DEV ? <Route path="/analitica" element={<AnalyticsPage />} /> : null}
       </Route>

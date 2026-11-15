@@ -21,6 +21,10 @@ const EVENTS = {
   plan_abandonado: z.object({ tenia_votos: z.boolean() }).strict(),
   retiro_bloqueado: reason(["deuda_pendiente", "plan_cerrado", "organizador"]),
   busqueda_sin_resultados: z.object({ filtro: z.enum(["texto", "estado", "fecha", "varios"]) }).strict(),
+  datos_descargados: z.object({ formato: z.enum(["json", "csv"]) }).strict(),
+  eliminacion_iniciada: none,
+  cuenta_eliminada: none,
+  eliminacion_bloqueada: reason(["planes_abiertos", "deuda_pendiente"]),
 };
 
 export type EventName = keyof typeof EVENTS;

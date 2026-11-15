@@ -14,6 +14,7 @@ export const FUNNELS: Funnel[] = [
     steps: ["gasto_iniciado", "gasto_registrado", "pago_registrado", "pago_confirmado"],
   },
   { flow: "Retirarse de un plan", steps: ["retiro_iniciado", "plan_abandonado"] },
+  { flow: "Eliminar cuenta", steps: ["eliminacion_iniciada", "cuenta_eliminada"] },
 ];
 
 export const ERROR_EVENTS: AnalyticsEventName[] = [
@@ -21,6 +22,7 @@ export const ERROR_EVENTS: AnalyticsEventName[] = [
   "gasto_rechazado",
   "retiro_bloqueado",
   "busqueda_sin_resultados",
+  "eliminacion_bloqueada",
 ];
 
 type Counts = Partial<Record<AnalyticsEventName, number>>;

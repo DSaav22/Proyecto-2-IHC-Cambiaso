@@ -37,4 +37,25 @@ describe("parseEvent", () => {
     ).toBeNull();
     expect(parseEvent({ event: "busqueda_sin_resultados", props: { filtro: "texto", q: "cena" } })).toBeNull();
   });
+
+  it("acepta los eventos de mis datos y salida honesta", () => {
+    expect(parseEvent({ event: "datos_descargados", props: { formato: "json" } })).toEqual({
+      event: "datos_descargados",
+      props: { formato: "json" },
+    });
+    expect(parseEvent({ event: "eliminacion_iniciada", props: {} })).toEqual({
+      event: "eliminacion_iniciada",
+      props: {},
+    });
+    expect(parseEvent({ event: "cuenta_eliminada", props: {} })).toEqual({
+      event: "cuenta_eliminada",
+      props: {},
+    });
+    expect(
+      parseEvent({ event: "eliminacion_bloqueada", props: { motivo: "deuda_pendiente" } }),
+    ).toEqual({
+      event: "eliminacion_bloqueada",
+      props: { motivo: "deuda_pendiente" },
+    });
+  });
 });

@@ -184,6 +184,9 @@ export const api = {
   listInvitations: () => request<PlanInvitation[]>("/invitations"),
   acceptInvitation: (id: string) => post<Plan>(`/invitations/${id}/accept`),
   declineInvitation: (id: string) => post<{ message: string }>(`/invitations/${id}/decline`),
+  getAccountData: () => request<AccountExport>("/account/data"),
+  getAccountCsv: () => fetch("/api/account/data?format=csv", { credentials: "include" }).then((r) => r.text()),
+  deleteAccount: () => del<{ message: string }>("/account"),
 };
 
 export interface PlanInvitation {
@@ -209,6 +212,17 @@ export interface AnalyticsEventProps {
   plan_abandonado: { tenia_votos: boolean };
   retiro_bloqueado: { motivo: "deuda_pendiente" | "plan_cerrado" | "organizador" };
   busqueda_sin_resultados: { filtro: "texto" | "estado" | "fecha" | "varios" };
+  datos_descargados: { formato: "json" | "csv" };
+  eliminacion_iniciada: NoProps;
+  cuenta_eliminada: NoProps;
+  eliminacion_bloqueada: { motivo: "planes_abiertos" | "deuda_pendiente" };
+}
+
+export interface AccountExport {
+  exportedAt: string;
+  user: { name: string; email: string; createdAt: string };
+  plansOwned: { titulo: string; estado: string; dueDate: string }[];
+  plansJoined: { titulo: string; estado: string; ownerName: string }[];
 }
 
 export type AnalyticsEventName = keyof AnalyticsEventProps;

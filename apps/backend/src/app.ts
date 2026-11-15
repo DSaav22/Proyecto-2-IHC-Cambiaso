@@ -2,6 +2,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { config } from "./lib/config.js";
+import { createAccountRouter } from "./routes/account.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { authRouter } from "./routes/auth.js";
 import { createInvitationsRouter } from "./routes/invitations.js";
@@ -27,6 +28,7 @@ export function createApp(options: AppOptions = {}) {
     res.status(200).json({ status: "ok" });
   });
   app.use("/api/auth", authRouter);
+  app.use("/api/account", requireAuth, createAccountRouter());
   app.use("/api/analytics", requireAuth, createAnalyticsRouter());
   app.use("/api/invitations", requireAuth, createInvitationsRouter());
   app.use(

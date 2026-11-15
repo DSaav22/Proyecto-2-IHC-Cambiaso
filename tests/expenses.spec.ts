@@ -1,5 +1,6 @@
 import { test, expect, type Browser, type Locator, type Page } from "@playwright/test";
 import {
+  acceptInvitation,
   collectEvents,
   createPlan,
   planCard,
@@ -15,10 +16,16 @@ async function invite(page: Page, planTitle: string, people: TestUser[]) {
   for (const person of people) {
     await dialog.getByLabel("Invitar por correo").fill(person.email);
     await dialog.getByRole("button", { name: "Invitar" }).click();
-    await expect(dialog.getByText(person.name)).toBeVisible();
+    await expect(dialog.getByRole("list", { name: "Invitaciones pendientes" })).toContainText(person.name);
   }
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
+}
+
+async function inviteAndAccept(page: Page, planTitle: string, people: { page: Page; user: TestUser }[]) {
+  await invite(page, planTitle, people.map((person) => person.user));
+  for (const person of people) await acceptInvitation(person.page, planTitle);
+  await page.reload();
 }
 
 async function openExpenses(page: Page, planTitle: string) {
@@ -95,7 +102,7 @@ test("Tres participantes, dos gastos y un pago pendiente que se confirma y actua
   const caro = await newParticipant(browser, "Caro");
   const ana = await signUpNewUser(page, "Ana");
   await createPlan(page, title);
-  await invite(page, title, [beto.user, caro.user]);
+  await inviteAndAccept(page, title, [beto, caro]);
   const anaEvents = collectEvents(page);
   const caroEvents = collectEvents(caro.page);
 
@@ -186,7 +193,7 @@ test("Restricciones: la división debe sumar el total, un solo pago pendiente, s
   const beto = await newParticipant(browser, "Beto");
   const ana = await signUpNewUser(page, "Ana");
   await createPlan(page, title);
-  await invite(page, title, [beto.user]);
+  await inviteAndAccept(page, title, [beto]);
   const anaEvents = collectEvents(page);
   const anaDialog = await openExpenses(page, title);
 

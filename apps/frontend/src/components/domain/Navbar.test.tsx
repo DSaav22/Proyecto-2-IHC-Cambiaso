@@ -31,8 +31,10 @@ describe("Navbar", () => {
     expect(screen.queryByRole("link", { name: "Mis planes" })).not.toBeInTheDocument();
   });
 
-  it("exposes the user name in the profile icon accessible name", () => {
+  it("links the profile to Mis datos", () => {
     renderNavbar({ name: "Ana Pérez" });
+    const profile = screen.getByRole("link", { name: "Mis datos de Ana Pérez" });
+    expect(profile).toHaveAttribute("href", "/mis-datos");
     expect(screen.getByRole("img", { name: "Perfil de Ana Pérez" })).toBeInTheDocument();
   });
 

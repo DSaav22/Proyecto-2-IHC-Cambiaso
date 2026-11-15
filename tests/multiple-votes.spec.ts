@@ -1,5 +1,5 @@
 import { test, expect, type Browser, type Page } from "@playwright/test";
-import { createPlan, planCard, signUpNewUser, uniqueName, type TestUser } from "./support/planazo";
+import { acceptInvitation, createPlan, planCard, signUpNewUser, uniqueName, type TestUser } from "./support/planazo";
 
 async function openCoordination(page: Page, planTitle: string) {
   await planCard(page, planTitle).getByRole("button", { name: "Fechas y lugares" }).click();
@@ -17,9 +17,9 @@ async function planWithGuest(page: Page, browser: Browser, title: string) {
   const ownerDialog = await openCoordination(page, title);
   await ownerDialog.getByLabel("Invitar por correo").fill(guest.email);
   await ownerDialog.getByRole("button", { name: "Invitar" }).click();
-  await expect(ownerDialog.getByText(guest.name)).toBeVisible();
+  await expect(ownerDialog.getByRole("list", { name: "Invitaciones pendientes" })).toContainText(guest.name);
 
-  await guestPage.reload();
+  await acceptInvitation(guestPage, title);
   return { guestPage, ownerDialog };
 }
 
