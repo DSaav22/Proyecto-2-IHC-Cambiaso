@@ -41,7 +41,7 @@ Repo, Figma, usuarios de prueba y video están en el fork.
 
 ### Enlaces a tener abiertos
 
-- App en la nube: _(pegar URL de despliegue)_  
+- App en la nube: https://public-banks-make.loca.lt  
 - Repo: https://github.com/DSaav22/Proyecto-2-IHC-Cambiaso  
 - Figma: https://www.figma.com/design/pBxjOBJbn05pgSRLh0fxrw  
 - Informe: `docs-cambiaso/informe-proyecto-2.md`

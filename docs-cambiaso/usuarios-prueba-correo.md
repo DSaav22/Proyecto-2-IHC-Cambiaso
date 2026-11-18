@@ -19,7 +19,8 @@ Rol invitado / segundo usuario
 - Contraseña: Planazo123!
 
 Repo: https://github.com/DSaav22/Proyecto-2-IHC-Cambiaso  
-App en la nube: _(pegar URL)_  
+App en la nube: https://public-banks-make.loca.lt  
+(Nota: túnel temporal; la PC con `pnpm dev` tiene que seguir encendida. La primera visita a loca.lt puede pedir un clic.)  
 Figma: https://www.figma.com/design/pBxjOBJbn05pgSRLh0fxrw
 
 Saludos,  

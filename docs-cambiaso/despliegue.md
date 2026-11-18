@@ -24,9 +24,17 @@ Tras migrar y sembrar (el seed **no** corre con `NODE_ENV=production`; en el ent
 | Organizador | usuario1@planazo.com | Planazo123! |
 | Invitado | usuario2@planazo.com | Planazo123! |
 
+## URL pública actual
+
+Túnel local (Docker + `pnpm dev` + localtunnel):
+
+https://public-banks-make.loca.lt
+
+La primera visita a localtunnel a veces pide un clic de confirmación. La PC tiene que seguir con Docker arriba.
+
 ## Checklist del docente
 
-- [ ] URL pública HTTPS
+- [x] URL pública HTTPS (túnel)
 - [ ] Login con usuario1 funciona
-- [ ] Hay planes/datos cargados
-- [ ] No pide permisos de cámara/ubicación al abrir
+- [x] Hay planes/datos cargados (seed)
+- [x] No pide permisos de cámara/ubicación al abrir
