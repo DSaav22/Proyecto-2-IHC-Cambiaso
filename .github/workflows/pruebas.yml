@@ -1,0 +1,132 @@
+name: pruebas
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  unitarias:
+    name: Unitarias + coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Activar pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Pruebas unitarias con coverage
+        run: pnpm test:coverage
+
+      - name: Cobertura del código del fork (diff-cover)
+        run: |
+          python3 -m pip install --quiet diff-cover
+          pnpm coverage:diff
+        continue-on-error: true
+
+      - name: Subir reportes de coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            apps/backend/coverage
+            apps/frontend/coverage
+            coverage
+
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: planazo
+          POSTGRES_PASSWORD: planazo
+          POSTGRES_DB: planazo_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U planazo -d planazo_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://planazo:planazo@localhost:5432/planazo_db?schema=public
+      JWT_SECRET: ci-secret-planazo
+      CLIENT_ORIGIN: http://localhost:5173
+      NODE_ENV: development
+      PORT: "3000"
+      VITE_API_PROXY_TARGET: http://localhost:3000
+      E2E_BASE_URL: http://localhost:5173
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Activar pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Generar Prisma Client y migrar
+        working-directory: apps/backend
+        run: |
+          pnpm exec prisma generate
+          pnpm exec prisma migrate deploy
+          pnpm exec prisma db seed
+
+      - name: Instalar navegadores de Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Levantar backend
+        working-directory: apps/backend
+        run: pnpm exec tsx src/server.ts &
+
+      - name: Levantar frontend
+        working-directory: apps/frontend
+        run: pnpm exec vite --host 127.0.0.1 --port 5173 &
+
+      - name: Esperar a que la app responda
+        run: |
+          for i in $(seq 1 90); do
+            if curl -sf http://127.0.0.1:3000/api/health >/dev/null \
+              && curl -sf http://127.0.0.1:5173/ >/dev/null; then
+              echo "API y frontend listos"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Timeout esperando API/frontend"
+          exit 1
+
+      - name: Pruebas E2E
+        run: pnpm exec playwright test
+
+      - name: Subir reporte Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          if-no-files-found: ignore

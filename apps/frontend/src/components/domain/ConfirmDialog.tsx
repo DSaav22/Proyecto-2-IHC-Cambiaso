@@ -63,7 +63,7 @@ export function ConfirmDialog({
               <Button
                 type="button"
                 variant={destructive ? "destructive" : "default"}
-                disabled={pending}
+                pending={pending}
                 onClick={(event) => {
                   // Keep the dialog open until the parent finishes the request.
                   event.preventDefault();

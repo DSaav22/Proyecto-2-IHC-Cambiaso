@@ -2,7 +2,13 @@
 
 Ayudar a un grupo a organizar un plan.
 
+[![pruebas](https://github.com/DSaav22/Proyecto-2-IHC-Cambiaso/actions/workflows/pruebas.yml/badge.svg)](https://github.com/DSaav22/Proyecto-2-IHC-Cambiaso/actions/workflows/pruebas.yml)
+
 Monorepo con `pnpm` workspaces: frontend React + Vite + Tailwind, backend Express + Prisma y PostgreSQL, todo orquestado con Docker Compose.
+
+- **Figma (sistema de diseño):** https://www.figma.com/design/pBxjOBJbn05pgSRLh0fxrw
+- **Informe / diapositivas / a11y:** [`docs-cambiaso/informe-proyecto-2.md`](docs-cambiaso/informe-proyecto-2.md) · [`docs-cambiaso/presentacion-final.md`](docs-cambiaso/presentacion-final.md) · [`docs-cambiaso/accesibilidad.md`](docs-cambiaso/accesibilidad.md) · [`docs-cambiaso/sistema-diseno.md`](docs-cambiaso/sistema-diseno.md)
+- **App en la nube:** _(URL del despliegue)_
 
 ## Requisitos previos
 
@@ -59,6 +65,19 @@ API (requiere cookie de sesión): `GET /api/plans/:id/coordination`, `POST /api/
 Pruebas unitarias (Vitest): `pnpm --filter backend test` y `pnpm --filter frontend test`.
 
 Pruebas E2E (Playwright): con la app corriendo en `http://localhost:5173`, ejecuta `pnpm test:e2e` (la primera vez hay que correr `pnpm exec playwright install chromium`). Con `--ui` se puede ver el navegador. Las pruebas están en `tests/`.
+
+### Coverage y diff-cover (código del fork)
+
+```bash
+pnpm test:coverage          # unitarias + lcov en apps/*/coverage y coverage/lcov.info
+pnpm coverage:diff          # diff-cover contra upstream/master (merge-base)
+```
+
+`diff-cover` cuenta solo las líneas agregadas en el fork (merge-base con `upstream/master`). El reporte HTML queda en `coverage/diff-cover.html`. En CI el workflow `pruebas` publica los artefactos `coverage` y `playwright-report`.
+
+Última medición local del código del fork: **56 %** de líneas tocadas cubiertas por unitarias (`pnpm test:coverage` + `pnpm coverage:diff`). Los flujos críticos (gastos, invitaciones, Mis datos, abandonar) están cubiertos además por E2E en `tests/`.
+
+Última ejecución de Actions: https://github.com/DSaav22/Proyecto-2-IHC-Cambiaso/actions/workflows/pruebas.yml
 
 ## Pruebas del estado del plan
 

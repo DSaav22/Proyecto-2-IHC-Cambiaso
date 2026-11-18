@@ -12,10 +12,12 @@ Captura de los botones distintos de Planazo (`apps/frontend/src/components/ui/bu
 
 ### Diferencias encontradas
 
-1. **Tono / relleno del texto:** la variante `destructive` usa `text-white` escrito a mano. Las demás variantes con relleno usan tokens (`primary-foreground`, `secondary-foreground`, `accent-foreground`).
-2. **Estado que falta:** existe `disabled` (opacidad) y foco (`focus-visible:ring-ring`), pero **no hay estado `loading`** (spinner / “Enviando”). El hover solo está en CSS, no como variante del componente.
+1. **Tono / relleno del texto:** la variante `destructive` usaba `text-white` escrito a mano. Las demás variantes con relleno usan tokens (`primary-foreground`, `secondary-foreground`, `accent-foreground`).
+2. **Estado que faltaba:** existía `disabled` (opacidad) y foco (`focus-visible:ring-ring`), pero no había estado `loading` / pending.
 
 Unificado: radio `rounded-lg` (8px) y alto táctil `min-h-11` (44px) en el size default.
+
+Después del inventario (ya fuera del corte de clase): `destructive` pasó a `text-destructive-foreground` y el Button acepta `pending` / `aria-busy`.
 
 ---
 

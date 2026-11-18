@@ -1,6 +1,6 @@
 /* Planazo design tokens: colors, typography and spacing only. Anything else lives in index.css. */
 
-/* Colors: teal brand, amber spark. */
+/* Colors: teal brand, amber spark. Named by use; same names in Figma. */
 :root {
   --background: #f2f8f7;
   --foreground: #0b2a2e;
@@ -15,6 +15,7 @@
   --accent: #fbbf24;
   --accent-foreground: #3b2504;
   --destructive: #be123c;
+  --destructive-foreground: #ffffff;
   --success: #166534;
   --warning: #b45309;
   --ink: #062b30;
@@ -22,6 +23,30 @@
   --border: #d0e2df;
   --input: #a9c5c1;
   --ring: #14b8a6;
+}
+
+[data-theme="oscuro"] {
+  --background: #062b30;
+  --foreground: #e6faf6;
+  --card: #0b3b39;
+  --card-foreground: #e6faf6;
+  --primary: #2dd4bf;
+  --primary-foreground: #062b30;
+  --secondary: #134e4a;
+  --secondary-foreground: #ccfbf1;
+  --muted: #115e59;
+  --muted-foreground: #99f6e4;
+  --accent: #fbbf24;
+  --accent-foreground: #3b2504;
+  --destructive: #fb7185;
+  --destructive-foreground: #062b30;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --ink: #e6faf6;
+  --ink-foreground: #062b30;
+  --border: #1f4a4f;
+  --input: #2dd4bf;
+  --ring: #5eead4;
 }
 
 @theme inline {
@@ -38,6 +63,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-ink: var(--ink);

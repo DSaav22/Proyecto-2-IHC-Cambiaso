@@ -16,7 +16,8 @@ const buttonVariants = cva(
           "border border-input bg-card text-foreground shadow-xs hover:border-primary/60 hover:bg-secondary/50",
         ghost: "text-foreground hover:bg-secondary/70",
         accent: "bg-accent text-accent-foreground shadow-sm hover:brightness-105",
-        destructive: "bg-destructive text-white hover:bg-destructive/90",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
@@ -32,11 +33,35 @@ const buttonVariants = cva(
 
 interface ButtonProps extends ComponentProps<"button">, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  pending?: boolean;
 }
 
-function Button({ className, variant, size, asChild = false, ...props }: ButtonProps) {
+function Button({
+  className,
+  variant,
+  size,
+  asChild = false,
+  pending = false,
+  disabled,
+  children,
+  ...props
+}: ButtonProps) {
   const Comp = asChild ? Slot.Root : "button";
-  return <Comp className={cn(buttonVariants({ variant, size }), className)} {...props} />;
+  return (
+    <Comp
+      className={cn(
+        buttonVariants({ variant, size }),
+        pending && "pointer-events-none opacity-80",
+        className,
+      )}
+      aria-busy={pending || undefined}
+      data-pending={pending ? "true" : undefined}
+      disabled={disabled || pending}
+      {...props}
+    >
+      {children}
+    </Comp>
+  );
 }
 
 export { Button, buttonVariants };
