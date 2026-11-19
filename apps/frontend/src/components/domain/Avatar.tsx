@@ -4,6 +4,8 @@ interface AvatarProps {
   label: string;
   name: string;
   className?: string;
+  /** When true, hides the avatar from the accessibility tree (e.g. inside a labelled link). */
+  decorative?: boolean;
 }
 
 function initialsOf(name: string): string {
@@ -15,11 +17,12 @@ function initialsOf(name: string): string {
     .join("");
 }
 
-export function Avatar({ label, name, className }: AvatarProps) {
+export function Avatar({ label, name, className, decorative = false }: AvatarProps) {
   return (
     <span
-      role="img"
-      aria-label={label}
+      role={decorative ? undefined : "img"}
+      aria-label={decorative ? undefined : label}
+      aria-hidden={decorative ? true : undefined}
       className={cn(
         "inline-flex size-9 shrink-0 select-none items-center justify-center rounded-full border bg-secondary text-xs font-bold text-secondary-foreground",
         className,
