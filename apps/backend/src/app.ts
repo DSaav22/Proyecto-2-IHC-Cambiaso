@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import express, { type NextFunction, type Request, type Response } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -15,6 +17,21 @@ import { requireAuth } from "./middleware/requireAuth.js";
 export interface AppOptions {
   plansStore?: PlansStore;
   activityStore?: ActivityStore;
+}
+
+function mountFrontend(app: express.Express): void {
+  const dist = config.frontendDist;
+  if (!dist || !fs.existsSync(dist)) {
+    app.use((_req, res) => {
+      res.status(404).json({ message: "Ruta no encontrada" });
+    });
+    return;
+  }
+
+  app.use(express.static(dist));
+  app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
+    res.sendFile(path.join(dist, "index.html"));
+  });
 }
 
 export function createApp(options: AppOptions = {}) {
@@ -40,9 +57,7 @@ export function createApp(options: AppOptions = {}) {
     ),
   );
 
-  app.use((_req, res) => {
-    res.status(404).json({ message: "Ruta no encontrada" });
-  });
+  mountFrontend(app);
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof SyntaxError && "body" in err) {

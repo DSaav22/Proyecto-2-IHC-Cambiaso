@@ -1,0 +1,28 @@
+# Blueprint for a temporary free Planazo demo on Render.
+# One web service serves API + SPA so session cookies stay same-origin.
+services:
+  - type: web
+    name: planazo
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_DIST
+        value: /app/apps/frontend/dist
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: planazo-db
+          property: connectionString
+
+databases:
+  - name: planazo-db
+    plan: free
+    postgresMajorVersion: "16"
+    region: oregon
