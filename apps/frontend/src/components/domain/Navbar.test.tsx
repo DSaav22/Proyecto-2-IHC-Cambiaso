@@ -35,9 +35,8 @@ describe("Navbar", () => {
     renderNavbar({ name: "Ana Pérez" });
     const profile = screen.getByRole("link", { name: "Mis datos de Ana Pérez" });
     expect(profile).toHaveAttribute("href", "/mis-datos");
-    expect(profile).toHaveTextContent("AP");
     expect(profile).toHaveTextContent("Ana Pérez");
-    expect(screen.queryByRole("img", { name: "Perfil de Ana Pérez" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /Perfil de/ })).not.toBeInTheDocument();
   });
 
   it("calls the logout handler on click", async () => {

@@ -36,7 +36,7 @@ describe("ProtectedRoute", () => {
     auth.value = { user: { name: "Ana" }, loading: false, logout: async () => {} };
     renderAt();
     expect(screen.getByText("Contenido protegido")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Perfil de Ana" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Mis datos de Ana" })).toHaveAttribute("href", "/mis-datos");
     expect(screen.getByRole("button", { name: "Cerrar sesión" })).toBeInTheDocument();
   });
 
@@ -48,5 +48,12 @@ describe("ProtectedRoute", () => {
     await userEvent.click(screen.getByRole("button", { name: "Cerrar sesión" }));
     expect(logout).toHaveBeenCalledTimes(1);
     expect(await screen.findByText("Pantalla de login")).toBeInTheDocument();
+  });
+
+  it("keeps the profile link labelled for Mis datos without an avatar img role", () => {
+    auth.value = { user: { name: "Ana" }, loading: false, logout: async () => {} };
+    renderAt();
+    expect(screen.getByRole("link", { name: "Mis datos de Ana" })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /Perfil de/ })).not.toBeInTheDocument();
   });
 });
