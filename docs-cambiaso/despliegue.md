@@ -2,39 +2,28 @@
 
 La app debe abrir sin pedir permisos y cargar con el usuario de prueba.
 
-## Opción recomendada (Docker Compose en un VPS / Azure VM)
+## URL pública actual (Render)
 
-1. Encender Docker Desktop (o un VM con Docker).
-2. Copiar `.env.example` a `.env` y fijar `JWT_SECRET` y SMTP si hace falta.
-3. En el host de la nube:
+https://planazo-yhcd.onrender.com
 
-```bash
-pnpm install
-pnpm dev
-```
+- Health: https://planazo-yhcd.onrender.com/api/health → `{"status":"ok"}`
+- Un solo servicio sirve API + SPA (cookies same-origin).
+- Blueprint: `render.yaml` · imagen: `Dockerfile`
+- El contenedor corre `prisma migrate deploy`, seed una vez con `NODE_ENV=development` y luego arranca en production.
 
-Para un corte estable, preferí un compose de producción (sin volúmenes de desarrollo) cuando el daemon Docker esté disponible.
+En el plan free, el primer request tras idle puede tardar ~30–60 s.
 
 ## Usuarios de prueba (seed)
-
-Tras migrar y sembrar (el seed **no** corre con `NODE_ENV=production`; en el entorno demo usá `NODE_ENV=development` o corrê el seed una vez a mano):
 
 | Rol | Correo | Contraseña |
 | --- | --- | --- |
 | Organizador | usuario1@planazo.com | Planazo123! |
 | Invitado | usuario2@planazo.com | Planazo123! |
 
-## URL pública actual
-
-Túnel local (Docker + `pnpm dev` + localtunnel):
-
-https://public-banks-make.loca.lt
-
-La primera visita a localtunnel a veces pide un clic de confirmación. La PC tiene que seguir con Docker arriba.
-
 ## Checklist del docente
 
-- [x] URL pública HTTPS (túnel)
-- [ ] Login con usuario1 funciona
-- [x] Hay planes/datos cargados (seed)
+- [x] URL pública HTTPS (Render)
+- [x] `/api/health` responde ok
+- [ ] Login con usuario1 funciona (verificar en el navegador)
+- [x] Hay planes/datos cargados (seed en el arranque del contenedor)
 - [x] No pide permisos de cámara/ubicación al abrir

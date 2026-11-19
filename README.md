@@ -8,7 +8,7 @@ Monorepo con `pnpm` workspaces: frontend React + Vite + Tailwind, backend Expres
 
 - **Figma (sistema de diseño):** https://www.figma.com/design/pBxjOBJbn05pgSRLh0fxrw
 - **Informe / diapositivas / a11y / video:** [`docs-cambiaso/informe-proyecto-2.md`](docs-cambiaso/informe-proyecto-2.md) · [`docs-cambiaso/presentacion/index.html`](docs-cambiaso/presentacion/index.html) · [`docs-cambiaso/presentacion-final.md`](docs-cambiaso/presentacion-final.md) · [`docs-cambiaso/accesibilidad.md`](docs-cambiaso/accesibilidad.md) · [`docs-cambiaso/video/planazo-demo.webm`](docs-cambiaso/video/planazo-demo.webm) · [`docs-cambiaso/sistema-diseno.md`](docs-cambiaso/sistema-diseno.md)
-- **App en la nube (túnel mientras la PC está encendida):** https://public-banks-make.loca.lt
+- **App en la nube (Render):** https://planazo-yhcd.onrender.com
 
 ## Requisitos previos
 

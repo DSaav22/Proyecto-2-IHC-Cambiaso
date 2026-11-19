@@ -72,4 +72,5 @@ Modalidad declarada: **sin IA** en las evidencias de clase. El código del fork 
 - Coverage + `diff-cover` del código del fork: ver README
 - GitHub Actions: `.github/workflows/pruebas.yml`
 - Accesibilidad: [accesibilidad.md](accesibilidad.md)
+- App en la nube: https://planazo-yhcd.onrender.com ([despliegue.md](despliegue.md))
 - Usuarios de prueba (seed): `usuario1@planazo.com` / `usuario2@planazo.com` · `Planazo123!`
