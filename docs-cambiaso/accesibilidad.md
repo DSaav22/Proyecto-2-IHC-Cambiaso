@@ -37,7 +37,29 @@ pnpm test:e2e tests/accessibility.spec.ts
 | Verde de éxito demasiado claro en tarjetas canceladas (Tarea 6) | `success` oscurecido a `#166534` |
 | Controles táctiles | Alto mínimo `min-h-11` (44px) en el Button default |
 
+## Lighthouse (18/11/2026)
+
+Comando:
+
+```bash
+npx lighthouse http://127.0.0.1:5173/login --only-categories=accessibility --chrome-flags="--headless" --output=html --output=json --output-path=docs-cambiaso/evidencias/lighthouse-login
+```
+
+| Pantalla | Categoría | Score |
+| --- | --- | ---: |
+| Login (`/login`) | Accessibility | **100** |
+
+Reportes:
+
+- HTML: [`evidencias/lighthouse-login.report.html`](evidencias/lighthouse-login.report.html)
+- JSON: [`evidencias/lighthouse-login.report.json`](evidencias/lighthouse-login.report.json)
+
+### Interpretación
+
+- Score 100 en accesibilidad: contraste, nombres, labels y jerarquía pasan en Login.
+- Coherente con axe E2E (Login / Registro / Mis planes / Fechas y lugares) y con la corrección del link de perfil.
+- WAVE: opcional; el reporte Lighthouse + axe cubren el requisito de “reporte interpretado”.
+
 ## Pendiente consciente
 
 - El tema `data-theme="oscuro"` está definido en tokens; la app aún no expone un interruptor en la UI.
-- No se usó el panel web de Lighthouse/WAVE en esta entrega: la evidencia automática es axe en CI/E2E, que cubre las mismas reglas AA de contraste y nombre accesible.

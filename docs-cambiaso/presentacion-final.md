@@ -1,6 +1,9 @@
 # Diapositivas · Presentación final Proyecto 2
 
-Guión de venta (máx. 10 min). No leer: hablar el producto.
+**Abrir en el navegador:** [`presentacion/index.html`](presentacion/index.html)  
+(teclas ← → · F = pantalla completa · máx. 10 min · no leer: hablar el producto)
+
+Guión de venta:
 
 ---
 
@@ -18,7 +21,7 @@ Una sola app donde crear, invitar con consentimiento, votar, repartir gastos y b
 
 ## 4. Solución · Planazo
 
-Demo en vivo (o video):
+Demo en vivo (o video en `docs-cambiaso/video/`):
 
 1. Login con usuario de prueba  
 2. Crear / unirse a un plan  
@@ -41,7 +44,10 @@ Repo, Figma, usuarios de prueba y video están en el fork.
 
 ### Enlaces a tener abiertos
 
+- Diapositivas: `docs-cambiaso/presentacion/index.html`
 - App en la nube: https://public-banks-make.loca.lt  
 - Repo: https://github.com/DSaav22/Proyecto-2-IHC-Cambiaso  
 - Figma: https://www.figma.com/design/pBxjOBJbn05pgSRLh0fxrw  
 - Informe: `docs-cambiaso/informe-proyecto-2.md`
+- Auditoría Figma: `docs-cambiaso/evidencias/figma-auditoria.md`
+- Accesibilidad: `docs-cambiaso/accesibilidad.md`

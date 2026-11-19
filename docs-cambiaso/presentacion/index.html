@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Planazo · Presentación final</title>
+  <style>
+    :root {
+      --bg: #f2f8f7;
+      --fg: #0b2a2e;
+      --primary: #0f766e;
+      --primary-fg: #ffffff;
+      --muted: #46666a;
+      --card: #ffffff;
+      --accent: #fbbf24;
+      --border: #d0e2df;
+      --ink: #062b30;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    .deck {
+      height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+      background:
+        radial-gradient(ellipse at top right, rgba(15, 118, 110, 0.12), transparent 50%),
+        radial-gradient(ellipse at bottom left, rgba(251, 191, 36, 0.1), transparent 45%),
+        var(--bg);
+    }
+    .slide {
+      display: none;
+      width: min(1100px, 100%);
+      min-height: min(70vh, 640px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 3rem 3.5rem;
+      box-shadow: 0 24px 60px rgba(6, 43, 48, 0.08);
+      flex-direction: column;
+      justify-content: center;
+      gap: 1.25rem;
+    }
+    .slide.active { display: flex; }
+    .brand {
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--primary);
+      font-weight: 700;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      line-height: 1.1;
+      color: var(--ink);
+    }
+    h2 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      color: var(--ink);
+    }
+    p, li {
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      line-height: 1.45;
+      color: var(--muted);
+      margin: 0;
+    }
+    ul {
+      margin: 0;
+      padding-left: 1.2rem;
+      display: grid;
+      gap: 0.65rem;
+    }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      padding: 0.85rem 1.4rem;
+      border-radius: 12px;
+      background: var(--primary);
+      color: var(--primary-fg);
+      font-weight: 700;
+      text-decoration: none;
+      width: fit-content;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+    .chip {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1rem 1.1rem;
+      background: #f7fbfa;
+    }
+    .chip strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 0.35rem;
+      font-size: 1.05rem;
+    }
+    .chip span { color: var(--muted); font-size: 0.98rem; }
+    .footer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 1.5rem;
+      background: rgba(242, 248, 247, 0.92);
+      border-top: 1px solid var(--border);
+      font-size: 0.9rem;
+      color: var(--muted);
+      backdrop-filter: blur(8px);
+    }
+    .footer button {
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--fg);
+      border-radius: 10px;
+      padding: 0.45rem 0.9rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .footer button:hover { border-color: var(--primary); color: var(--primary); }
+    .links a {
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .accent { color: var(--primary); }
+    .kicker {
+      display: inline-block;
+      background: rgba(251, 191, 36, 0.25);
+      color: #3b2504;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" id="deck">
+    <section class="slide active" data-step="1">
+      <div class="brand">Planazo · Proyecto 2 IHC</div>
+      <h1>El grupo organiza el plan<br /><span class="accent">sin engañar a nadie.</span></h1>
+      <p>Presentación final · 10 minutos · demo + defensa de código</p>
+      <a class="cta" href="https://github.com/DSaav22/Proyecto-2-IHC-Cambiaso" target="_blank" rel="noreferrer">Ver repositorio →</a>
+    </section>
+
+    <section class="slide" data-step="2">
+      <span class="kicker">1 · Problema</span>
+      <h2>El plan se cae en el chat</h2>
+      <ul>
+        <li>Nadie sabe qué fecha quedó votada.</li>
+        <li>No está claro quién debe plata.</li>
+        <li>Salir del plan o de la cuenta se vuelve confuso o tramposo.</li>
+      </ul>
+    </section>
+
+    <section class="slide" data-step="3">
+      <span class="kicker">2 · Usuario</span>
+      <h2>Amigos y compañeros con planes cortos</h2>
+      <p>Necesitan el mismo estado compartido: crear, invitar, votar, repartir gastos y poder irse sin trampas.</p>
+    </section>
+
+    <section class="slide" data-step="4">
+      <span class="kicker">3 · Oportunidad</span>
+      <h2>Una sola app con entrada y salida honestas</h2>
+      <p>Crear, invitar con consentimiento, votar, repartir gastos y borrar la cuenta tiene que ser tan claro como entrar.</p>
+    </section>
+
+    <section class="slide" data-step="5">
+      <span class="kicker">4 · Solución</span>
+      <h2>Planazo</h2>
+      <div class="grid">
+        <div class="chip"><strong>1. Login</strong><span>Usuario de prueba con datos</span></div>
+        <div class="chip"><strong>2. Plan</strong><span>Crear o unirse con código</span></div>
+        <div class="chip"><strong>3. Invitar</strong><span>El otro acepta (consentimiento)</span></div>
+        <div class="chip"><strong>4. Coordinar</strong><span>Fechas, lugares y gastos</span></div>
+        <div class="chip"><strong>5. Mis datos</strong><span>Descargar / eliminar con regla</span></div>
+      </div>
+      <p>Acá va la demo en vivo o el video.</p>
+    </section>
+
+    <section class="slide" data-step="6">
+      <span class="kicker">5 · Valor</span>
+      <h2>Por qué confiar en Planazo</h2>
+      <ul>
+        <li>Estado visible: pendiente / confirmado / cancelado.</li>
+        <li>Privacidad por defecto al invitar.</li>
+        <li>Salida honesta: abandonar y eliminar cuenta.</li>
+        <li>Tokens = mismos nombres en Figma y código.</li>
+        <li>E2E + GitHub Actions en verde.</li>
+      </ul>
+    </section>
+
+    <section class="slide" data-step="7">
+      <span class="kicker">6 · Cierre</span>
+      <h2>Planazo deja el grupo alineado</h2>
+      <p>Sin chats perdidos. Sin sumar gente sin permiso. Sin culpar al salir.</p>
+      <div class="links">
+        <p><a href="https://github.com/DSaav22/Proyecto-2-IHC-Cambiaso" target="_blank" rel="noreferrer">Repo</a> ·
+        <a href="https://www.figma.com/design/pBxjOBJbn05pgSRLh0fxrw" target="_blank" rel="noreferrer">Figma</a> ·
+        <a href="https://public-banks-make.loca.lt" target="_blank" rel="noreferrer">App</a></p>
+        <p>Usuarios: <strong>usuario1@planazo.com</strong> / <strong>Planazo123!</strong></p>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer">
+    <div>
+      <button type="button" id="prev">← Anterior</button>
+      <button type="button" id="next">Siguiente →</button>
+    </div>
+    <div id="counter">1 / 7</div>
+    <div>← → o clic · F para pantalla completa</div>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll(".slide")];
+    let i = 0;
+    const counter = document.getElementById("counter");
+    function show(n) {
+      i = (n + slides.length) % slides.length;
+      slides.forEach((s, idx) => s.classList.toggle("active", idx === i));
+      counter.textContent = `${i + 1} / ${slides.length}`;
+    }
+    document.getElementById("prev").onclick = () => show(i - 1);
+    document.getElementById("next").onclick = () => show(i + 1);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); show(i + 1); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); show(i - 1); }
+      if (e.key === "f" || e.key === "F") {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+      }
+    });
+  </script>
+</body>
+</html>
